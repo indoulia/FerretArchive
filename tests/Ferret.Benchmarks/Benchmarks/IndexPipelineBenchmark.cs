@@ -58,7 +58,7 @@ public class IndexPipelineBenchmark : IDisposable
     public async Task SetupAsync()
     {
         // 1. Create temp directory with 10 000 fake .cs files, each exactly 200 chars
-        _tempDir = Path.Combine(Path.GetTempPath(), $"ferret-bench-idx-{Guid.NewGuid():N}");
+        _tempDir = Path.Join(Path.GetTempPath(), $"ferret-bench-idx-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
 
         var paddedContent = "public class C { public void M() { } } "
@@ -67,7 +67,7 @@ public class IndexPipelineBenchmark : IDisposable
         for (var i = 0; i < FileCount; i++)
         {
             await File.WriteAllTextAsync(
-                Path.Combine(_tempDir, $"File{i:D5}.cs"),
+                Path.Join(_tempDir, $"File{i:D5}.cs"),
                 paddedContent);
         }
 
@@ -95,7 +95,7 @@ public class IndexPipelineBenchmark : IDisposable
         var parserDispatcher = new ParserDispatcher(parserRegistry);
 
         // 5. Build SQLite index engine backed by a file-based SQLite database in the temp directory
-        var dbPath = Path.Combine(_tempDir, "bench-index.db");
+        var dbPath = Path.Join(_tempDir, "bench-index.db");
         _indexEngine = new SqliteKeywordIndexEngine(dbPath);
 
         _pipeline = new IndexPipeline(

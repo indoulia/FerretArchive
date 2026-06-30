@@ -21,7 +21,7 @@ public sealed class FerretIgnoreProviderTests
     public void ShouldIgnore_Returns_False_For_Non_Filesystem_Uri()
     {
         using var dir = new TempDirectory();
-        File.WriteAllText(Path.Combine(dir.Path, ".ferretignore"), "*.log\n");
+        File.WriteAllText(Path.Join(dir.Path, ".ferretignore"), "*.log\n");
         var provider = new FerretIgnoreProvider(dir.Path);
         var asset = MakeAsset(new Uri("jira:///PROJ-1"));
 
@@ -32,7 +32,7 @@ public sealed class FerretIgnoreProviderTests
     public void ShouldIgnore_Returns_True_For_Matching_Pattern()
     {
         using var dir = new TempDirectory();
-        File.WriteAllText(Path.Combine(dir.Path, ".ferretignore"), "*.log\n");
+        File.WriteAllText(Path.Join(dir.Path, ".ferretignore"), "*.log\n");
         var provider = new FerretIgnoreProvider(dir.Path);
 
         Assert.True(provider.ShouldIgnore(MakeAsset(new Uri("filesystem:///debug.log"))));
@@ -43,7 +43,7 @@ public sealed class FerretIgnoreProviderTests
     public void ShouldIgnore_Ignores_Comment_Lines()
     {
         using var dir = new TempDirectory();
-        File.WriteAllText(Path.Combine(dir.Path, ".ferretignore"), "# comment\n*.tmp\n");
+        File.WriteAllText(Path.Join(dir.Path, ".ferretignore"), "# comment\n*.tmp\n");
         var provider = new FerretIgnoreProvider(dir.Path);
 
         Assert.False(provider.ShouldIgnore(MakeAsset(new Uri("filesystem:///readme.md"))));
@@ -54,7 +54,7 @@ public sealed class FerretIgnoreProviderTests
     public void ShouldIgnore_DoubleGlob_Pattern_Matches_Nested_Path()
     {
         using var dir = new TempDirectory();
-        File.WriteAllText(Path.Combine(dir.Path, ".ferretignore"), "**/bin\n");
+        File.WriteAllText(Path.Join(dir.Path, ".ferretignore"), "**/bin\n");
         var provider = new FerretIgnoreProvider(dir.Path);
 
         Assert.True(provider.ShouldIgnore(MakeAsset(new Uri("filesystem:///src/MyLib/bin"))));

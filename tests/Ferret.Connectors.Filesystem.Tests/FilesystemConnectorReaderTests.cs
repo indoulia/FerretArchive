@@ -27,7 +27,7 @@ public sealed class FilesystemConnectorReaderTests
         using var tmp = new TempDirectory();
         var expected = "Hello from the filesystem connector reader.";
         var fileName = "test.txt";
-        var filePath = Path.Combine(tmp.Path, fileName);
+        var filePath = Path.Join(tmp.Path, fileName);
         await File.WriteAllTextAsync(filePath, expected);
 
         var connector = MakeConnector(tmp.Path);
@@ -73,7 +73,7 @@ public sealed class FilesystemConnectorReaderTests
     {
         using var tmp = new TempDirectory();
         var fileName = "file.txt";
-        await File.WriteAllTextAsync(Path.Combine(tmp.Path, fileName), "content");
+        await File.WriteAllTextAsync(Path.Join(tmp.Path, fileName), "content");
 
         var connector = MakeConnector(tmp.Path);
         var assets = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();

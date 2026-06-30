@@ -84,14 +84,14 @@ public sealed class WorkspaceContextTests
     [Fact]
     public void IndexLayout_Constants_Combine_To_Correct_Relative_Path()
     {
-        var relative = Path.Combine(
+        var relative = Path.Join(
             WorkspaceLayout.RootDirectoryName,
             IndexLayout.IndexDirectoryName,
             IndexLayout.KeywordDirectoryName,
             IndexLayout.KeywordDatabaseFileName);
 
         Assert.Equal(
-            Path.Combine(".ferret", "indexes", "keyword", "keyword-index.db"),
+            Path.Join(".ferret", "indexes", "keyword", "keyword-index.db"),
             relative);
     }
 

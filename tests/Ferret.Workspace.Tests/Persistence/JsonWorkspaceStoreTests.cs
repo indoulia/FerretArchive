@@ -70,5 +70,5 @@ public sealed class JsonWorkspaceStoreTests : IDisposable
     }
 
     private void CreateFerretDir() =>
-        Directory.CreateDirectory(System.IO.Path.Combine(_dir.Path, WorkspaceLayout.RootDirectoryName));
+        Directory.CreateDirectory(System.IO.Path.Join(_dir.Path, WorkspaceLayout.RootDirectoryName));
 }

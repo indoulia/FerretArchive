@@ -47,6 +47,7 @@ internal sealed class StartCommandHandler : ICommandHandler
         }
         catch (OperationCanceledException)
         {
+            // Expected on Ctrl+C / shutdown; fall through to stop the runtime.
         }
         finally
         {

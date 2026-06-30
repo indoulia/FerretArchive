@@ -44,7 +44,7 @@ public sealed class WorkspacePath : IEquatable<WorkspacePath>
     /// <returns>A new <see cref="WorkspacePath"/> with the combined path.</returns>
     public WorkspacePath Combine(string relative)
     {
-        return new WorkspacePath(Path.Combine(FullPath, relative));
+        return new WorkspacePath(Path.Join(FullPath, relative));
     }
 
     /// <summary>Returns <see langword="true"/> if this path is located under <paramref name="parent"/>.</summary>

@@ -15,7 +15,7 @@ public sealed class FilesystemConnectorMediaTypeTests
     public async Task DiscoverAsync_Sets_MediaType_On_File_Assets(string fileName, string expectedMediaType)
     {
         using var dir = new TempDirectory();
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, fileName), "content");
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, fileName), "content");
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
@@ -28,7 +28,7 @@ public sealed class FilesystemConnectorMediaTypeTests
     public async Task DiscoverAsync_Sets_Null_MediaType_On_Directory_Assets()
     {
         using var dir = new TempDirectory();
-        Directory.CreateDirectory(System.IO.Path.Combine(dir.Path, "subdir"));
+        Directory.CreateDirectory(System.IO.Path.Join(dir.Path, "subdir"));
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
@@ -41,7 +41,7 @@ public sealed class FilesystemConnectorMediaTypeTests
     public async Task DiscoverAsync_Sets_OctetStream_For_Unknown_Extension()
     {
         using var dir = new TempDirectory();
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "data.xyz"), "content");
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "data.xyz"), "content");
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();

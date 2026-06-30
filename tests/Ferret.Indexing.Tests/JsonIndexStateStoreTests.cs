@@ -9,7 +9,7 @@ public sealed class JsonIndexStateStoreTests : IAsyncDisposable
 
     public JsonIndexStateStoreTests()
     {
-        _filePath = Path.Combine(Path.GetTempPath(), $"ferret-state-test-{Guid.NewGuid():N}.json");
+        _filePath = Path.Join(Path.GetTempPath(), $"ferret-state-test-{Guid.NewGuid():N}.json");
         _store = new JsonIndexStateStore(_filePath);
     }
 

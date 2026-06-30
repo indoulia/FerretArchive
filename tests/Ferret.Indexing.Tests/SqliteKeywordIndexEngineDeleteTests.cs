@@ -15,7 +15,7 @@ public sealed class SqliteKeywordIndexEngineDeleteTests : IDisposable
 
     public SqliteKeywordIndexEngineDeleteTests()
     {
-        _dbPath = Path.Combine(Path.GetTempPath(), $"ferret-delete-test-{Guid.NewGuid():N}.db");
+        _dbPath = Path.Join(Path.GetTempPath(), $"ferret-delete-test-{Guid.NewGuid():N}.db");
         _engine = new SqliteKeywordIndexEngine(_dbPath);
     }
 

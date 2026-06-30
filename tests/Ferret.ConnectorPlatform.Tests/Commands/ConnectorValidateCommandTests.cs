@@ -17,7 +17,7 @@ public sealed class ConnectorValidateCommandTests : IDisposable
     /// <summary>Initializes a new instance of the <see cref="ConnectorValidateCommandTests"/> class.</summary>
     public ConnectorValidateCommandTests()
     {
-        _tmpDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        _tmpDir = Path.Join(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(_tmpDir);
         _root = WorkspacePath.Create(_tmpDir);
         _store = new ConnectorInstanceStore();

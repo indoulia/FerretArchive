@@ -25,17 +25,6 @@ public static class ContextDeduplicator
             return [];
         }
 
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        var result = new List<SearchHit>(hits.Count);
-
-        foreach (var hit in hits)
-        {
-            if (seen.Add(hit.DocumentId.Value))
-            {
-                result.Add(hit);
-            }
-        }
-
-        return result;
+        return hits.DistinctBy(hit => hit.DocumentId.Value, StringComparer.Ordinal).ToList();
     }
 }

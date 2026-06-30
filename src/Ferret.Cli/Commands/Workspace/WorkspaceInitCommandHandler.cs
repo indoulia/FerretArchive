@@ -23,7 +23,7 @@ internal sealed class WorkspaceInitCommandHandler : ICommandHandler
         var result = await _engine.InitialiseAsync(rootPath, ct: context.CancellationToken).ConfigureAwait(false);
 
         var view = result.Succeeded
-            ? new WorkspaceInitView(true, rootPath.FullPath, System.IO.Path.Combine(rootPath.FullPath, ".ferret"), null)
+            ? new WorkspaceInitView(true, rootPath.FullPath, System.IO.Path.Join(rootPath.FullPath, ".ferret"), null)
             : new WorkspaceInitView(false, null, null, result.ErrorMessage);
 
         _formatter.Format(view, context.Services.Output);

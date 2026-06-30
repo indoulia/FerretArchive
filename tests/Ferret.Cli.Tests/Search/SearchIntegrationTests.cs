@@ -28,10 +28,10 @@ public sealed class SearchIntegrationTests : IDisposable
     /// <summary>Initializes a new instance of the <see cref="SearchIntegrationTests"/> class.</summary>
     public SearchIntegrationTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"ferret-e2e-{Guid.NewGuid():N}");
-        var indexDir = Path.Combine(_tempRoot, ".ferret", "indexes", "keyword");
+        _tempRoot = Path.Join(Path.GetTempPath(), $"ferret-e2e-{Guid.NewGuid():N}");
+        var indexDir = Path.Join(_tempRoot, ".ferret", "indexes", "keyword");
         Directory.CreateDirectory(indexDir);
-        var dbPath = Path.Combine(indexDir, "keyword-index.db");
+        var dbPath = Path.Join(indexDir, "keyword-index.db");
 
         SeedDatabase(dbPath);
 

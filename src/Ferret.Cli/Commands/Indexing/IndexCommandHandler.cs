@@ -50,7 +50,7 @@ internal sealed class IndexCommandHandler : ICommandHandler
                 options,
                 context.CancellationToken).ConfigureAwait(false);
 
-            var dbPath = Path.Combine(
+            var dbPath = Path.Join(
                 _workspaceContext.WorkspaceRoot.FullPath,
                 WorkspaceLayout.RootDirectoryName,
                 IndexLayout.IndexDirectoryName,

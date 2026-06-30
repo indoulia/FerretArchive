@@ -64,8 +64,8 @@ internal sealed class JsonWorkspaceStore
     }
 
     private static string ManifestPath(WorkspacePath rootPath) =>
-        Path.Combine(rootPath.FullPath, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.ManifestFileName);
+        Path.Join(rootPath.FullPath, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.ManifestFileName);
 
     private static string StatePath(WorkspacePath rootPath) =>
-        Path.Combine(rootPath.FullPath, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.StateFileName);
+        Path.Join(rootPath.FullPath, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.StateFileName);
 }

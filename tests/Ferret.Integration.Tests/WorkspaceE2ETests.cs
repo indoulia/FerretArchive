@@ -5,7 +5,7 @@ namespace Ferret.Integration.Tests;
 
 public sealed class WorkspaceE2ETests : IDisposable
 {
-    private readonly string _tempDir = Path.Combine(
+    private readonly string _tempDir = Path.Join(
         Path.GetTempPath(),
         "ferret-e2e-" + Guid.NewGuid().ToString("N")[..8]);
 
@@ -36,10 +36,10 @@ public sealed class WorkspaceE2ETests : IDisposable
 
             Assert.Equal(0, exitCode);
             Assert.True(
-                File.Exists(Path.Combine(_tempDir, ".ferret", "workspace.json")),
+                File.Exists(Path.Join(_tempDir, ".ferret", "workspace.json")),
                 "workspace.json must exist after init");
             Assert.True(
-                File.Exists(Path.Combine(_tempDir, ".ferret", "state.json")),
+                File.Exists(Path.Join(_tempDir, ".ferret", "state.json")),
                 "state.json must exist after init");
         }
         finally
@@ -56,13 +56,13 @@ public sealed class WorkspaceE2ETests : IDisposable
         try
         {
             await RunAsync(["workspace", "init"]);
-            var ferret = Path.Combine(_tempDir, ".ferret");
+            var ferret = Path.Join(_tempDir, ".ferret");
 
-            Assert.True(Directory.Exists(Path.Combine(ferret, "connectors", "git")));
-            Assert.True(Directory.Exists(Path.Combine(ferret, "indexes", "semantic")));
-            Assert.True(Directory.Exists(Path.Combine(ferret, "memory", "working")));
-            Assert.True(Directory.Exists(Path.Combine(ferret, "snapshots", "knowledge")));
-            Assert.True(File.Exists(Path.Combine(ferret, "config", "connectors.json")));
+            Assert.True(Directory.Exists(Path.Join(ferret, "connectors", "git")));
+            Assert.True(Directory.Exists(Path.Join(ferret, "indexes", "semantic")));
+            Assert.True(Directory.Exists(Path.Join(ferret, "memory", "working")));
+            Assert.True(Directory.Exists(Path.Join(ferret, "snapshots", "knowledge")));
+            Assert.True(File.Exists(Path.Join(ferret, "config", "connectors.json")));
         }
         finally
         {
@@ -115,10 +115,10 @@ public sealed class WorkspaceE2ETests : IDisposable
         Environment.CurrentDirectory = _tempDir;
         try
         {
-            var ferretDir = Path.Combine(_tempDir, ".ferret");
+            var ferretDir = Path.Join(_tempDir, ".ferret");
             Directory.CreateDirectory(ferretDir);
             await File.WriteAllTextAsync(
-                Path.Combine(ferretDir, "workspace.json"),
+                Path.Join(ferretDir, "workspace.json"),
                 "{ NOT VALID JSON !!!");
 
             using var output = new StringWriter();

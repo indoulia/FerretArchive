@@ -22,7 +22,7 @@ public sealed class ConfigValidateCommandHandlerTests
               }
             }
             """;
-        var configPath = System.IO.Path.Combine(dir.Path, "ferret.config.json");
+        var configPath = System.IO.Path.Join(dir.Path, "ferret.config.json");
         await File.WriteAllTextAsync(configPath, json);
 
         var handler = new ConfigValidateCommandHandler();
@@ -38,7 +38,7 @@ public sealed class ConfigValidateCommandHandlerTests
     {
         using var dir = new TempDirectory();
         var json = """{ "Ferret": { "Workspace": { "Root": "." } } }""";
-        var configPath = System.IO.Path.Combine(dir.Path, "ferret.config.json");
+        var configPath = System.IO.Path.Join(dir.Path, "ferret.config.json");
         await File.WriteAllTextAsync(configPath, json);
 
         var handler = new ConfigValidateCommandHandler();
@@ -53,7 +53,7 @@ public sealed class ConfigValidateCommandHandlerTests
     public async Task ExecuteAsync_MalformedJson_ReturnsFailure()
     {
         using var dir = new TempDirectory();
-        var configPath = System.IO.Path.Combine(dir.Path, "ferret.config.json");
+        var configPath = System.IO.Path.Join(dir.Path, "ferret.config.json");
         await File.WriteAllTextAsync(configPath, "{ not valid json");
 
         var handler = new ConfigValidateCommandHandler();
@@ -69,7 +69,7 @@ public sealed class ConfigValidateCommandHandlerTests
     {
         using var dir = new TempDirectory();
         var handler = new ConfigValidateCommandHandler();
-        var ctx = MakeCtx(dir.Path, System.IO.Path.Combine(dir.Path, "ferret.config.json"));
+        var ctx = MakeCtx(dir.Path, System.IO.Path.Join(dir.Path, "ferret.config.json"));
 
         var result = await handler.ExecuteAsync(ctx);
 

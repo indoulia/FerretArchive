@@ -63,7 +63,7 @@ public sealed class SearchBenchmark : IDisposable
     public async Task SetupAsync()
     {
         // 1. Write 1 000 fake .cs files to a temp directory
-        _tempDir = Path.Combine(Path.GetTempPath(), $"ferret-bench-search-{Guid.NewGuid():N}");
+        _tempDir = Path.Join(Path.GetTempPath(), $"ferret-bench-search-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
 
         for (var i = 0; i < IndexedFileCount; i++)
@@ -71,7 +71,7 @@ public sealed class SearchBenchmark : IDisposable
             var content = $"// file {i} public class Service{i} execute authentication token workspace"
                 .PadRight(200, ' ');
             await File.WriteAllTextAsync(
-                Path.Combine(_tempDir, $"Service{i:D4}.cs"),
+                Path.Join(_tempDir, $"Service{i:D4}.cs"),
                 content);
         }
 
@@ -99,9 +99,9 @@ public sealed class SearchBenchmark : IDisposable
         // Bm25SearchProvider derives its DB path from:
         //   _workspace.WorkspaceRoot.FullPath + "/.ferret/indexes/keyword/keyword-index.db"
         // So we must create the SQLite index at that exact location.
-        var indexDir = Path.Combine(_tempDir, ".ferret", "indexes", "keyword");
+        var indexDir = Path.Join(_tempDir, ".ferret", "indexes", "keyword");
         Directory.CreateDirectory(indexDir);
-        var dbPath = Path.Combine(indexDir, "keyword-index.db");
+        var dbPath = Path.Join(indexDir, "keyword-index.db");
         _indexEngine = new SqliteKeywordIndexEngine(dbPath);
 
         var indexPipeline = new IndexPipeline(

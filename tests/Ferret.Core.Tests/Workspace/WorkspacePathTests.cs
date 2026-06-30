@@ -28,7 +28,7 @@ public sealed class WorkspacePathTests
         var basePath = @"C:\repos\myproject".Replace('\\', Path.DirectorySeparatorChar);
         var root = WorkspacePath.Create(basePath);
         var combined = root.Combine(".ai");
-        Assert.Equal(Path.Combine(basePath, ".ai"), combined.FullPath);
+        Assert.Equal(Path.Join(basePath, ".ai"), combined.FullPath);
     }
 
     [Fact]

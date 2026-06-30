@@ -10,7 +10,7 @@ namespace Ferret.E2E.Tests.Fixtures;
 public sealed class WorkspaceFixture : IAsyncLifetime
 {
     /// <summary>Gets the absolute path to the temporary workspace directory.</summary>
-    public string WorkspaceDir { get; } = Path.Combine(
+    public string WorkspaceDir { get; } = Path.Join(
         Path.GetTempPath(),
         "ferret-e2e-ws-" + Guid.NewGuid().ToString("N")[..8]);
 
@@ -53,15 +53,15 @@ public sealed class WorkspaceFixture : IAsyncLifetime
     public async Task WriteSampleCsFilesAsync()
     {
         await File.WriteAllTextAsync(
-            Path.Combine(WorkspaceDir, "Alpha.cs"),
+            Path.Join(WorkspaceDir, "Alpha.cs"),
             "namespace Sample;\npublic class AlphaService { }").ConfigureAwait(false);
 
         await File.WriteAllTextAsync(
-            Path.Combine(WorkspaceDir, "Beta.cs"),
+            Path.Join(WorkspaceDir, "Beta.cs"),
             "namespace Sample;\npublic class BetaRepository { }").ConfigureAwait(false);
 
         await File.WriteAllTextAsync(
-            Path.Combine(WorkspaceDir, "Gamma.cs"),
+            Path.Join(WorkspaceDir, "Gamma.cs"),
             "namespace Sample;\npublic class GammaController { }").ConfigureAwait(false);
     }
 

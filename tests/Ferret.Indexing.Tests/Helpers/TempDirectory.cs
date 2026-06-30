@@ -5,7 +5,7 @@ internal sealed class TempDirectory : IDisposable
 {
     internal TempDirectory()
     {
-        Path = System.IO.Path.Combine(
+        Path = System.IO.Path.Join(
             System.IO.Path.GetTempPath(),
             $"ferret-e2e-{Guid.NewGuid():N}");
         Directory.CreateDirectory(Path);

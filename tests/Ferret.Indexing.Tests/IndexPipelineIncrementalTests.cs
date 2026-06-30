@@ -20,7 +20,7 @@ public sealed class IndexPipelineIncrementalTests
         var assetId = new AssetId("file:///workspace/file.cs");
         var fingerprint = AssetFingerprint.CreateLightweight(lastModified, sizeBytes);
 
-        var tempPath = Path.Combine(Path.GetTempPath(), $"ferret-inc-test-{Guid.NewGuid():N}.json");
+        var tempPath = Path.Join(Path.GetTempPath(), $"ferret-inc-test-{Guid.NewGuid():N}.json");
         try
         {
             var seedStore = new JsonIndexStateStore(tempPath);
@@ -75,7 +75,7 @@ public sealed class IndexPipelineIncrementalTests
         const long sizeBytes = 100L;
         var fingerprint = AssetFingerprint.CreateLightweight(lastModified, sizeBytes);
 
-        var tempPath = Path.Combine(Path.GetTempPath(), $"ferret-rebuild-test-{Guid.NewGuid():N}.json");
+        var tempPath = Path.Join(Path.GetTempPath(), $"ferret-rebuild-test-{Guid.NewGuid():N}.json");
         try
         {
             var seedStore = new JsonIndexStateStore(tempPath);
@@ -128,7 +128,7 @@ public sealed class IndexPipelineIncrementalTests
         var staleId = new AssetId("file:///workspace/deleted.cs");
         var fingerprint = AssetFingerprint.CreateLightweight(DateTimeOffset.UtcNow, 50L);
 
-        var tempPath = Path.Combine(Path.GetTempPath(), $"ferret-stale-test-{Guid.NewGuid():N}.json");
+        var tempPath = Path.Join(Path.GetTempPath(), $"ferret-stale-test-{Guid.NewGuid():N}.json");
         try
         {
             var seedStore = new JsonIndexStateStore(tempPath);

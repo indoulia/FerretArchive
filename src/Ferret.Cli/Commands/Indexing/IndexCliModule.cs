@@ -50,7 +50,7 @@ internal sealed class IndexCliModule : CliModuleBase
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var dbPath = System.IO.Path.Combine(
+        var dbPath = System.IO.Path.Join(
             _workspaceContext.WorkspaceRoot.FullPath,
             WorkspaceLayout.RootDirectoryName,
             IndexLayout.IndexDirectoryName,

@@ -27,7 +27,7 @@ internal static class FerretBinaryLocator
             // Resolve repo root: this assembly lives in tests/Ferret.E2E.Tests/bin/...
             // Walk up until we find the src/ directory containing Ferret.Cli.
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "src", "Ferret.Cli")))
+            while (dir is not null && !Directory.Exists(Path.Join(dir.FullName, "src", "Ferret.Cli")))
             {
                 dir = dir.Parent;
             }
@@ -38,8 +38,8 @@ internal static class FerretBinaryLocator
                     "Cannot locate repo root from " + AppContext.BaseDirectory);
             }
 
-            var cliProjectPath = Path.Combine(dir.FullName, "src", "Ferret.Cli", "Ferret.Cli.csproj");
-            var publishDir = Path.Combine(
+            var cliProjectPath = Path.Join(dir.FullName, "src", "Ferret.Cli", "Ferret.Cli.csproj");
+            var publishDir = Path.Join(
                 Path.GetTempPath(),
                 "ferret-e2e-publish-" + Environment.ProcessId);
 
@@ -58,7 +58,7 @@ internal static class FerretBinaryLocator
 
             // AssemblyName in Ferret.Cli.csproj is "ferret" (not "Ferret.Cli").
             var exeName = OperatingSystem.IsWindows() ? "ferret.exe" : "ferret";
-            var binaryPath = Path.Combine(publishDir, exeName);
+            var binaryPath = Path.Join(publishDir, exeName);
 
             if (!File.Exists(binaryPath))
             {

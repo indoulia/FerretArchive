@@ -19,7 +19,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
     /// </summary>
     public ConnectorInstanceStoreTests()
     {
-        _tmpDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        _tmpDir = Path.Join(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(_tmpDir);
         _root = WorkspacePath.Create(_tmpDir);
     }
@@ -67,7 +67,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
 
         await store.SaveAsync(_root, instances);
 
-        var filePath = Path.Combine(_tmpDir, ".ferret", "connectors.json");
+        var filePath = Path.Join(_tmpDir, ".ferret", "connectors.json");
         Assert.True(File.Exists(filePath));
     }
 
@@ -116,9 +116,9 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
     [Fact]
     public async Task LoadAllAsync_Throws_InvalidOperationException_For_Malformed_Json()
     {
-        var ferretDir = Path.Combine(_tmpDir, ".ferret");
+        var ferretDir = Path.Join(_tmpDir, ".ferret");
         Directory.CreateDirectory(ferretDir);
-        await File.WriteAllTextAsync(Path.Combine(ferretDir, "connectors.json"), "{ not valid json }}}");
+        await File.WriteAllTextAsync(Path.Join(ferretDir, "connectors.json"), "{ not valid json }}}");
         var store = new ConnectorInstanceStore();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -160,7 +160,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
         var store = new ConnectorInstanceStore();
         await store.SaveAsync(_root, []);
 
-        var ferretDir = Path.Combine(_tmpDir, ".ferret");
+        var ferretDir = Path.Join(_tmpDir, ".ferret");
         var tmpFiles = Directory.GetFiles(ferretDir, "*.tmp");
         Assert.Empty(tmpFiles);
     }

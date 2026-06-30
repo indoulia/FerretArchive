@@ -16,7 +16,7 @@ public sealed class SqliteKeywordIndexEngineTests : IDisposable
 
     public SqliteKeywordIndexEngineTests()
     {
-        _dbPath = Path.Combine(Path.GetTempPath(), $"ferret-index-test-{Guid.NewGuid():N}.db");
+        _dbPath = Path.Join(Path.GetTempPath(), $"ferret-index-test-{Guid.NewGuid():N}.db");
     }
 
     public void Dispose()
@@ -54,11 +54,11 @@ public sealed class SqliteKeywordIndexEngineTests : IDisposable
     [Fact]
     public void Constructor_Creates_Parent_Directory_If_Missing()
     {
-        var nested = Path.Combine(Path.GetTempPath(), $"ferret-test-{Guid.NewGuid():N}", "sub", "index.db");
+        var nested = Path.Join(Path.GetTempPath(), $"ferret-test-{Guid.NewGuid():N}", "sub", "index.db");
         var topDir = Path.GetDirectoryName(Path.GetDirectoryName(nested));
         try
         {
-            using (var engine = new SqliteKeywordIndexEngine(nested))
+            using (new SqliteKeywordIndexEngine(nested))
             {
                 Assert.True(File.Exists(nested));
             }

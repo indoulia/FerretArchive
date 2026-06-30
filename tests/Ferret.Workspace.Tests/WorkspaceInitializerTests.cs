@@ -16,17 +16,17 @@ public sealed class WorkspaceInitializerTests : IDisposable
     public async Task InitialiseAsync_CreatesDotFerretDirectory()
     {
         await WorkspaceInitializer.InitialiseAsync(RootPath, null, CancellationToken.None);
-        Assert.True(Directory.Exists(Path.Combine(_dir.Path, WorkspaceLayout.RootDirectoryName)));
+        Assert.True(Directory.Exists(Path.Join(_dir.Path, WorkspaceLayout.RootDirectoryName)));
     }
 
     [Fact]
     public async Task InitialiseAsync_CreatesAllContextOsDirectories()
     {
         await WorkspaceInitializer.InitialiseAsync(RootPath, null, CancellationToken.None);
-        var ferretDir = Path.Combine(_dir.Path, WorkspaceLayout.RootDirectoryName);
+        var ferretDir = Path.Join(_dir.Path, WorkspaceLayout.RootDirectoryName);
         foreach (var sub in WorkspaceLayout.AllDirectories)
         {
-            var fullPath = Path.Combine(ferretDir, sub.Replace('/', Path.DirectorySeparatorChar));
+            var fullPath = Path.Join(ferretDir, sub.Replace('/', Path.DirectorySeparatorChar));
             Assert.True(Directory.Exists(fullPath), $"Missing directory: {sub}");
         }
     }
@@ -35,7 +35,7 @@ public sealed class WorkspaceInitializerTests : IDisposable
     public async Task InitialiseAsync_WritesManifestFile()
     {
         await WorkspaceInitializer.InitialiseAsync(RootPath, null, CancellationToken.None);
-        var manifestPath = Path.Combine(_dir.Path, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.ManifestFileName);
+        var manifestPath = Path.Join(_dir.Path, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.ManifestFileName);
         Assert.True(File.Exists(manifestPath));
     }
 
@@ -43,7 +43,7 @@ public sealed class WorkspaceInitializerTests : IDisposable
     public async Task InitialiseAsync_WritesStateFile()
     {
         await WorkspaceInitializer.InitialiseAsync(RootPath, null, CancellationToken.None);
-        var statePath = Path.Combine(_dir.Path, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.StateFileName);
+        var statePath = Path.Join(_dir.Path, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.StateFileName);
         Assert.True(File.Exists(statePath));
     }
 
@@ -51,10 +51,10 @@ public sealed class WorkspaceInitializerTests : IDisposable
     public async Task InitialiseAsync_WritesAllConfigFiles()
     {
         await WorkspaceInitializer.InitialiseAsync(RootPath, null, CancellationToken.None);
-        var configDir = Path.Combine(_dir.Path, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.ConfigDirectoryName);
+        var configDir = Path.Join(_dir.Path, WorkspaceLayout.RootDirectoryName, WorkspaceLayout.ConfigDirectoryName);
         foreach (var fileName in WorkspaceLayout.ConfigFileNames)
         {
-            Assert.True(File.Exists(Path.Combine(configDir, fileName)), $"Missing config: {fileName}");
+            Assert.True(File.Exists(Path.Join(configDir, fileName)), $"Missing config: {fileName}");
         }
     }
 

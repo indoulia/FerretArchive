@@ -17,10 +17,10 @@ public sealed class Bm25SearchProviderTests : IDisposable
 
     public Bm25SearchProviderTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"ferret-test-{Guid.NewGuid():N}");
-        var indexDir = Path.Combine(_tempRoot, ".ferret", "indexes", "keyword");
+        _tempRoot = Path.Join(Path.GetTempPath(), $"ferret-test-{Guid.NewGuid():N}");
+        var indexDir = Path.Join(_tempRoot, ".ferret", "indexes", "keyword");
         Directory.CreateDirectory(indexDir);
-        _dbPath = Path.Combine(indexDir, "keyword-index.db");
+        _dbPath = Path.Join(indexDir, "keyword-index.db");
 
         SeedDatabase(_dbPath);
         _provider = new Bm25SearchProvider(new StubWorkspaceContext(_tempRoot));

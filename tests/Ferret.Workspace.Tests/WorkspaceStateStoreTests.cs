@@ -59,5 +59,5 @@ public sealed class WorkspaceStateStoreTests : IDisposable
     }
 
     private void CreateFerretDir() =>
-        Directory.CreateDirectory(Path.Combine(_dir.Path, WorkspaceLayout.RootDirectoryName));
+        Directory.CreateDirectory(Path.Join(_dir.Path, WorkspaceLayout.RootDirectoryName));
 }

@@ -9,9 +9,9 @@ public sealed class IndexFreshnessCheckTests
     [Fact]
     public async Task Pass_WhenIndexFileIsRecent()
     {
-        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var dir = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
-        var dbPath = Path.Combine(dir, "keyword-index.db");
+        var dbPath = Path.Join(dir, "keyword-index.db");
         await File.WriteAllTextAsync(dbPath, "x");
         File.SetLastWriteTimeUtc(dbPath, DateTime.UtcNow.AddHours(-1));
         try
@@ -33,7 +33,7 @@ public sealed class IndexFreshnessCheckTests
     {
         using var sw = new StringWriter();
         var ctx = FerretContext.CreateTest(sw);
-        var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "keyword-index.db");
+        var missing = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "keyword-index.db");
         var check = new IndexFreshnessCheck(missing);
         var result = await check.RunAsync(ctx, CancellationToken.None);
         Assert.True(result.IsWarning);
@@ -44,9 +44,9 @@ public sealed class IndexFreshnessCheckTests
     [Fact]
     public async Task Warn_WhenIndexFileIsStale()
     {
-        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var dir = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
-        var dbPath = Path.Combine(dir, "keyword-index.db");
+        var dbPath = Path.Join(dir, "keyword-index.db");
         await File.WriteAllTextAsync(dbPath, "x");
         File.SetLastWriteTimeUtc(dbPath, DateTime.UtcNow.AddHours(-25));
         try

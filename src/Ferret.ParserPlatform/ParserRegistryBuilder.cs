@@ -31,9 +31,8 @@ public static class ParserRegistryBuilder
     private static void ValidateDuplicateParserId(List<IContentParser> parsers)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var parser in parsers)
+        foreach (var id in parsers.Select(parser => parser.Descriptor.Id.Value))
         {
-            var id = parser.Descriptor.Id.Value;
             if (!seen.Add(id))
             {
                 throw new InvalidOperationException(

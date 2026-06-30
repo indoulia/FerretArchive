@@ -37,7 +37,7 @@ public sealed class ContextRequestTests
         // record init will throw if Query is null because it's required
         Assert.Throws<InvalidOperationException>(() =>
         {
-            var unused = new ContextRequest { Query = null! };
+            _ = new ContextRequest { Query = null! };
         });
     }
 }

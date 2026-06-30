@@ -19,18 +19,18 @@ public sealed class WorkspaceInitializer
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(rootPath);
-        var ferretRoot = Path.Combine(rootPath.FullPath, WorkspaceLayout.RootDirectoryName);
+        var ferretRoot = Path.Join(rootPath.FullPath, WorkspaceLayout.RootDirectoryName);
         Directory.CreateDirectory(ferretRoot);
 
         foreach (var sub in WorkspaceLayout.AllDirectories)
         {
-            Directory.CreateDirectory(Path.Combine(ferretRoot, sub.Replace('/', Path.DirectorySeparatorChar)));
+            Directory.CreateDirectory(Path.Join(ferretRoot, sub.Replace('/', Path.DirectorySeparatorChar)));
         }
 
-        var configDir = Path.Combine(ferretRoot, WorkspaceLayout.ConfigDirectoryName);
+        var configDir = Path.Join(ferretRoot, WorkspaceLayout.ConfigDirectoryName);
         foreach (var fileName in WorkspaceLayout.ConfigFileNames)
         {
-            await File.WriteAllTextAsync(Path.Combine(configDir, fileName), "{}", ct).ConfigureAwait(false);
+            await File.WriteAllTextAsync(Path.Join(configDir, fileName), "{}", ct).ConfigureAwait(false);
         }
 
         var idString = Guid.NewGuid().ToString();

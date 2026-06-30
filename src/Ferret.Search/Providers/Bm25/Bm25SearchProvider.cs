@@ -118,7 +118,6 @@ public sealed class Bm25SearchProvider : ISearchProvider
     private static FileSearchHit BuildHit(SqliteDataReader reader)
     {
         var id = reader.GetString(0);
-        var connectorId = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
         var instanceId = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
         var title = reader.IsDBNull(3) ? id : reader.GetString(3);
         var snippetText = reader.IsDBNull(4) ? string.Empty : reader.GetString(4);
@@ -137,5 +136,5 @@ public sealed class Bm25SearchProvider : ISearchProvider
     }
 
     private string GetDatabasePath() =>
-        Path.Combine(_workspace.WorkspaceRoot.FullPath, ".ferret", "indexes", "keyword", "keyword-index.db");
+        Path.Join(_workspace.WorkspaceRoot.FullPath, ".ferret", "indexes", "keyword", "keyword-index.db");
 }

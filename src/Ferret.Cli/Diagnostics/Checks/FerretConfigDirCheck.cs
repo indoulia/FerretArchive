@@ -20,7 +20,7 @@ internal sealed class FerretConfigDirCheck : IDiagnosticCheck
     /// <inheritdoc/>
     public Task<DiagnosticCheckResult> RunAsync(IFerretContext context, CancellationToken cancellationToken)
     {
-        var ferretDir = Path.Combine(_workspaceRoot, WorkspaceLayout.RootDirectoryName);
+        var ferretDir = Path.Join(_workspaceRoot, WorkspaceLayout.RootDirectoryName);
         var result = Directory.Exists(ferretDir)
             ? DiagnosticCheckResult.Pass()
             : DiagnosticCheckResult.Fail($"Directory not found: {ferretDir}");

@@ -33,7 +33,7 @@ internal sealed class ServeCliModule : CliModuleBase
         services.TryAddSingleton<IDocumentService>(sp =>
         {
             var wc = sp.GetRequiredService<IWorkspaceContext>();
-            var dbPath = System.IO.Path.Combine(
+            var dbPath = System.IO.Path.Join(
                 wc.WorkspaceRoot.FullPath,
                 WorkspaceLayout.RootDirectoryName,
                 IndexLayout.IndexDirectoryName,
