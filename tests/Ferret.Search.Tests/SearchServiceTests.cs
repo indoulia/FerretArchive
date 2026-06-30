@@ -1,6 +1,7 @@
 using Ferret.Core.Connectors;
 using Ferret.Core.Primitives;
 using Ferret.Core.Search;
+
 using Xunit;
 
 namespace Ferret.Search.Tests;
@@ -196,7 +197,7 @@ public sealed class SearchServiceTests
             IReadOnlyList<SearchHit> hits, SearchQuery query, SearchOptions options)
         {
             IReadOnlyList<SearchHit> filtered =
-                [..hits.Where(h => h.DocumentId.ToString() != _documentIdToRemove)];
+                [.. hits.Where(h => h.DocumentId.ToString() != _documentIdToRemove)];
             return Task.FromResult(filtered);
         }
     }

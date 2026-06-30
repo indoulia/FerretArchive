@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Provides a module with access to its execution context and the module registry.</summary>
 public interface IModuleContext

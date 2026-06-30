@@ -1,4 +1,5 @@
 using Ferret.Core.Ai.Prompts;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.Prompts;

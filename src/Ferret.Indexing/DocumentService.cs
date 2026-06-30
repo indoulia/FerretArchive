@@ -2,6 +2,7 @@ using Ferret.Core.Connectors;
 using Ferret.Core.Documents;
 using Ferret.Core.Primitives;
 using Ferret.Core.Search;
+
 using Microsoft.Data.Sqlite;
 
 namespace Ferret.Indexing;

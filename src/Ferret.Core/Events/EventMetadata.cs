@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Events;
+namespace Ferret.Core.Events;
 
 /// <summary>Carries source and schema information attached to an event.</summary>
 public sealed class EventMetadata

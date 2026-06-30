@@ -1,4 +1,5 @@
-﻿using Ferret.Core.Workspace.Errors;
+using Ferret.Core.Workspace.Errors;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Workspace;

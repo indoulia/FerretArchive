@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Results;
+using Ferret.Core.Results;
 
 namespace Ferret.Core.Workspace;
 

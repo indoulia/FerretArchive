@@ -1,8 +1,9 @@
-﻿using Ferret.Core.Connectors;
+using Ferret.Core.Connectors;
 using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
 using Ferret.Indexing;
 using Ferret.Indexing.Tests.Fakes;
+
 using Xunit;
 
 namespace Ferret.Indexing.Tests;

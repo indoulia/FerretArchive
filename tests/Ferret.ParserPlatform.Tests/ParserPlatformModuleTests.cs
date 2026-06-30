@@ -1,4 +1,5 @@
 using Ferret.Core.Documents;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.ParserPlatform.Tests;

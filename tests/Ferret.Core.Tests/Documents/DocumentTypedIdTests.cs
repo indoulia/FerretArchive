@@ -1,6 +1,7 @@
 using Ferret.Core.Connectors;
 using Ferret.Core.Documents;
 using Ferret.Core.Primitives;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Documents;

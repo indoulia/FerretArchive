@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Controls how thorough a workspace health check is.</summary>
 public enum HealthCheckDepth

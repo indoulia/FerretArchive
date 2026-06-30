@@ -1,5 +1,6 @@
 using Ferret.Connectors.Filesystem.Ignore;
 using Ferret.Core.Connectors;
+
 using Xunit;
 
 namespace Ferret.Connectors.Filesystem.Tests;
@@ -32,9 +33,13 @@ public sealed class CompositeIgnoreProviderTests
         var uri = new Uri("filesystem:///any/file.cs");
         return new AssetDescriptor
         {
-            Id = AssetId.From(uri), ConnectorId = new ConnectorId("filesystem"),
-            InstanceId = new ConnectorInstanceId("i"), Kind = AssetKind.File,
-            CanonicalUri = uri, DisplayName = "file.cs", LastModified = DateTimeOffset.UtcNow,
+            Id = AssetId.From(uri),
+            ConnectorId = new ConnectorId("filesystem"),
+            InstanceId = new ConnectorInstanceId("i"),
+            Kind = AssetKind.File,
+            CanonicalUri = uri,
+            DisplayName = "file.cs",
+            LastModified = DateTimeOffset.UtcNow,
         };
     }
 

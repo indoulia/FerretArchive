@@ -1,4 +1,4 @@
-﻿#pragma warning disable SA1402 // non-generic and generic<T> companion types share one file by convention
+#pragma warning disable SA1402 // non-generic and generic<T> companion types share one file by convention
 namespace Ferret.Core.Results;
 
 /// <summary>Represents the outcome of an operation that produces no value.</summary>

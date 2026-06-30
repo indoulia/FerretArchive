@@ -1,4 +1,4 @@
-﻿namespace Ferret.Configuration;
+namespace Ferret.Configuration;
 
 internal static class ConfigurationModule
 {

@@ -1,8 +1,10 @@
 using Ferret.Configuration.Ai;
 using Ferret.Core.Ai.Interfaces;
 using Ferret.Core.Ai.Models;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
 using OllamaSharp;
 
 namespace Ferret.Providers.Ollama;

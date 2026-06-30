@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Abstractions;
+namespace Ferret.Core.Abstractions;
 
 /// <summary>Marks an entity as having a stable string identifier.</summary>
 public interface IIdentifiable

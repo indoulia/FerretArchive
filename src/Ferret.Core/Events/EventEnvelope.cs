@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Events;
+namespace Ferret.Core.Events;
 
 /// <summary>Wraps an event payload with routing and versioning metadata.</summary>
 public sealed class EventEnvelope

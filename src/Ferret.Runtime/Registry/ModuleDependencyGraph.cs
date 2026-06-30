@@ -1,4 +1,4 @@
-﻿using Ferret.Runtime.Modules;
+using Ferret.Runtime.Modules;
 
 namespace Ferret.Runtime.Registry;
 

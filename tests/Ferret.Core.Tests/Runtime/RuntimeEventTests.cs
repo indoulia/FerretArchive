@@ -1,5 +1,6 @@
-﻿using Ferret.Core.Events;
+using Ferret.Core.Events;
 using Ferret.Core.Runtime.Events;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Runtime;

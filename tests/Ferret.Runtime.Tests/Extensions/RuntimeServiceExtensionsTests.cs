@@ -1,6 +1,7 @@
-﻿using Ferret.Core.Runtime;
+using Ferret.Core.Runtime;
 using Ferret.Runtime.Extensions;
 using Ferret.Runtime.Tests.Fakes;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.Runtime.Tests.Extensions;

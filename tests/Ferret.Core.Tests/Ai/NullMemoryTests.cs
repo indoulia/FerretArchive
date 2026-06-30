@@ -2,6 +2,7 @@
 using Ferret.Core.Ai.Interfaces;
 using Ferret.Core.Ai.Models;
 using Ferret.Core.Ai.NullImplementations;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Ai;

@@ -1,10 +1,11 @@
-﻿using Ferret.Core.Primitives;
+using Ferret.Core.Primitives;
 using Ferret.Core.Runtime;
 using Ferret.Core.Runtime.Events;
 using Ferret.Runtime.Bootstrap;
 using Ferret.Runtime.Events;
 using Ferret.Runtime.Modules;
 using Ferret.Runtime.Registry;
+
 using Microsoft.Extensions.Hosting;
 
 namespace Ferret.Runtime.Lifecycle;

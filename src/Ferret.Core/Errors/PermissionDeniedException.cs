@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Errors;
+namespace Ferret.Core.Errors;
 
 /// <summary>Thrown when an operation is denied because the caller lacks the required permission.</summary>
 public sealed class PermissionDeniedException : SecurityException

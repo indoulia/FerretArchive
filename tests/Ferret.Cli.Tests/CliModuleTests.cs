@@ -1,4 +1,4 @@
-﻿namespace Ferret.Cli.Tests;
+namespace Ferret.Cli.Tests;
 
 // Replaced in Sprint 6 — see Commands/, Modules/, Diagnostics/, Integration/ subdirectories.
 public sealed class CliModuleTests

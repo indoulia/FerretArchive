@@ -1,4 +1,4 @@
-﻿namespace Ferret.Configuration.Tests;
+namespace Ferret.Configuration.Tests;
 
 public sealed class ConfigurationModuleTests
 {

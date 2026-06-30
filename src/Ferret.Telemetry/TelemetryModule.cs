@@ -1,4 +1,4 @@
-﻿namespace Ferret.Telemetry;
+namespace Ferret.Telemetry;
 
 internal static class TelemetryModule
 {

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Locates a workspace root by searching from a given starting path.</summary>
 public interface IWorkspaceLocator

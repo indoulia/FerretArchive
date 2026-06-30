@@ -2,6 +2,7 @@ using Ferret.Core.Connectors;
 using Ferret.Core.Primitives;
 using Ferret.Core.Search;
 using Ferret.Core.Workspace;
+
 using Microsoft.Data.Sqlite;
 
 namespace Ferret.Search.Providers.Bm25;

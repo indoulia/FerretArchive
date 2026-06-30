@@ -1,9 +1,8 @@
-using System.Diagnostics.CodeAnalysis;
-
 using Ferret.Cli.Infrastructure;
 using Ferret.Core.Primitives;
 using Ferret.Core.Runtime;
 using Ferret.Runtime.Modules;
+
 using Microsoft.Extensions.Logging;
 
 namespace Ferret.Cli.Modules;
@@ -14,7 +13,7 @@ namespace Ferret.Cli.Modules;
 /// Lifecycle: Instantiated by StartCommandHandler and RuntimeLifecycleCheck.
 /// Thread Safety: Thread Compatible.
 /// </summary>
-internal sealed class DiagnosticsModule : DefaultModule
+internal sealed partial class DiagnosticsModule : DefaultModule
 {
     private readonly ILogger<DiagnosticsModule> _logger;
 
@@ -30,24 +29,21 @@ internal sealed class DiagnosticsModule : DefaultModule
         _logger = logger;
     }
 
-    [SuppressMessage("Performance", "CA1848:Use the LoggerMessage delegates", Justification = "One-time startup logging; not performance-critical")]
     public override Task OnStartingAsync(IModuleContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("DiagnosticsModule starting (v{Version})", Metadata.Version);
+        LogStarting(_logger, Metadata.Version.ToString());
         return Task.CompletedTask;
     }
 
-    [SuppressMessage("Performance", "CA1848:Use the LoggerMessage delegates", Justification = "One-time startup logging; not performance-critical")]
     public override Task OnStartedAsync(IModuleContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("DiagnosticsModule activated.");
+        LogStarted(_logger);
         return Task.CompletedTask;
     }
 
-    [SuppressMessage("Performance", "CA1848:Use the LoggerMessage delegates", Justification = "One-time shutdown logging; not performance-critical")]
     public override Task OnStoppedAsync(IModuleContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("DiagnosticsModule stopped.");
+        LogStopped(_logger);
         return Task.CompletedTask;
     }
 
@@ -56,4 +52,13 @@ internal sealed class DiagnosticsModule : DefaultModule
         var plusIndex = version.IndexOf('+', StringComparison.Ordinal);
         return plusIndex >= 0 ? version[..plusIndex] : version;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "DiagnosticsModule starting (v{Version})")]
+    private static partial void LogStarting(ILogger logger, string version);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "DiagnosticsModule activated.")]
+    private static partial void LogStarted(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "DiagnosticsModule stopped.")]
+    private static partial void LogStopped(ILogger logger);
 }

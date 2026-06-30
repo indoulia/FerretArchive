@@ -1,4 +1,5 @@
 using Ferret.Core.Ai.Prompts;
+
 using Xunit;
 
 namespace Ferret.Prompts.Tests;

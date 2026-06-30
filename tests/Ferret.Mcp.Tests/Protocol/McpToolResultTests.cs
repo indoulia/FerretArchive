@@ -1,4 +1,5 @@
 using Ferret.Mcp.Protocol;
+
 using Xunit;
 
 namespace Ferret.Mcp.Tests.Protocol;

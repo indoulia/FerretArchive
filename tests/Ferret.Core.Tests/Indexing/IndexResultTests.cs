@@ -1,4 +1,5 @@
 using Ferret.Core.Indexing;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Indexing;

@@ -22,6 +22,7 @@ public sealed class ServeE2ETests : IAsyncLifetime
     public Task DisposeAsync() => _workspace.DisposeAsync();
 
     /// <summary>serve starts within 2 s and produces no error output on stderr.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task Serve_StartsWithoutErrorOutput()
     {

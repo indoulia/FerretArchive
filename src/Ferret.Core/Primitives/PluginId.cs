@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Primitives;
+namespace Ferret.Core.Primitives;
 
 /// <summary>Strongly-typed identifier for a plugin.</summary>
 public sealed class PluginId : IEquatable<PluginId>

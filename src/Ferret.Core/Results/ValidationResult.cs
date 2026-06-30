@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Results;
+namespace Ferret.Core.Results;
 
 /// <summary>Represents the outcome of a validation operation, including all failures.</summary>
 public sealed class ValidationResult

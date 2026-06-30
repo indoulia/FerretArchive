@@ -3,6 +3,7 @@ using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
 using Ferret.Core.Workspace;
 using Ferret.Mcp.Resources;
+
 using Xunit;
 
 namespace Ferret.Mcp.Tests.Resources;

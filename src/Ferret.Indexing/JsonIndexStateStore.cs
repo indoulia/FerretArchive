@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 using Ferret.Core.Connectors;
 using Ferret.Core.Indexing;

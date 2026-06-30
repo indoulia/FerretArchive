@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Connectors;
+using Ferret.Core.Connectors;
 using Ferret.Core.Documents;
 using Ferret.Core.Events;
 using Ferret.Core.Events.Indexing;

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Tests;
+namespace Ferret.Core.Tests;
 
 public sealed class CoreModuleTests
 {

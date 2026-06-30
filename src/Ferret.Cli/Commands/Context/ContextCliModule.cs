@@ -3,6 +3,7 @@ using Ferret.Cli.Cli;
 using Ferret.Core.Search;
 using Ferret.Search;
 using Ferret.Search.Providers.Bm25;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.Cli.Commands.Context;

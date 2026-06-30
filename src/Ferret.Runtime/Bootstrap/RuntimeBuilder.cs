@@ -1,10 +1,11 @@
-﻿using Ferret.Core.Abstractions;
+using Ferret.Core.Abstractions;
 using Ferret.Core.Runtime;
 using Ferret.Runtime.Events;
 using Ferret.Runtime.Health;
 using Ferret.Runtime.Lifecycle;
 using Ferret.Runtime.Modules;
 using Ferret.Runtime.Registry;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -66,7 +67,7 @@ public sealed class RuntimeBuilder : IRuntimeBuilder
     {
         IReadOnlyList<DefaultModule> ordered = ModuleDependencyGraph.Sort(_store.GetAll());
         RuntimeOptions options = _options;
-        List<IHealthCheck> extraChecks = [.._extraHealthChecks];
+        List<IHealthCheck> extraChecks = [.. _extraHealthChecks];
 
         IHost host = new HostBuilder()
             .ConfigureLogging(logging => { _loggingConfigure?.Invoke(logging); })

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>The result of a workspace initialisation operation.</summary>
 public sealed class WorkspaceInitResult

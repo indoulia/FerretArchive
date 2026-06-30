@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Represents a platform module managed by the runtime host.</summary>
 public interface IModule : ILifecycleParticipant

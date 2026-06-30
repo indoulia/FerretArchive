@@ -1,6 +1,7 @@
 using Ferret.Core.Documents;
 using Ferret.Core.Indexing;
 using Ferret.Mcp.Resources;
+
 using Xunit;
 
 namespace Ferret.Mcp.Tests.Resources;

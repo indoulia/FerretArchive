@@ -1,6 +1,7 @@
 using Ferret.ConnectorPlatform;
 using Ferret.Core.Connectors;
 using Ferret.Core.Workspace;
+
 using Xunit;
 
 namespace Ferret.ConnectorPlatform.Tests;
@@ -35,6 +36,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
     /// <summary>
     /// LoadAllAsync returns an empty list when the file does not exist.
     /// </summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task LoadAllAsync_Returns_Empty_When_File_Does_Not_Exist()
     {
@@ -48,6 +50,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
     /// <summary>
     /// SaveAsync creates the parent directory and file.
     /// </summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task SaveAsync_Creates_Parent_Directory_And_File()
     {
@@ -71,6 +74,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
     /// <summary>
     /// SaveAsync then LoadAllAsync round-trips all fields correctly.
     /// </summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task SaveAsync_Then_LoadAllAsync_Round_Trips_All_Fields()
     {
@@ -108,6 +112,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
     /// <summary>
     /// LoadAllAsync throws InvalidOperationException for malformed JSON.
     /// </summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task LoadAllAsync_Throws_InvalidOperationException_For_Malformed_Json()
     {
@@ -125,6 +130,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
     /// <summary>
     /// Configuration keys are case-insensitive after load.
     /// </summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task Configuration_Keys_Are_Case_Insensitive_After_Load()
     {
@@ -147,6 +153,7 @@ public sealed class ConnectorInstanceStoreTests : IDisposable
     /// <summary>
     /// SaveAsync is atomic: no temp files are left after save completes.
     /// </summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task SaveAsync_Is_Atomic_Temp_Then_Rename()
     {

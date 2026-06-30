@@ -1,5 +1,6 @@
 using Ferret.Core.Search;
 using Ferret.Search.Providers.Bm25;
+
 using Xunit;
 
 namespace Ferret.Search.Tests.Providers.Bm25;

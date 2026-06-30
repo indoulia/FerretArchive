@@ -42,7 +42,7 @@ public sealed class ConnectorConfiguration
     public ConnectorConfiguration With(string key, string value)
     {
         var dict = new Dictionary<string, string>(_values, StringComparer.OrdinalIgnoreCase)
-            { [key] = value };
+        { [key] = value };
         return new ConnectorConfiguration(dict);
     }
 

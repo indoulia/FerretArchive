@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Provides read access to the set of modules registered with the runtime host.</summary>
 public interface IModuleRegistry

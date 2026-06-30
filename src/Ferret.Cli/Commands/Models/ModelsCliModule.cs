@@ -1,5 +1,6 @@
 using Ferret.Cli.Cli;
 using Ferret.Models;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.Cli.Commands.Models;

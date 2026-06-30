@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Defines the capabilities that a module can declare.</summary>
 [Flags]

@@ -1,4 +1,5 @@
 using Ferret.Core.Connectors;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Connectors;

@@ -1,5 +1,6 @@
 using Ferret.Core.Runtime;
 using Ferret.Runtime.Bootstrap;
+
 using Microsoft.Extensions.Logging;
 
 namespace Ferret.Runtime.Tests.Bootstrap;

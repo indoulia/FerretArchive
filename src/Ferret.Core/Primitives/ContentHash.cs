@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Primitives;
+namespace Ferret.Core.Primitives;
 
 /// <summary>Represents the cryptographic hash of content, identified by algorithm and hex digest.</summary>
 public sealed class ContentHash : IEquatable<ContentHash>

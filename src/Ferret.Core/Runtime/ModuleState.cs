@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Represents the lifecycle state of a platform module.</summary>
 public enum ModuleState

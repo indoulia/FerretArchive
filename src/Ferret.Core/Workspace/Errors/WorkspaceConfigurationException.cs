@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace.Errors;
+namespace Ferret.Core.Workspace.Errors;
 
 /// <summary>Thrown when workspace configuration is invalid or cannot be loaded.</summary>
 public sealed class WorkspaceConfigurationException : WorkspaceException

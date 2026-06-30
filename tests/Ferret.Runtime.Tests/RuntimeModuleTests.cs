@@ -1,4 +1,4 @@
-﻿namespace Ferret.Runtime.Tests;
+namespace Ferret.Runtime.Tests;
 
 public sealed class RuntimeModuleTests
 {

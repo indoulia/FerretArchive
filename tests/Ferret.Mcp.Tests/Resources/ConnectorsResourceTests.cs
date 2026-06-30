@@ -1,5 +1,6 @@
 using Ferret.Core.Connectors;
 using Ferret.Mcp.Resources;
+
 using Xunit;
 
 namespace Ferret.Mcp.Tests.Resources;

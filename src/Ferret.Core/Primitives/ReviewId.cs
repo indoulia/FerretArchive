@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Primitives;
+namespace Ferret.Core.Primitives;
 
 /// <summary>Strongly-typed identifier for a review.</summary>
 public sealed class ReviewId : IEquatable<ReviewId>

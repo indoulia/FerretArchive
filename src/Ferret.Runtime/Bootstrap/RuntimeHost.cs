@@ -1,5 +1,6 @@
-﻿using Ferret.Core.Runtime;
+using Ferret.Core.Runtime;
 using Ferret.Runtime.Registry;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

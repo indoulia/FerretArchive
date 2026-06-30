@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Descriptive metadata about a workspace.</summary>
 public sealed class WorkspaceMetadata

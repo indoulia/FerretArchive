@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Runtime;
+using Ferret.Core.Runtime;
 
 namespace Ferret.Runtime.Lifecycle;
 

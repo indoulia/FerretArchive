@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Manages the platform module lifecycle from startup through shutdown.</summary>
 public interface IRuntimeHost

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace.Errors;
+namespace Ferret.Core.Workspace.Errors;
 
 /// <summary>Thrown when the workspace schema version is incompatible with the current platform version.</summary>
 public sealed class WorkspaceSchemaVersionException : WorkspaceException

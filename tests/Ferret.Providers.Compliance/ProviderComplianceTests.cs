@@ -1,5 +1,6 @@
 using Ferret.Core.Ai.Interfaces;
 using Ferret.Core.Ai.Models;
+
 using Xunit;
 
 namespace Ferret.Providers.Compliance;

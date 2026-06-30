@@ -1,4 +1,4 @@
-﻿namespace Ferret.Plugin.SDK.Tests;
+namespace Ferret.Plugin.SDK.Tests;
 
 public sealed class SdkModuleTests
 {

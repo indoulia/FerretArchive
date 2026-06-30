@@ -31,6 +31,7 @@ public sealed class WorkspaceInitE2ETests : IAsyncLifetime
     }
 
     /// <summary>workspace init in a clean directory creates .ferret/workspace.json.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task WorkspaceInit_CreatesWorkspaceJson()
     {
@@ -47,6 +48,7 @@ public sealed class WorkspaceInitE2ETests : IAsyncLifetime
     }
 
     /// <summary>workspace init in a clean directory creates .ferret/state.json.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task WorkspaceInit_CreatesStateJson()
     {
@@ -63,6 +65,7 @@ public sealed class WorkspaceInitE2ETests : IAsyncLifetime
     }
 
     /// <summary>workspace init when already initialised returns non-zero exit code.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task WorkspaceInit_WhenAlreadyInitialised_ReturnsNonZeroExitCode()
     {

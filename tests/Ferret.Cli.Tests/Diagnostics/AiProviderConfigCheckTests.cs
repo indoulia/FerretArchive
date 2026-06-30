@@ -1,6 +1,7 @@
 using Ferret.Cli.Cli;
 using Ferret.Cli.Diagnostics;
 using Ferret.Cli.Diagnostics.Checks;
+
 using Microsoft.Extensions.Configuration;
 
 namespace Ferret.Cli.Tests.Diagnostics;

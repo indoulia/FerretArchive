@@ -5,6 +5,7 @@ using Ferret.Core.Indexing;
 using Ferret.Core.Workspace;
 using Ferret.Indexing;
 using Ferret.ParserPlatform;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.Cli.Commands.Indexing;

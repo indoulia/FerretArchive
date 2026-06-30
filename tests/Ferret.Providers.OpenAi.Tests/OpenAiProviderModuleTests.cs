@@ -1,8 +1,10 @@
 using Ferret.Core.Ai.Interfaces;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
 using Xunit;
 
 namespace Ferret.Providers.OpenAi.Tests;

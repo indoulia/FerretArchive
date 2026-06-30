@@ -2,7 +2,9 @@ using Ferret.Core.Primitives;
 using Ferret.Core.Search;
 using Ferret.Core.Workspace;
 using Ferret.Search.Providers.Bm25;
+
 using Microsoft.Data.Sqlite;
+
 using Xunit;
 
 namespace Ferret.Search.Tests.Providers.Bm25;

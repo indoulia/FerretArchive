@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Abstractions;
+namespace Ferret.Core.Abstractions;
 
 /// <summary>Provides access to arbitrary string metadata associated with an entity.</summary>
 public interface IMetadata

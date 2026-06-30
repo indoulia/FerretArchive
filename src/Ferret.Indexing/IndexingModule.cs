@@ -3,6 +3,7 @@ using Ferret.Core.Documents;
 using Ferret.Core.Events;
 using Ferret.Core.Indexing;
 using Ferret.Core.Workspace;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.Indexing;

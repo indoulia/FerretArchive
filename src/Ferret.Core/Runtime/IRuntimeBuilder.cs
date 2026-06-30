@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Configures and builds a runtime host from registered module descriptors.</summary>
 public interface IRuntimeBuilder

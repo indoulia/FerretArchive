@@ -1,6 +1,7 @@
-﻿using Ferret.Core.Abstractions;
+using Ferret.Core.Abstractions;
 using Ferret.Core.Runtime;
 using Ferret.Runtime.Modules;
+
 using Microsoft.Extensions.Logging;
 
 namespace Ferret.Runtime.Lifecycle;

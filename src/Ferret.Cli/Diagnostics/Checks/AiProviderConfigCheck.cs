@@ -1,4 +1,5 @@
 using Ferret.Cli.Cli;
+
 using Microsoft.Extensions.Configuration;
 
 namespace Ferret.Cli.Diagnostics.Checks;

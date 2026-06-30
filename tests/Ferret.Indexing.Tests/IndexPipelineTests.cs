@@ -5,6 +5,7 @@ using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
 using Ferret.Indexing;
 using Ferret.Indexing.Tests.Fakes;
+
 using Xunit;
 
 namespace Ferret.Indexing.Tests;
@@ -15,6 +16,7 @@ public sealed class IndexPipelineTests
     // ── Tests ─────────────────────────────────────────────────────────────────
 
     /// <summary>Pipeline publishes IndexingStartedEvent when run.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Publishes_IndexingStartedEvent()
     {
@@ -27,6 +29,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>Pipeline publishes IndexingCompletedEvent when run.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Publishes_IndexingCompletedEvent()
     {
@@ -39,6 +42,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>Zero counts when no connectors are active.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Returns_Zero_Counts_When_No_Connectors()
     {
@@ -51,6 +55,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>Connector implementing IAssetSource but not IAssetReader: asset discovered, skipped.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Skips_Connectors_Without_IAssetReader()
     {
@@ -72,6 +77,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>Successful parse → document indexed.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Indexes_Document_When_Parse_Succeeds()
     {
@@ -93,6 +99,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>Unsupported media type → skipped.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Skips_Unsupported_MediaType()
     {
@@ -115,6 +122,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>Parse failure → failure counted.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Counts_Parse_Failures()
     {
@@ -137,6 +145,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>DocumentDiscoveredEvent published for each discovered asset.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Publishes_DocumentDiscoveredEvent_Per_Asset()
     {
@@ -162,6 +171,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>ForceRebuild calls ClearAsync once.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_ForceRebuild_Calls_ClearAsync()
     {
@@ -174,6 +184,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>Without ForceRebuild, ClearAsync is not called.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_No_ForceRebuild_Does_Not_Call_ClearAsync()
     {
@@ -186,6 +197,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>Multiple connectors aggregate results correctly.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task RunAsync_Multiple_Connectors_Aggregates_Results()
     {
@@ -210,6 +222,7 @@ public sealed class IndexPipelineTests
     }
 
     /// <summary>OperationCanceledException propagates out of RunAsync.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task OperationCanceledException_Propagates()
     {

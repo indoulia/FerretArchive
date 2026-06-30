@@ -1,6 +1,7 @@
 using Ferret.Core.Connectors;
 using Ferret.Core.Primitives;
 using Ferret.Core.Search;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Search;

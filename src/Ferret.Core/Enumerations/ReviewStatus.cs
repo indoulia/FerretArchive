@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Enumerations;
+namespace Ferret.Core.Enumerations;
 
 /// <summary>Represents the execution state of a review workflow.</summary>
 public enum ReviewStatus

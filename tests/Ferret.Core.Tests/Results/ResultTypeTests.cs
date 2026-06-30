@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Enumerations;
+using Ferret.Core.Enumerations;
 using Ferret.Core.Results;
 
 namespace Ferret.Core.Tests.Results;

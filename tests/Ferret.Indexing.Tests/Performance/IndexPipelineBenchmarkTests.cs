@@ -3,6 +3,7 @@ using Ferret.Core.Primitives;
 using Ferret.Indexing;
 using Ferret.Indexing.Tests.EndToEnd;
 using Ferret.Indexing.Tests.Helpers;
+
 using Xunit;
 
 namespace Ferret.Indexing.Tests.Performance;
@@ -17,6 +18,7 @@ public sealed class IndexPipelineBenchmarkTests
     /// 100 small text files must be fully indexed in under 10 seconds on any CI agent.
     /// Typical on modern hardware: under 2 seconds.
     /// </summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task IndexPipeline_Processes_100_Files_In_Under_10_Seconds()
     {

@@ -6,6 +6,7 @@ using Ferret.Core.Events;
 using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
 using Ferret.Core.Workspace;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

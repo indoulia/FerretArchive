@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace.Errors;
+namespace Ferret.Core.Workspace.Errors;
 
 /// <summary>Thrown when an attempt is made to create a workspace that already exists.</summary>
 public sealed class WorkspaceAlreadyExistsException : WorkspaceException

@@ -1,6 +1,7 @@
 using Ferret.Cli.Cli;
 using Ferret.Core.Runtime;
 using Ferret.Runtime.Bootstrap;
+
 using Microsoft.Extensions.Logging;
 
 namespace Ferret.Cli.Diagnostics.Checks;

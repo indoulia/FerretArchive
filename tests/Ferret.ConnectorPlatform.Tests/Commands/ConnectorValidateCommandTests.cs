@@ -33,6 +33,7 @@ public sealed class ConnectorValidateCommandTests : IDisposable
     }
 
     /// <summary>A registered connector type returns a valid result.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task Validate_Known_Type_Returns_IsValid_True()
     {
@@ -54,6 +55,7 @@ public sealed class ConnectorValidateCommandTests : IDisposable
     }
 
     /// <summary>An unregistered connector type returns a validation error.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task Validate_Unknown_Type_Returns_IsValid_False()
     {
@@ -76,6 +78,7 @@ public sealed class ConnectorValidateCommandTests : IDisposable
     }
 
     /// <summary>No connectors.json file returns a valid (empty) result.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task Validate_No_File_Returns_Valid()
     {

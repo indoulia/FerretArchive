@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Represents an absolute file system path within or referring to a workspace root.</summary>
 public sealed class WorkspacePath : IEquatable<WorkspacePath>

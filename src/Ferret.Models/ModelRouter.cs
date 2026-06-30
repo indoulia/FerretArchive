@@ -2,6 +2,7 @@ using Ferret.Configuration.Ai;
 using Ferret.Core.Ai.Interfaces;
 using Ferret.Core.Ai.Models;
 using Ferret.Models.Exceptions;
+
 using Microsoft.Extensions.Options;
 
 namespace Ferret.Models;

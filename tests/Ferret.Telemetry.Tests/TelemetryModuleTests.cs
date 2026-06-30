@@ -1,4 +1,4 @@
-﻿namespace Ferret.Telemetry.Tests;
+namespace Ferret.Telemetry.Tests;
 
 public sealed class TelemetryModuleTests
 {

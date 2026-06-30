@@ -1,4 +1,5 @@
 using Ferret.Core.Context;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Context;

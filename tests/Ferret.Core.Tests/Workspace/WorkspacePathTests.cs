@@ -1,4 +1,5 @@
-﻿using Ferret.Core.Workspace;
+using Ferret.Core.Workspace;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Workspace;

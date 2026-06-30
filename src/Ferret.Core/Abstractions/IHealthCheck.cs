@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Abstractions;
+namespace Ferret.Core.Abstractions;
 
 /// <summary>Enables a component to report its own health status.</summary>
 public interface IHealthCheck

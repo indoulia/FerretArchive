@@ -4,7 +4,9 @@ using Ferret.Core.Ai.Interfaces;
 using Ferret.Core.Ai.Models;
 using Ferret.Models;
 using Ferret.Models.Exceptions;
+
 using Microsoft.Extensions.Options;
+
 using Xunit;
 
 namespace Ferret.Models.Tests;

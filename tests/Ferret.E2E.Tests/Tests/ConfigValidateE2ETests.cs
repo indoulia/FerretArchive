@@ -14,6 +14,7 @@ public sealed class ConfigValidateE2ETests : IAsyncLifetime
     public Task DisposeAsync() => _workspace.DisposeAsync();
 
     /// <summary>connector validate filesystem on a valid workspace exits with code 0.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task ConnectorValidate_Filesystem_ExitCodeZero()
     {
@@ -23,6 +24,7 @@ public sealed class ConfigValidateE2ETests : IAsyncLifetime
     }
 
     /// <summary>connector validate filesystem outputs connector name or "valid".</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task ConnectorValidate_Filesystem_OutputContainsValidOrConnectorName()
     {

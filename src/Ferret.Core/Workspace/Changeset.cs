@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Represents the set of file changes detected since the last index operation.</summary>
 public sealed class Changeset

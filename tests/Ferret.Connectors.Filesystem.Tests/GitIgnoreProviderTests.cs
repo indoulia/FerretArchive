@@ -1,5 +1,6 @@
 using Ferret.Connectors.Filesystem.Ignore;
 using Ferret.Core.Connectors;
+
 using Xunit;
 
 namespace Ferret.Connectors.Filesystem.Tests;

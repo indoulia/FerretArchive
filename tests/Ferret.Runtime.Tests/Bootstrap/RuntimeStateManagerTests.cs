@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Runtime;
+using Ferret.Core.Runtime;
 using Ferret.Runtime.Bootstrap;
 
 namespace Ferret.Runtime.Tests.Bootstrap;

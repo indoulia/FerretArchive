@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace.Errors;
+namespace Ferret.Core.Workspace.Errors;
 
 /// <summary>Thrown when a workspace cannot be found by its identifier or path.</summary>
 public sealed class WorkspaceNotFoundException : WorkspaceException

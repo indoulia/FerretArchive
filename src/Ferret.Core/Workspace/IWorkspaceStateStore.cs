@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Persists and retrieves workspace state statistics between platform invocations.</summary>
 public interface IWorkspaceStateStore

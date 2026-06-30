@@ -1,6 +1,7 @@
 using Ferret.Configuration.Ai;
 using Ferret.Core.Ai.Interfaces;
 using Ferret.Providers.Compliance;
+
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ferret.Providers.OpenAi.Tests;

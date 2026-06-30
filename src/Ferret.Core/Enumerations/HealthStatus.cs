@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Enumerations;
+namespace Ferret.Core.Enumerations;
 
 /// <summary>Represents the health state of a platform component or subsystem.</summary>
 public enum HealthStatus

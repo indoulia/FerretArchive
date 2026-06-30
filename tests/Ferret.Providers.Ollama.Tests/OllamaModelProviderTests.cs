@@ -5,7 +5,9 @@ using System.Text;
 
 using Ferret.Configuration.Ai;
 using Ferret.Core.Ai.Models;
+
 using Microsoft.Extensions.Logging.Abstractions;
+
 using Xunit;
 
 namespace Ferret.Providers.Ollama.Tests;
@@ -129,9 +131,9 @@ public sealed class OllamaModelProviderTests
         {
             var response = request.RequestUri?.AbsolutePath == expectedPath
                 ? new HttpResponseMessage(status)
-                  {
-                      Content = new StringContent(responseBody, Encoding.UTF8, "application/json"),
-                  }
+                {
+                    Content = new StringContent(responseBody, Encoding.UTF8, "application/json"),
+                }
                 : new HttpResponseMessage(HttpStatusCode.NotFound);
             return Task.FromResult(response);
         }

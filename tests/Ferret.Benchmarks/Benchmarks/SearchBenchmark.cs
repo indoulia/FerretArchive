@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+
 using Ferret.Connectors.Filesystem;
 using Ferret.Core.Connectors;
 using Ferret.Core.Events;
@@ -11,6 +12,7 @@ using Ferret.ParserPlatform;
 using Ferret.ParserPlatform.Parsers;
 using Ferret.Search;
 using Ferret.Search.Providers.Bm25;
+
 using Microsoft.Data.Sqlite;
 
 namespace Ferret.Benchmarks.Benchmarks;

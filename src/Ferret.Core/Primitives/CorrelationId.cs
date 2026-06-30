@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Primitives;
+namespace Ferret.Core.Primitives;
 
 /// <summary>Strongly-typed identifier for correlating operations across module boundaries.</summary>
 public sealed class CorrelationId : IEquatable<CorrelationId>

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Enumerations;
+namespace Ferret.Core.Enumerations;
 
 /// <summary>Represents the severity level of a finding, issue, or event.</summary>
 public enum Severity

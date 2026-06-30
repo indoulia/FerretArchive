@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Abstractions;
+using Ferret.Core.Abstractions;
 
 namespace Ferret.Runtime.Tests.Fakes;
 

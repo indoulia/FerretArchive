@@ -2,6 +2,7 @@ using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
 using Ferret.Core.Workspace;
 using Ferret.Workspace;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Workspace;

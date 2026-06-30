@@ -1,4 +1,4 @@
-﻿namespace Ferret.Runtime.Bootstrap;
+namespace Ferret.Runtime.Bootstrap;
 
 /// <summary>
 /// Tunable configuration values for the Ferret runtime host.

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Results;
+namespace Ferret.Core.Results;
 
 /// <summary>Represents the result of a discovery operation that finds items of type <typeparamref name="T"/>.</summary>
 /// <typeparam name="T">The type of items discovered.</typeparam>

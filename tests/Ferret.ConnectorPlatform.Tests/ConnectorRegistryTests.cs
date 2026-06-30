@@ -1,5 +1,6 @@
 using Ferret.ConnectorPlatform.Tests.Fakes;
 using Ferret.Core.Connectors;
+
 using Xunit;
 
 namespace Ferret.ConnectorPlatform.Tests;

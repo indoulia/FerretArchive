@@ -6,6 +6,7 @@ using System.Text;
 using Ferret.Configuration.Ai;
 using Ferret.Core.Ai.Interfaces;
 using Ferret.Providers.Compliance;
+
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ferret.Providers.Ollama.Tests;
@@ -45,9 +46,9 @@ public sealed class OllamaProviderComplianceTests : ProviderComplianceTests
         {
             var response = request.RequestUri?.AbsolutePath == "/api/tags"
                 ? new HttpResponseMessage(HttpStatusCode.OK)
-                  {
-                      Content = new StringContent(responseBody, Encoding.UTF8, "application/json"),
-                  }
+                {
+                    Content = new StringContent(responseBody, Encoding.UTF8, "application/json"),
+                }
                 : new HttpResponseMessage(HttpStatusCode.NotFound);
             return Task.FromResult(response);
         }

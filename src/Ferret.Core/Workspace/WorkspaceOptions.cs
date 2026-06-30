@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Options that influence workspace engine operations.</summary>
 public sealed class WorkspaceOptions

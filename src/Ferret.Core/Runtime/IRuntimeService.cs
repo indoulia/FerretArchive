@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Marker interface for services provided by the runtime and resolvable by modules.</summary>
 public interface IRuntimeService

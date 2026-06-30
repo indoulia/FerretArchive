@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Abstractions;
+using Ferret.Core.Abstractions;
 using Ferret.Core.Enumerations;
 using Ferret.Runtime.Health;
 using Ferret.Runtime.Tests.Fakes;

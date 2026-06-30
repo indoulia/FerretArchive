@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Errors;
+using Ferret.Core.Errors;
 using Ferret.Core.Workspace.Errors;
 
 namespace Ferret.Core.Tests.Errors;

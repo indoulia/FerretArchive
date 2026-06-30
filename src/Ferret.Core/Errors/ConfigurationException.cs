@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Errors;
+namespace Ferret.Core.Errors;
 
 /// <summary>Thrown when a configuration value is missing, malformed, or invalid.</summary>
 public sealed class ConfigurationException : FerretException

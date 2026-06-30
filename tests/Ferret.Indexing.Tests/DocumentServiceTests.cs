@@ -1,6 +1,8 @@
 using Ferret.Core.Primitives;
 using Ferret.Indexing;
+
 using Microsoft.Data.Sqlite;
+
 using Xunit;
 
 namespace Ferret.Indexing.Tests;

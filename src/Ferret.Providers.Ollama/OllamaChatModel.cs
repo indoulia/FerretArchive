@@ -4,7 +4,9 @@ using System.Text;
 using Ferret.Configuration.Ai;
 using Ferret.Core.Ai.Interfaces;
 using Ferret.Core.Ai.Models;
+
 using Microsoft.Extensions.Logging;
+
 using OllamaSharp;
 
 using OllamaApiChatRequest = OllamaSharp.Models.Chat.ChatRequest;

@@ -1,4 +1,5 @@
 using Ferret.Core.Search;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Search;
@@ -25,7 +26,9 @@ public sealed class SearchServiceModelTests
     {
         var caps = new SearchCapabilities
         {
-            SupportsKeyword = true, SupportsPhrase = true, SupportsPrefix = true,
+            SupportsKeyword = true,
+            SupportsPhrase = true,
+            SupportsPrefix = true,
         };
         Assert.True(caps.SupportsKeyword);
     }
@@ -35,7 +38,9 @@ public sealed class SearchServiceModelTests
     {
         var caps = new SearchCapabilities
         {
-            SupportsKeyword = true, SupportsPhrase = true, SupportsPrefix = true,
+            SupportsKeyword = true,
+            SupportsPhrase = true,
+            SupportsPrefix = true,
         };
         Assert.False(caps.SupportsSemantic);
         Assert.False(caps.SupportsHybrid);

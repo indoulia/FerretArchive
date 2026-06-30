@@ -1,10 +1,11 @@
-﻿using Ferret.Core.Abstractions;
+using Ferret.Core.Abstractions;
 using Ferret.Core.Primitives;
 using Ferret.Core.Runtime;
 using Ferret.Runtime.Lifecycle;
 using Ferret.Runtime.Modules;
 using Ferret.Runtime.Registry;
 using Ferret.Runtime.Tests.Fakes;
+
 using Microsoft.Extensions.Logging.Abstractions;
 
 using RuntimeExecutionContext = Ferret.Runtime.Lifecycle.ExecutionContext;

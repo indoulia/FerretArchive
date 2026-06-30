@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Results;
+namespace Ferret.Core.Results;
 
 /// <summary>Represents the outcome of an indexing operation.</summary>
 public sealed class IndexResult

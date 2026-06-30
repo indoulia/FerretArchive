@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Primitives;
+namespace Ferret.Core.Primitives;
 
 /// <summary>Strongly-typed identifier for a specification.</summary>
 public sealed class SpecificationId : IEquatable<SpecificationId>

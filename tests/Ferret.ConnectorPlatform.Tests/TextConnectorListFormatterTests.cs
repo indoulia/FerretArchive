@@ -1,6 +1,7 @@
 using Ferret.Cli.Cli;
 using Ferret.Cli.Commands.Connector;
 using Ferret.ConnectorPlatform.ViewModels;
+
 using Xunit;
 
 namespace Ferret.ConnectorPlatform.Tests;

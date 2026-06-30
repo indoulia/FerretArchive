@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Errors;
+namespace Ferret.Core.Errors;
 
 /// <summary>Thrown when input validation fails for a specific field or constraint.</summary>
 public sealed class ValidationException : FerretException

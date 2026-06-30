@@ -1,5 +1,6 @@
 using Ferret.Core.Documents;
 using Ferret.ParserPlatform.Parsers;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.ParserPlatform;

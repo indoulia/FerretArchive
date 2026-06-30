@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Manages workspace schema upgrades between platform versions.</summary>
 public interface IWorkspaceUpgradeManager

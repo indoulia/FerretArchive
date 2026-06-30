@@ -3,6 +3,7 @@ using Ferret.Core.Primitives;
 using Ferret.Core.Search;
 using Ferret.Mcp.Protocol;
 using Ferret.Mcp.Tools;
+
 using Xunit;
 
 namespace Ferret.Mcp.Tests.Tools;

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Mcp.Tests;
+namespace Ferret.Mcp.Tests;
 
 public sealed class McpModuleTests
 {

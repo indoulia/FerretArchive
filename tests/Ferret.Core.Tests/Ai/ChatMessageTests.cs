@@ -1,4 +1,5 @@
 using Ferret.Core.Ai.Models;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Ai;

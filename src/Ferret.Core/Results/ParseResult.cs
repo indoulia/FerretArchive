@@ -1,4 +1,4 @@
-﻿#pragma warning disable SA1402 // non-generic factory and generic<T> companion types share one file by convention
+#pragma warning disable SA1402 // non-generic factory and generic<T> companion types share one file by convention
 namespace Ferret.Core.Results;
 
 /// <summary>Factory for creating <see cref="ParseResult{T}"/> instances.</summary>

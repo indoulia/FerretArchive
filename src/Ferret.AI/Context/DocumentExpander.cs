@@ -1,5 +1,6 @@
 using Ferret.Core.Documents;
 using Ferret.Core.Search;
+
 using Microsoft.Extensions.Logging;
 
 namespace Ferret.AI.Context;

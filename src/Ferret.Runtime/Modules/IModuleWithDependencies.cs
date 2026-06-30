@@ -1,4 +1,4 @@
-﻿namespace Ferret.Runtime.Modules;
+namespace Ferret.Runtime.Modules;
 
 /// <summary>
 /// Optional interface that a module descriptor or DefaultModule subclass may implement to declare startup dependencies.

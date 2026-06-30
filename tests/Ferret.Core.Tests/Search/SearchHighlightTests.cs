@@ -1,4 +1,5 @@
 using Ferret.Core.Search;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Search;

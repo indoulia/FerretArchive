@@ -1,4 +1,4 @@
-﻿namespace Ferret.Plugin.SDK;
+namespace Ferret.Plugin.SDK;
 
 internal static class SdkModule
 {

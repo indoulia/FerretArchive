@@ -1,5 +1,6 @@
 using Ferret.AI.Context;
 using Ferret.Core.Context;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.AI;

@@ -3,7 +3,9 @@ using Ferret.Core.Documents;
 using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
 using Ferret.Indexing;
+
 using Microsoft.Data.Sqlite;
+
 using Xunit;
 
 namespace Ferret.Indexing.Tests;

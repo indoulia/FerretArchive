@@ -2,6 +2,7 @@ using Ferret.Core.Context;
 using Ferret.Core.Primitives;
 using Ferret.Mcp.Protocol;
 using Ferret.Mcp.Tools;
+
 using Xunit;
 
 namespace Ferret.Mcp.Tests.Tools;

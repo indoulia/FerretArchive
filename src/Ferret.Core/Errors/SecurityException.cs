@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Errors;
+namespace Ferret.Core.Errors;
 
 /// <summary>Base class for security-related platform exceptions.</summary>
 public class SecurityException : FerretException

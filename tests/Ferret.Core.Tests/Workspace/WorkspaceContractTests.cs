@@ -1,6 +1,7 @@
-﻿using Ferret.Core.Abstractions;
+using Ferret.Core.Abstractions;
 using Ferret.Core.Primitives;
 using Ferret.Core.Workspace;
+
 using Xunit;
 
 namespace Ferret.Core.Tests.Workspace;

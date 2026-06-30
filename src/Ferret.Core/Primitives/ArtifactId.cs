@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Primitives;
+namespace Ferret.Core.Primitives;
 
 /// <summary>Strongly-typed identifier for an artifact.</summary>
 public sealed class ArtifactId : IEquatable<ArtifactId>

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Errors;
+namespace Ferret.Core.Errors;
 
 /// <summary>Thrown when an unrecoverable platform-level error occurs.</summary>
 public sealed class PlatformException : FerretException

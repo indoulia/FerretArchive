@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Detects files changed since the last successful index operation.</summary>
 public interface IWorkspaceChangeDetector

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Plugins.Tests;
+namespace Ferret.Plugins.Tests;
 
 public sealed class PluginsModuleTests
 {

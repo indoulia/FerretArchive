@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace.Errors;
+namespace Ferret.Core.Workspace.Errors;
 
 /// <summary>Thrown when an operation attempts to access a path outside the workspace root.</summary>
 public sealed class WorkspacePathTraversalException : WorkspaceException

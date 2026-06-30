@@ -39,6 +39,7 @@ public sealed class ConnectorConfigureCommandTests : IDisposable
     }
 
     /// <summary>Configuring only path changes rootPath and leaves exclude unchanged.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task Configure_Path_Only_Changes_RootPath_Leaves_Exclude_Unchanged()
     {
@@ -72,6 +73,7 @@ public sealed class ConnectorConfigureCommandTests : IDisposable
     }
 
     /// <summary>Configuring only exclude changes exclude and leaves rootPath unchanged.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task Configure_Exclude_Only_Changes_Exclude_Leaves_RootPath_Unchanged()
     {

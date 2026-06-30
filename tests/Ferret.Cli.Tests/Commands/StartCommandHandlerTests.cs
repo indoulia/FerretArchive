@@ -1,6 +1,7 @@
 using Ferret.Cli.Commands;
 using Ferret.Cli.Commands.Handlers;
 using Ferret.Cli.Infrastructure;
+
 using Xunit;
 
 namespace Ferret.Cli.Tests.Commands;

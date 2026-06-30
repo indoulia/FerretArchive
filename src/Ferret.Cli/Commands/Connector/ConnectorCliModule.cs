@@ -1,6 +1,7 @@
 using Ferret.Cli.Cli;
 using Ferret.Core.Connectors;
 using Ferret.Core.Workspace;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.Cli.Commands.Connector;

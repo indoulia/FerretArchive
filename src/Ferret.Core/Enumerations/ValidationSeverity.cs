@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Enumerations;
+namespace Ferret.Core.Enumerations;
 
 /// <summary>Represents the severity of a validation finding.</summary>
 public enum ValidationSeverity

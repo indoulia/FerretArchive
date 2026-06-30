@@ -2,6 +2,7 @@ using Ferret.Cli.Infrastructure;
 using Ferret.Cli.Modules;
 using Ferret.Core.Primitives;
 using Ferret.Core.Runtime;
+
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ferret.Cli.Tests.Modules;

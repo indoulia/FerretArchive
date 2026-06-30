@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Enumerations;
+namespace Ferret.Core.Enumerations;
 
 /// <summary>Represents the lifecycle state of a plugin within the platform.</summary>
 public enum PluginState

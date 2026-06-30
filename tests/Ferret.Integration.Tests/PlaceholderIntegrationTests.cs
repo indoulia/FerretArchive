@@ -1,4 +1,4 @@
-﻿namespace Ferret.Integration.Tests;
+namespace Ferret.Integration.Tests;
 
 public sealed class PlaceholderIntegrationTests
 {

@@ -1,4 +1,5 @@
 using Ferret.Core.Ai.Interfaces;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

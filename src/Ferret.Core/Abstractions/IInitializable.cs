@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Abstractions;
+namespace Ferret.Core.Abstractions;
 
 /// <summary>Represents a component that requires explicit asynchronous initialization before use.</summary>
 public interface IInitializable

@@ -1,6 +1,8 @@
 using System.Reflection;
+
 using Ferret.Connectors.Filesystem;
 using Ferret.Core.Connectors;
+
 using Xunit;
 
 namespace Ferret.Architecture.Tests;

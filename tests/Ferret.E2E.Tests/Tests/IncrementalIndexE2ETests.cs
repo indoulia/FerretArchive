@@ -19,6 +19,7 @@ public sealed class IncrementalIndexE2ETests : IAsyncLifetime
     public Task DisposeAsync() => _workspace.DisposeAsync();
 
     /// <summary>Second index run on unchanged files reports skipped documents.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task IncrementalIndex_SecondRun_ReportsSkipped()
     {
@@ -33,6 +34,7 @@ public sealed class IncrementalIndexE2ETests : IAsyncLifetime
     }
 
     /// <summary>Second index run on unchanged files exits with code 0.</summary>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
     [Fact]
     public async Task IncrementalIndex_SecondRun_ExitCodeZero()
     {

@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Events;
+using Ferret.Core.Events;
 using Ferret.Core.Primitives;
 
 namespace Ferret.Core.Tests.Events;

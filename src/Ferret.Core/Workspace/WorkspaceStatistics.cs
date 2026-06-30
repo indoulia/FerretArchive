@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Quantitative statistics about a workspace's index and file state.</summary>
 public sealed class WorkspaceStatistics

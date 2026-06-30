@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Primitives;
+namespace Ferret.Core.Primitives;
 
 /// <summary>Strongly-typed identifier for a single execution or run.</summary>
 public sealed class ExecutionId : IEquatable<ExecutionId>

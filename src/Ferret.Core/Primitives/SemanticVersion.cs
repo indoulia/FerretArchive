@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Primitives;
+namespace Ferret.Core.Primitives;
 
 /// <summary>Represents a semantic version following the SemVer 2.0.0 specification.</summary>
 public sealed class SemanticVersion : IEquatable<SemanticVersion>, IComparable<SemanticVersion>

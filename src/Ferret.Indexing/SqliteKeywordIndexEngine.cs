@@ -1,6 +1,7 @@
 using Ferret.Core.Documents;
 using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
+
 using Microsoft.Data.Sqlite;
 
 namespace Ferret.Indexing;

@@ -1,4 +1,4 @@
-﻿namespace Ferret.Plugins;
+namespace Ferret.Plugins;
 
 internal static class PluginsModule
 {

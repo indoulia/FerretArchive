@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace.Errors;
+namespace Ferret.Core.Workspace.Errors;
 
 /// <summary>Thrown when a workspace upgrade attempt fails.</summary>
 public sealed class WorkspaceUpgradeFailedException : WorkspaceException

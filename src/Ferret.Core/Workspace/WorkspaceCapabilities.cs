@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Workspace;
+namespace Ferret.Core.Workspace;
 
 /// <summary>Describes the runtime capabilities of an open workspace.</summary>
 public sealed class WorkspaceCapabilities

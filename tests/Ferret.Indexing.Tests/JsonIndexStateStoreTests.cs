@@ -1,4 +1,4 @@
-﻿using Ferret.Core.Connectors;
+using Ferret.Core.Connectors;
 
 namespace Ferret.Indexing.Tests;
 

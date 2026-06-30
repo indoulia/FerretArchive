@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Runtime;
+namespace Ferret.Core.Runtime;
 
 /// <summary>Implemented by types that participate in the module lifecycle.</summary>
 public interface ILifecycleParticipant

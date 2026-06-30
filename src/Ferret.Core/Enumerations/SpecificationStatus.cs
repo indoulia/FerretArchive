@@ -1,4 +1,4 @@
-﻿namespace Ferret.Core.Enumerations;
+namespace Ferret.Core.Enumerations;
 
 /// <summary>Represents the review lifecycle state of a specification document.</summary>
 public enum SpecificationStatus
