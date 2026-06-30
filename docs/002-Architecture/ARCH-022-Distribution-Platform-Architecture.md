@@ -149,6 +149,11 @@ by every other channel (and by direct download). This decoupling is structural â
 release creation and channel publishing are distinct workflows triggered by
 distinct events.
 
+Channel publishing authenticates without a stored long-lived secret: npm
+publishing uses **Trusted Publishing (OIDC)** â€” GitHub Actions mints a
+short-lived identity token that npm exchanges for publish rights, and provenance
+is attested automatically. There is no npm token to store, rotate, or leak.
+
 ---
 
 ## 6. Consumer Model

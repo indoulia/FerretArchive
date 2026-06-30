@@ -13,6 +13,13 @@ jobs:
   publish:
     name: Publish @indoulia/ferret
     runs-on: ubuntu-latest
+    # Trusted Publishing (OIDC): GitHub mints a short-lived id-token that npm
+    # exchanges for publish rights. No stored NPM_TOKEN. Requires the package's
+    # trusted-publisher entry to be configured on npmjs.com (repo + this
+    # workflow file). See docs/012-Releases/RELEASE-PROCESS.md.
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,6 +29,9 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm (Trusted Publishing needs npm >= 11.5.1)
+        run: npm install -g npm@latest
 
       - name: Resolve version
         id: v
@@ -45,8 +55,6 @@ jobs:
         working-directory: Ferret.Npm
         run: npm test
 
-      - name: Publish
+      - name: Publish (Trusted Publishing via OIDC; provenance automatic)
         working-directory: Ferret.Npm
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

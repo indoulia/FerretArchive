@@ -12,11 +12,13 @@ GitHub Release; this document is the operational procedure behind them.
 
 ## One-time prerequisites
 
-Before the **first** public npm publish:
+- **npm scope** — the `@indoulia` org/scope must exist on npmjs.com, owned by the publishing account. `npm publish` rejects an unowned scope.
+- **Trusted Publishing (OIDC)** — `npm-publish.yml` authenticates to npm via GitHub Actions OIDC; there is **no stored npm token**. Configure the package's trusted publisher once on npmjs.com:
+  - npmjs.com → the `@indoulia/ferret` package → **Settings → Trusted Publisher** → add **GitHub Actions** with: repository `indoulia/Ferret`, workflow file `.github/workflows/npm-publish.yml` (and environment if one is used).
+  - The workflow grants `id-token: write` and upgrades npm to ≥ 11.5.1 (OIDC trusted publishing requirement). Provenance attestation is produced automatically.
+  - The legacy `NPM_TOKEN` repository secret is no longer used and can be deleted once a release has published successfully via OIDC.
 
-- **npm scope** — create the `@indoulia` org/scope on npmjs.com, owned by the publishing account. `npm publish` rejects an unowned scope.
-- **`NPM_TOKEN` secret** — generate a **granular automation** access token on npmjs.com (Read + Write to the `@indoulia` scope; no org-management permission; no IP restriction — GitHub runners use dynamic IPs). Add it as the `NPM_TOKEN` repository secret under **Settings → Secrets and variables → Actions**. The token expires; rotate before expiry or npm publishing will start failing with 401.
-  - *Planned change:* after the first successful publish, npm publishing migrates to **Trusted Publishing (OIDC)**, which removes the stored `NPM_TOKEN`. Tracked separately.
+> Historical note: the inaugural `v0.15.0` publish used a granular `NPM_TOKEN` automation token to minimize variables during first rollout. Publishing migrated to Trusted Publishing immediately afterward.
 
 ## Release procedure
 
