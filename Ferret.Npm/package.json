@@ -1,0 +1,31 @@
+{
+  "name": "@indoulia/ferret",
+  "version": "0.0.0",
+  "description": "Ferret — local-first code & document search with an MCP server for AI agents.",
+  "bin": {
+    "ferret": "bin/ferret.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "preuninstall": "node scripts/uninstall.js",
+    "test": "node --test",
+    "lint": "eslint .",
+    "format": "prettier --check ."
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "scripts/"
+  ],
+  "license": "MIT"
+}
