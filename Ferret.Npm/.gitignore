@@ -1,0 +1,6 @@
+node_modules/
+
+# The repo-root .gitignore ignores [Bb]in/ for .NET build output. This NPM
+# package ships a bin/ launcher dir that must be tracked — re-include it.
+!bin/
+!bin/**
