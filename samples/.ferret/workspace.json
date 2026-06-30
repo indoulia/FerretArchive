@@ -1,0 +1,13 @@
+{
+  "id": "01551ddd-2546-4620-b086-c6314d86a072",
+  "name": "samples",
+  "description": "",
+  "schemaVersion": "1.0",
+  "ferretVersion": "0.7.0",
+  "contextOsVersion": "1.0",
+  "createdAt": "2026-06-29T13:14:47.6173741+00:00",
+  "workspaceType": "repository",
+  "features": null,
+  "enabledConnectors": null,
+  "enabledModels": null
+}
