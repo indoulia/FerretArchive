@@ -14,7 +14,7 @@ public sealed class GitIgnoreProvider : IIgnoreProvider
     public GitIgnoreProvider(string rootPath)
     {
         ArgumentNullException.ThrowIfNull(rootPath);
-        var gitignore = Path.Combine(rootPath, ".gitignore");
+        var gitignore = Path.Join(rootPath, ".gitignore");
         _patterns = File.Exists(gitignore)
             ? File.ReadAllLines(gitignore)
                   .Where(l => !string.IsNullOrWhiteSpace(l) && !l.TrimStart().StartsWith('#'))
@@ -36,15 +36,7 @@ public sealed class GitIgnoreProvider : IIgnoreProvider
         var path = asset.CanonicalUri.AbsolutePath.TrimStart('/');
         var name = Path.GetFileName(path);
 
-        foreach (var pattern in _patterns)
-        {
-            if (MatchesPattern(pattern, path) || MatchesPattern(pattern, name))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return _patterns.Any(pattern => MatchesPattern(pattern, path) || MatchesPattern(pattern, name));
     }
 
     internal static bool MatchesPattern(string pattern, string input)
@@ -93,7 +85,7 @@ public sealed class GitIgnoreProvider : IIgnoreProvider
             pos = idx + parts[i].Length;
         }
 
-        return !pattern.EndsWith('*') ? pos == input.Length || input[pos..].All(c => c == '/') : true;
+        return pattern.EndsWith('*') || pos == input.Length || input[pos..].All(c => c == '/');
     }
 
     private static bool MatchesDoubleGlob(string pattern, string input)
@@ -197,6 +189,6 @@ public sealed class GitIgnoreProvider : IIgnoreProvider
             pos = idx + parts[i].Length;
         }
 
-        return !pattern.EndsWith('*') ? pos == segment.Length : true;
+        return pattern.EndsWith('*') || pos == segment.Length;
     }
 }

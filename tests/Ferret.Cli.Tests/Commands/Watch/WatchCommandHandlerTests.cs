@@ -130,7 +130,7 @@ public sealed class WatchCommandHandlerTests
     [Fact]
     public void WatchCommandHandler_CanBeInstantiated()
     {
-        var tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var tmpDir = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tmpDir);
         try
         {
@@ -150,7 +150,7 @@ public sealed class WatchCommandHandlerTests
     [Fact]
     public async Task ExecuteAsync_CancelsCleanly_ReturnsSuccess()
     {
-        var tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var tmpDir = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tmpDir);
         try
         {

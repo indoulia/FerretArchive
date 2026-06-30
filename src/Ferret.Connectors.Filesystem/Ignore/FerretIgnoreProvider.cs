@@ -12,7 +12,7 @@ public sealed class FerretIgnoreProvider : IIgnoreProvider
     public FerretIgnoreProvider(string rootPath)
     {
         ArgumentNullException.ThrowIfNull(rootPath);
-        var ferretIgnore = Path.Combine(rootPath, ".ferretignore");
+        var ferretIgnore = Path.Join(rootPath, ".ferretignore");
         _patterns = File.Exists(ferretIgnore)
             ? File.ReadAllLines(ferretIgnore)
                   .Where(l => !string.IsNullOrWhiteSpace(l) && !l.TrimStart().StartsWith('#'))
@@ -34,14 +34,7 @@ public sealed class FerretIgnoreProvider : IIgnoreProvider
         var path = asset.CanonicalUri.AbsolutePath.TrimStart('/');
         var name = Path.GetFileName(path);
 
-        foreach (var pattern in _patterns)
-        {
-            if (GitIgnoreProvider.MatchesPattern(pattern, path) || GitIgnoreProvider.MatchesPattern(pattern, name))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return _patterns.Any(pattern =>
+            GitIgnoreProvider.MatchesPattern(pattern, path) || GitIgnoreProvider.MatchesPattern(pattern, name));
     }
 }

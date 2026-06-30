@@ -21,7 +21,7 @@ public sealed class FilesystemConnectorHealthTests
     [Fact]
     public async Task GetHealthAsync_Returns_Disconnected_When_Path_Missing()
     {
-        var missingPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+        var missingPath = System.IO.Path.Join(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
         var connector = MakeConnector(missingPath);
 
         var health = await connector.GetHealthAsync();

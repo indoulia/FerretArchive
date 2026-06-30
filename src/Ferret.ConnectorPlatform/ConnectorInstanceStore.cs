@@ -96,7 +96,7 @@ public sealed class ConnectorInstanceStore : IConnectorInstanceStore
     }
 
     private static string GetFilePath(WorkspacePath rootPath) =>
-        Path.Combine(rootPath.FullPath, ".ferret", "connectors.json");
+        Path.Join(rootPath.FullPath, ".ferret", "connectors.json");
 
     private static async Task BackupIfNeededAsync(string filePath, CancellationToken ct)
     {

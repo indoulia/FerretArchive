@@ -9,8 +9,8 @@ public sealed class FilesystemConnectorDiscoveryTests
     public async Task DiscoverAsync_Yields_Files_In_Root()
     {
         using var dir = new TempDirectory();
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "a.cs"), "class A {}");
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "b.cs"), "class B {}");
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "a.cs"), "class A {}");
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "b.cs"), "class B {}");
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
@@ -23,8 +23,8 @@ public sealed class FilesystemConnectorDiscoveryTests
     public async Task DiscoverAsync_Yields_Files_Recursively()
     {
         using var dir = new TempDirectory();
-        Directory.CreateDirectory(System.IO.Path.Combine(dir.Path, "sub"));
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "sub", "nested.cs"), string.Empty);
+        Directory.CreateDirectory(System.IO.Path.Join(dir.Path, "sub"));
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "sub", "nested.cs"), string.Empty);
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
@@ -36,8 +36,8 @@ public sealed class FilesystemConnectorDiscoveryTests
     public async Task DiscoverAsync_Skips_DotGit_Directory()
     {
         using var dir = new TempDirectory();
-        Directory.CreateDirectory(System.IO.Path.Combine(dir.Path, ".git"));
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, ".git", "HEAD"), "ref: refs/heads/main");
+        Directory.CreateDirectory(System.IO.Path.Join(dir.Path, ".git"));
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, ".git", "HEAD"), "ref: refs/heads/main");
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
@@ -49,8 +49,8 @@ public sealed class FilesystemConnectorDiscoveryTests
     public async Task DiscoverAsync_Skips_DotFerret_Directory()
     {
         using var dir = new TempDirectory();
-        Directory.CreateDirectory(System.IO.Path.Combine(dir.Path, ".ferret"));
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, ".ferret", "state.json"), "{}");
+        Directory.CreateDirectory(System.IO.Path.Join(dir.Path, ".ferret"));
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, ".ferret", "state.json"), "{}");
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
@@ -62,7 +62,7 @@ public sealed class FilesystemConnectorDiscoveryTests
     public async Task DiscoverAsync_CanonicalUri_Is_Workspace_Relative()
     {
         using var dir = new TempDirectory();
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "Program.cs"), string.Empty);
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "Program.cs"), string.Empty);
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
@@ -75,8 +75,8 @@ public sealed class FilesystemConnectorDiscoveryTests
     public async Task DiscoverAsync_CanonicalUri_Uses_Forward_Slashes()
     {
         using var dir = new TempDirectory();
-        Directory.CreateDirectory(System.IO.Path.Combine(dir.Path, "src"));
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "src", "A.cs"), string.Empty);
+        Directory.CreateDirectory(System.IO.Path.Join(dir.Path, "src"));
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "src", "A.cs"), string.Empty);
         var connector = MakeConnector(dir.Path);
 
         var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
@@ -89,7 +89,7 @@ public sealed class FilesystemConnectorDiscoveryTests
     public async Task DiscoverAsync_AssetId_Is_Deterministic()
     {
         using var dir = new TempDirectory();
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "X.cs"), string.Empty);
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "X.cs"), string.Empty);
         var connector = MakeConnector(dir.Path);
 
         var r1 = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).FirstAsync();
@@ -102,8 +102,8 @@ public sealed class FilesystemConnectorDiscoveryTests
     public async Task DiscoverAsync_Skips_Assets_Ignored_By_Provider()
     {
         using var dir = new TempDirectory();
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "keep.cs"), string.Empty);
-        await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, "skip.log"), string.Empty);
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "keep.cs"), string.Empty);
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "skip.log"), string.Empty);
         var connector = MakeConnector(dir.Path);
         var options = new AssetDiscoveryOptions { IgnoreProvider = new SkipLogsIgnoreProvider() };
 
@@ -119,7 +119,7 @@ public sealed class FilesystemConnectorDiscoveryTests
         using var dir = new TempDirectory();
         for (var i = 0; i < 20; i++)
         {
-            await File.WriteAllTextAsync(System.IO.Path.Combine(dir.Path, $"file{i}.cs"), string.Empty);
+            await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, $"file{i}.cs"), string.Empty);
         }
 
         var connector = MakeConnector(dir.Path);

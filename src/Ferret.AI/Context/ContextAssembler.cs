@@ -49,7 +49,7 @@ public sealed class ContextAssembler : IContextAssembler
         var options = new SearchOptions { MaxResults = request.MaxDocuments * 2 };
         var searchResult = await _searchService.SearchAsync(request.Query, options).ConfigureAwait(false);
 
-        var allHits = searchResult.IsSuccess ? searchResult.Hits : (IReadOnlyList<SearchHit>)[];
+        var allHits = searchResult.IsSuccess ? searchResult.Hits : [];
         var documentsConsidered = allHits.Count;
 
         Log.HitsFound(_logger, allHits.Count, request.Query);

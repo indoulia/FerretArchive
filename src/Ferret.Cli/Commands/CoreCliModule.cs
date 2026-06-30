@@ -111,7 +111,7 @@ internal sealed class CoreCliModule : CliModuleBase
         yield return new WorkspaceRootCheck(workspaceRoot);
         yield return new FerretConfigDirCheck(workspaceRoot);
 
-        var dbPath = Path.Combine(
+        var dbPath = Path.Join(
             workspaceRoot,
             Ferret.Core.Workspace.WorkspaceLayout.RootDirectoryName,
             Ferret.Core.Indexing.IndexLayout.IndexDirectoryName,

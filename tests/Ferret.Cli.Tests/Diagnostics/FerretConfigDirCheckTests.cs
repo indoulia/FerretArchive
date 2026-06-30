@@ -10,8 +10,8 @@ public sealed class FerretConfigDirCheckTests
     [Fact]
     public async Task Pass_WhenFerretDirExists()
     {
-        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var ferretDir = Path.Combine(root, WorkspaceLayout.RootDirectoryName);
+        var root = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var ferretDir = Path.Join(root, WorkspaceLayout.RootDirectoryName);
         Directory.CreateDirectory(ferretDir);
         try
         {
@@ -30,7 +30,7 @@ public sealed class FerretConfigDirCheckTests
     [Fact]
     public async Task Fail_WhenFerretDirMissing()
     {
-        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var root = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try
         {

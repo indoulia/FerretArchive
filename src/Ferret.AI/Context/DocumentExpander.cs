@@ -46,6 +46,8 @@ public sealed class DocumentExpander
             return [];
         }
 
+        // NOTE: SemaphoreSlim is disposed in finally (not a using-statement) so CA2025 can verify
+        // all tasks complete before disposal. This intentionally leaves the cs/missed-using-statement note.
         var semaphore = new SemaphoreSlim(MaxConcurrency, MaxConcurrency);
         try
         {

@@ -31,7 +31,7 @@ public sealed class GitIgnoreProviderTests
     public void ShouldIgnore_Returns_True_For_File_Matching_Pattern()
     {
         using var dir = new TempDirectory();
-        File.WriteAllText(System.IO.Path.Combine(dir.Path, ".gitignore"), "*.log\n");
+        File.WriteAllText(System.IO.Path.Join(dir.Path, ".gitignore"), "*.log\n");
         var provider = new GitIgnoreProvider(dir.Path);
         var asset = MakeAsset(new Uri("filesystem:///debug.log"));
 
@@ -42,7 +42,7 @@ public sealed class GitIgnoreProviderTests
     public void ShouldIgnore_Returns_False_For_File_Not_Matching_Pattern()
     {
         using var dir = new TempDirectory();
-        File.WriteAllText(System.IO.Path.Combine(dir.Path, ".gitignore"), "*.log\n");
+        File.WriteAllText(System.IO.Path.Join(dir.Path, ".gitignore"), "*.log\n");
         var provider = new GitIgnoreProvider(dir.Path);
         var asset = MakeAsset(new Uri("filesystem:///src/Program.cs"));
 
@@ -53,7 +53,7 @@ public sealed class GitIgnoreProviderTests
     public void ShouldIgnore_Ignores_Comment_Lines()
     {
         using var dir = new TempDirectory();
-        File.WriteAllText(System.IO.Path.Combine(dir.Path, ".gitignore"), "# this is a comment\n*.log\n");
+        File.WriteAllText(System.IO.Path.Join(dir.Path, ".gitignore"), "# this is a comment\n*.log\n");
         var provider = new GitIgnoreProvider(dir.Path);
 
         Assert.False(provider.ShouldIgnore(MakeAsset(new Uri("filesystem:///readme.md"))));

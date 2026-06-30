@@ -49,7 +49,6 @@ public sealed class IndexPipeline : IIndexPipeline
         ArgumentNullException.ThrowIfNull(options);
 
         var correlationId = CorrelationId.Create(Guid.NewGuid().ToString("N"));
-        var start = DateTimeOffset.UtcNow;
         var startTick = Environment.TickCount64;
 
         await _eventBus.PublishAsync(

@@ -4,7 +4,7 @@ internal sealed class TempDirectory : IDisposable
 {
     internal TempDirectory() => Directory.CreateDirectory(Path);
 
-    internal string Path { get; } = System.IO.Path.Combine(
+    internal string Path { get; } = System.IO.Path.Join(
         System.IO.Path.GetTempPath(),
         "ferret-fs-tests-" + Guid.NewGuid().ToString("N")[..8]);
 

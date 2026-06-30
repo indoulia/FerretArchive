@@ -30,14 +30,14 @@ public sealed class EndToEndIndexPipelineTests
     {
         using var tempDir = new TempDirectory();
         await File.WriteAllTextAsync(
-            Path.Combine(tempDir.Path, "readme.txt"),
+            Path.Join(tempDir.Path, "readme.txt"),
             "hello world search test content");
         await File.WriteAllTextAsync(
-            Path.Combine(tempDir.Path, "notes.txt"),
+            Path.Join(tempDir.Path, "notes.txt"),
             "ferret integration test content for FTS5 engine");
 
         // Place db inside .ferret/ which FilesystemConnector auto-skips.
-        var dbPath = Path.Combine(tempDir.Path, ".ferret", "test-index.db");
+        var dbPath = Path.Join(tempDir.Path, ".ferret", "test-index.db");
         Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
         using var engine = new SqliteKeywordIndexEngine(dbPath);
 
@@ -62,15 +62,15 @@ public sealed class EndToEndIndexPipelineTests
     {
         using var tempDir = new TempDirectory();
         await File.WriteAllTextAsync(
-            Path.Combine(tempDir.Path, "README.md"), "# Ferret\nEnd-to-end test.");
+            Path.Join(tempDir.Path, "README.md"), "# Ferret\nEnd-to-end test.");
         await File.WriteAllTextAsync(
-            Path.Combine(tempDir.Path, "config.json"), "{\"name\":\"ferret\"}");
+            Path.Join(tempDir.Path, "config.json"), "{\"name\":\"ferret\"}");
         await File.WriteAllTextAsync(
-            Path.Combine(tempDir.Path, "notes.txt"), "plain text content");
+            Path.Join(tempDir.Path, "notes.txt"), "plain text content");
         await File.WriteAllBytesAsync(
-            Path.Combine(tempDir.Path, "image.png"), [0x89, 0x50, 0x4E, 0x47]);
+            Path.Join(tempDir.Path, "image.png"), [0x89, 0x50, 0x4E, 0x47]);
 
-        var dbPath = Path.Combine(tempDir.Path, ".ferret", "mixed-index.db");
+        var dbPath = Path.Join(tempDir.Path, ".ferret", "mixed-index.db");
         Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
         using var engine = new SqliteKeywordIndexEngine(dbPath);
 
@@ -99,9 +99,9 @@ public sealed class EndToEndIndexPipelineTests
     {
         using var tempDir = new TempDirectory();
         await File.WriteAllTextAsync(
-            Path.Combine(tempDir.Path, "doc.txt"), "rebuild test content");
+            Path.Join(tempDir.Path, "doc.txt"), "rebuild test content");
 
-        var dbPath = Path.Combine(tempDir.Path, ".ferret", "rebuild-index.db");
+        var dbPath = Path.Join(tempDir.Path, ".ferret", "rebuild-index.db");
         Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
         using var engine = new SqliteKeywordIndexEngine(dbPath);
 

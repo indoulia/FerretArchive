@@ -6,7 +6,7 @@ namespace Ferret.E2E.Tests.Tests;
 [Collection("WorkspaceInit")]
 public sealed class WorkspaceInitE2ETests : IAsyncLifetime
 {
-    private readonly string _tempDir = Path.Combine(
+    private readonly string _tempDir = Path.Join(
         Path.GetTempPath(),
         "ferret-e2e-init-" + Guid.NewGuid().ToString("N")[..8]);
 
@@ -43,7 +43,7 @@ public sealed class WorkspaceInitE2ETests : IAsyncLifetime
 
         Assert.Equal(0, exitCode);
         Assert.True(
-            File.Exists(Path.Combine(_tempDir, ".ferret", "workspace.json")),
+            File.Exists(Path.Join(_tempDir, ".ferret", "workspace.json")),
             ".ferret/workspace.json must exist after workspace init");
     }
 
@@ -60,7 +60,7 @@ public sealed class WorkspaceInitE2ETests : IAsyncLifetime
 
         Assert.Equal(0, exitCode);
         Assert.True(
-            File.Exists(Path.Combine(_tempDir, ".ferret", "state.json")),
+            File.Exists(Path.Join(_tempDir, ".ferret", "state.json")),
             ".ferret/state.json must exist after workspace init");
     }
 

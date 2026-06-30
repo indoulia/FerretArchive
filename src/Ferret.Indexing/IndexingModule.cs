@@ -24,7 +24,7 @@ public static class IndexingModule
         services.AddSingleton<IIndexStateStore>(sp =>
         {
             var workspace = sp.GetRequiredService<IWorkspaceContext>();
-            var stateFilePath = Path.Combine(
+            var stateFilePath = Path.Join(
                 workspace.WorkspaceRoot.FullPath,
                 WorkspaceLayout.RootDirectoryName,
                 IndexLayout.StateFileName);

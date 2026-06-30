@@ -14,7 +14,7 @@ public sealed class DocumentServiceTests : IAsyncDisposable
 
     public DocumentServiceTests()
     {
-        _dbPath = Path.Combine(Path.GetTempPath(), $"docservice-test-{Guid.NewGuid()}.db");
+        _dbPath = Path.Join(Path.GetTempPath(), $"docservice-test-{Guid.NewGuid()}.db");
         _connection = new SqliteConnection($"Data Source={_dbPath}");
         _connection.Open();
         CreateSchema(_connection);

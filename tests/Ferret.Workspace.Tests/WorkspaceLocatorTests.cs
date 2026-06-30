@@ -22,7 +22,7 @@ public sealed class WorkspaceLocatorTests : IDisposable
     public async Task LocateAsync_WhenCalledFromSubdirectory_FindsAncestorRoot()
     {
         CreateWorkspaceAt(_dir.Path);
-        var subDir = Path.Combine(_dir.Path, "src", "core");
+        var subDir = Path.Join(_dir.Path, "src", "core");
         Directory.CreateDirectory(subDir);
         var result = await _locator.LocateAsync(WorkspacePath.Create(subDir));
         Assert.NotNull(result);
@@ -52,14 +52,14 @@ public sealed class WorkspaceLocatorTests : IDisposable
     [Fact]
     public async Task ExistsAsync_WhenDotFerretExistsButNoManifest_ReturnsFalse()
     {
-        Directory.CreateDirectory(Path.Combine(_dir.Path, WorkspaceLayout.RootDirectoryName));
+        Directory.CreateDirectory(Path.Join(_dir.Path, WorkspaceLayout.RootDirectoryName));
         Assert.False(await _locator.ExistsAsync(WorkspacePath.Create(_dir.Path)));
     }
 
     private static void CreateWorkspaceAt(string root)
     {
-        var ferretDir = Path.Combine(root, WorkspaceLayout.RootDirectoryName);
+        var ferretDir = Path.Join(root, WorkspaceLayout.RootDirectoryName);
         Directory.CreateDirectory(ferretDir);
-        File.WriteAllText(Path.Combine(ferretDir, WorkspaceLayout.ManifestFileName), "{}");
+        File.WriteAllText(Path.Join(ferretDir, WorkspaceLayout.ManifestFileName), "{}");
     }
 }

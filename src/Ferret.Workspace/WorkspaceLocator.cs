@@ -12,8 +12,8 @@ public sealed class WorkspaceLocator : IWorkspaceLocator
         var current = searchPath.FullPath;
         while (current is not null)
         {
-            var ferretDir = Path.Combine(current, WorkspaceLayout.RootDirectoryName);
-            var manifest = Path.Combine(ferretDir, WorkspaceLayout.ManifestFileName);
+            var ferretDir = Path.Join(current, WorkspaceLayout.RootDirectoryName);
+            var manifest = Path.Join(ferretDir, WorkspaceLayout.ManifestFileName);
             if (Directory.Exists(ferretDir) && File.Exists(manifest))
             {
                 return Task.FromResult<WorkspacePath?>(WorkspacePath.Create(current));
@@ -29,8 +29,8 @@ public sealed class WorkspaceLocator : IWorkspaceLocator
     public Task<bool> ExistsAsync(WorkspacePath rootPath, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(rootPath);
-        var ferretDir = Path.Combine(rootPath.FullPath, WorkspaceLayout.RootDirectoryName);
-        var manifest = Path.Combine(ferretDir, WorkspaceLayout.ManifestFileName);
+        var ferretDir = Path.Join(rootPath.FullPath, WorkspaceLayout.RootDirectoryName);
+        var manifest = Path.Join(ferretDir, WorkspaceLayout.ManifestFileName);
         return Task.FromResult(Directory.Exists(ferretDir) && File.Exists(manifest));
     }
 }

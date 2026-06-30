@@ -9,7 +9,7 @@ public sealed class WorkspaceRootCheckTests
     [Fact]
     public async Task Pass_WhenDirectoryExists()
     {
-        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var dir = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         try
         {
@@ -30,7 +30,7 @@ public sealed class WorkspaceRootCheckTests
     {
         using var sw = new StringWriter();
         var ctx = FerretContext.CreateTest(sw);
-        var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var missing = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         var check = new WorkspaceRootCheck(missing);
         var result = await check.RunAsync(ctx, CancellationToken.None);
         Assert.False(result.Passed);
