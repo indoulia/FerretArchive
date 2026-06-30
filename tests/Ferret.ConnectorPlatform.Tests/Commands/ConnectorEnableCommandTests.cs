@@ -39,7 +39,7 @@ public sealed class ConnectorEnableCommandTests : IDisposable
     }
 
     /// <summary>Enabling a new connector creates an instance in the store.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Enable_New_Connector_Creates_Instance_In_Store()
     {
@@ -62,7 +62,7 @@ public sealed class ConnectorEnableCommandTests : IDisposable
     }
 
     /// <summary>Enabling an already-enabled connector returns Success without adding a duplicate.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Enable_Already_Enabled_Returns_Success_No_Write()
     {
@@ -87,7 +87,7 @@ public sealed class ConnectorEnableCommandTests : IDisposable
     }
 
     /// <summary>Enabling a disabled connector sets IsEnabled to true.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Enable_Disabled_Connector_Sets_IsEnabled_True()
     {

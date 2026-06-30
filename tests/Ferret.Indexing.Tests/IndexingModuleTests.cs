@@ -101,7 +101,7 @@ public sealed class IndexingModuleTests
     }
 
     /// <summary>FakeConnectorManager returns empty by default.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task FakeConnectorManager_GetActiveConnectorsAsync_Returns_Empty_By_Default()
     {

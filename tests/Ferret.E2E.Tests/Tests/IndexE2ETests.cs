@@ -14,7 +14,7 @@ public sealed class IndexE2ETests : IAsyncLifetime
     public Task DisposeAsync() => _workspace.DisposeAsync();
 
     /// <summary>index on a workspace with 3 cs files exits with code 0.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Index_ThreeCsFiles_ExitCodeZero()
     {
@@ -26,7 +26,7 @@ public sealed class IndexE2ETests : IAsyncLifetime
     }
 
     /// <summary>index output contains "Indexed" when files are processed.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Index_ThreeCsFiles_OutputContainsIndexed()
     {
@@ -38,7 +38,7 @@ public sealed class IndexE2ETests : IAsyncLifetime
     }
 
     /// <summary>index output contains "Index complete" summary line.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Index_ThreeCsFiles_OutputContainsIndexComplete()
     {

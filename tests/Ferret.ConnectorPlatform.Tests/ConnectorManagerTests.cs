@@ -32,7 +32,7 @@ public sealed class ConnectorManagerTests : IDisposable
     }
 
     /// <summary>No instances → empty result.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task GetActiveConnectorsAsync_Returns_Empty_When_No_Instances()
     {
@@ -44,7 +44,7 @@ public sealed class ConnectorManagerTests : IDisposable
     }
 
     /// <summary>Enabled instance with matching factory → single runtime.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task GetActiveConnectorsAsync_Returns_Runtime_For_Enabled_Instance()
     {
@@ -66,7 +66,7 @@ public sealed class ConnectorManagerTests : IDisposable
     }
 
     /// <summary>Disabled instances are excluded from the active list.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task GetActiveConnectorsAsync_Skips_Disabled_Instances()
     {
@@ -96,7 +96,7 @@ public sealed class ConnectorManagerTests : IDisposable
     }
 
     /// <summary>Instances with no matching factory are silently skipped.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task GetActiveConnectorsAsync_Skips_Unknown_ConnectorType()
     {
@@ -115,7 +115,7 @@ public sealed class ConnectorManagerTests : IDisposable
     }
 
     /// <summary>Second call returns the same cached runtime object.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task GetActiveConnectorsAsync_Returns_Same_Cached_Runtime_On_Second_Call()
     {
@@ -137,7 +137,7 @@ public sealed class ConnectorManagerTests : IDisposable
     }
 
     /// <summary>Unknown ID returns null.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task GetInstanceAsync_Returns_Null_For_Unknown_Id()
     {
@@ -149,7 +149,7 @@ public sealed class ConnectorManagerTests : IDisposable
     }
 
     /// <summary>Known ID returns matching instance.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task GetInstanceAsync_Returns_Instance_By_Id()
     {

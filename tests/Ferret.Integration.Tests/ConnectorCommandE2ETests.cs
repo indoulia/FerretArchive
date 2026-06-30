@@ -10,7 +10,7 @@ namespace Ferret.Integration.Tests;
 public sealed class ConnectorCommandE2ETests
 {
     /// <summary>connector list returns the filesystem connector.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task ConnectorList_Returns_Filesystem_Connector()
     {
@@ -26,7 +26,7 @@ public sealed class ConnectorCommandE2ETests
     }
 
     /// <summary>connector info filesystem returns connector detail.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task ConnectorInfo_Returns_Filesystem_Detail()
     {
@@ -43,7 +43,7 @@ public sealed class ConnectorCommandE2ETests
     }
 
     /// <summary>connector info with unknown id returns non-zero exit code.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task ConnectorInfo_Unknown_Id_Returns_NonZero_ExitCode()
     {

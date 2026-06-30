@@ -24,7 +24,7 @@ public sealed class EndToEndIndexPipelineTests
     /// <summary>
     /// Full pipeline run discovers text files, indexes them, and records zero failures.
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task FullIndexRun_DiscoversTxtFiles_And_IndexesThem()
     {
@@ -56,7 +56,7 @@ public sealed class EndToEndIndexPipelineTests
     /// <summary>
     /// Mixed-content directory: parseable text files are indexed, binary files are skipped.
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task FullIndexRun_Indexes_Parseable_And_Skips_Binaries()
     {
@@ -93,7 +93,7 @@ public sealed class EndToEndIndexPipelineTests
     /// <summary>
     /// ForceRebuild clears the index and re-indexes from scratch; result still shows correct counts.
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task FullIndexRun_ForceRebuild_ClearsAndReIndexes()
     {

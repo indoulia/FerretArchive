@@ -18,7 +18,7 @@ public sealed class IndexPipelineBenchmarkTests
     /// 100 small text files must be fully indexed in under 10 seconds on any CI agent.
     /// Typical on modern hardware: under 2 seconds.
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task IndexPipeline_Processes_100_Files_In_Under_10_Seconds()
     {

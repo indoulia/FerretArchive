@@ -19,7 +19,7 @@ public sealed class SearchE2ETests : IAsyncLifetime
     public Task DisposeAsync() => _workspace.DisposeAsync();
 
     /// <summary>search "class" after indexing returns exit code 0.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Search_AfterIndex_ExitCodeZero()
     {
@@ -29,7 +29,7 @@ public sealed class SearchE2ETests : IAsyncLifetime
     }
 
     /// <summary>search "AlphaService" returns output containing Alpha.cs.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Search_AlphaService_ReturnsAlphaCs()
     {
@@ -39,7 +39,7 @@ public sealed class SearchE2ETests : IAsyncLifetime
     }
 
     /// <summary>search "BetaRepository" returns output containing Beta.cs.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Search_BetaRepository_ReturnsBetaCs()
     {
@@ -49,7 +49,7 @@ public sealed class SearchE2ETests : IAsyncLifetime
     }
 
     /// <summary>search "GammaController" returns output containing Gamma.cs.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Search_GammaController_ReturnsGammaCs()
     {

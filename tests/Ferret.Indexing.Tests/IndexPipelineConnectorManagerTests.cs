@@ -12,7 +12,7 @@ namespace Ferret.Indexing.Tests;
 public sealed class IndexPipelineConnectorManagerTests
 {
     /// <summary>Pipeline with FakeConnectorManager indexes one document end-to-end.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Pipeline_Receives_FakeConnectorManager_And_Accesses_Connector()
     {
@@ -53,7 +53,7 @@ public sealed class IndexPipelineConnectorManagerTests
     }
 
     /// <summary>Connector that is not IAssetSource: zero assets discovered.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Pipeline_Skips_Runtime_Where_Connector_Is_Not_IAssetSource()
     {

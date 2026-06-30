@@ -31,7 +31,7 @@ internal sealed partial class DiagnosticsModule : DefaultModule
 
     public override Task OnStartingAsync(IModuleContext context, CancellationToken cancellationToken = default)
     {
-        LogStarting(_logger, Metadata.Version.ToString());
+        LogStarting(_logger, Metadata.Version);
         return Task.CompletedTask;
     }
 
@@ -54,7 +54,7 @@ internal sealed partial class DiagnosticsModule : DefaultModule
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "DiagnosticsModule starting (v{Version})")]
-    private static partial void LogStarting(ILogger logger, string version);
+    private static partial void LogStarting(ILogger logger, SemanticVersion version);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "DiagnosticsModule activated.")]
     private static partial void LogStarted(ILogger logger);

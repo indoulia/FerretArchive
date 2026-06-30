@@ -14,7 +14,7 @@ public sealed class DoctorE2ETests : IAsyncLifetime
     public Task DisposeAsync() => _workspace.DisposeAsync();
 
     /// <summary>doctor exits with code 0 in a valid workspace.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Doctor_ValidWorkspace_ExitCodeZero()
     {
@@ -24,7 +24,7 @@ public sealed class DoctorE2ETests : IAsyncLifetime
     }
 
     /// <summary>doctor output contains "healthy" in a valid workspace.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Doctor_ValidWorkspace_OutputContainsHealthy()
     {
@@ -34,7 +34,7 @@ public sealed class DoctorE2ETests : IAsyncLifetime
     }
 
     /// <summary>doctor output contains "Ferret Doctor" header.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous unit test.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task Doctor_ValidWorkspace_OutputContainsDoctorHeader()
     {

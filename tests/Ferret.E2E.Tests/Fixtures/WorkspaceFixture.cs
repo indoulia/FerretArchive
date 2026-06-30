@@ -49,7 +49,7 @@ public sealed class WorkspaceFixture : IAsyncLifetime
     }
 
     /// <summary>Writes three sample C# source files into the workspace directory.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task WriteSampleCsFilesAsync()
     {
         await File.WriteAllTextAsync(
@@ -66,7 +66,7 @@ public sealed class WorkspaceFixture : IAsyncLifetime
     }
 
     /// <summary>Runs a ferret command in the workspace directory.</summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public Task<(int ExitCode, string Stdout, string Stderr)> RunAsync(
         string args,
         TimeSpan? timeout = null) =>
