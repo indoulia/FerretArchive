@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 640px; }
+  body {
+    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+    width: 1280px; height: 640px; overflow: hidden; position: relative;
+    background:
+      radial-gradient(1100px 700px at 84% -12%, rgba(99,102,241,0.30), transparent 60%),
+      radial-gradient(900px 600px at 6% 118%, rgba(56,189,248,0.18), transparent 55%),
+      linear-gradient(140deg, #0b1020 0%, #0d1426 45%, #0a0f1e 100%);
+    color: #e9eefb;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.4px);
+    background-size: 26px 26px;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.05));
+            mask-image: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.05));
+  }
+
+  .frame {
+    position: absolute; inset: 0; padding: 74px 84px;
+    display: flex; gap: 48px;
+  }
+
+  /* ===== LEFT COLUMN ===== */
+  .left { flex: 1.72; display: flex; flex-direction: column; }
+
+  .brand { display: flex; align-items: center; gap: 22px; }
+  .mark {
+    width: 84px; height: 84px; border-radius: 22px; flex: none;
+    background: linear-gradient(160deg, #6366f1 0%, #4f46e5 55%, #4338ca 100%);
+    box-shadow: 0 16px 44px rgba(79,70,229,0.45), inset 0 1px 0 rgba(255,255,255,0.35);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mark svg { width: 54px; height: 54px; display:block; }
+  .namewrap { display:flex; flex-direction:column; gap: 7px; }
+  .name { font-size: 60px; font-weight: 800; letter-spacing: -1.5px; line-height: 0.9; color: #fff; }
+  .name .dot { color: #818cf8; }
+  .kicker {
+    font-size: 18px; font-weight: 700; letter-spacing: 3.5px;
+    text-transform: uppercase; color: #93c5fd;
+  }
+
+  .hero {
+    margin-top: 44px;
+    font-size: 56px; font-weight: 800; letter-spacing: -1.2px; line-height: 1.02;
+    background: linear-gradient(92deg, #ffffff 0%, #c7d2fe 58%, #93c5fd 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub {
+    margin-top: 20px; font-size: 23px; line-height: 1.42; font-weight: 450;
+    color: #b6c2dd; max-width: 620px;
+  }
+  .sub b { color: #f1f5ff; font-weight: 700; }
+
+  .flow { margin-top: auto; display: flex; align-items: center; gap: 12px; }
+  .step {
+    display:flex; align-items:center; gap:9px;
+    padding: 11px 18px; border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.13);
+    font-size: 19px; font-weight: 700; color: #e4ebfb; white-space: nowrap;
+  }
+  .step .d { width:8px; height:8px; border-radius:50%; }
+  .arr { color:#6b78a3; font-size: 20px; font-weight: 800; }
+
+  .badges { margin-top: 22px; display:flex; gap: 11px; align-items:center; }
+  .badge {
+    font-size: 16px; font-weight: 700; letter-spacing: .3px;
+    padding: 8px 15px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14); color:#aebbd9;
+  }
+  .badge.net { color:#c4b5fd; border-color: rgba(139,92,246,0.5); }
+  .badge.mit { color:#fcd34d; border-color: rgba(234,179,8,0.45); }
+
+  /* ===== RIGHT COLUMN : pipeline ===== */
+  .right {
+    flex: 1; border-left: 1px solid rgba(255,255,255,0.10);
+    padding-left: 46px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 14px;
+  }
+  .ptitle {
+    font-size: 14px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+    color:#7e8cb3; margin-bottom: 2px;
+  }
+  .sources { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .src {
+    text-align:center; padding: 12px 0; border-radius: 12px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
+    font-size: 18px; font-weight: 650; color:#cdd7f0;
+  }
+  .down { display:flex; flex-direction:column; align-items:center; line-height: .7; color:#5b67a0; }
+  .down span { font-size: 22px; }
+  .node {
+    width: 100%; display:flex; align-items:center; justify-content:center; gap: 12px;
+    padding: 16px 0; border-radius: 14px;
+    background: linear-gradient(160deg, rgba(99,102,241,0.22), rgba(79,70,229,0.12));
+    border: 1px solid rgba(129,140,248,0.55);
+    box-shadow: 0 10px 30px rgba(79,70,229,0.25);
+    font-size: 24px; font-weight: 800; color:#fff;
+  }
+  .node .mini {
+    width: 30px; height: 30px; border-radius: 9px; flex:none;
+    background: linear-gradient(160deg,#6366f1,#4338ca);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .node .mini svg { width: 20px; height: 20px; }
+  .endnode {
+    width:100%; text-align:center; padding: 13px 0; border-radius: 12px;
+    background: rgba(125,211,252,0.08); border: 1px solid rgba(125,211,252,0.4);
+    color:#bae6fd; font-size: 18px; font-weight: 700;
+  }
+  .endnode b { color:#7dd3fc; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="frame">
+
+    <!-- LEFT -->
+    <div class="left">
+      <div class="brand">
+        <div class="mark">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="42" y1="42" x2="55.5" y2="55.5" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="27" cy="27" r="20.5" stroke="#fff" stroke-width="4.5"/>
+            <g>
+              <circle cx="18.6" cy="17.6" r="4.6" fill="#fff"/>
+              <circle cx="35.4" cy="17.6" r="4.6" fill="#fff"/>
+              <path d="M27 14.5c6.9 0 11.7 4.8 11.7 10.9 0 6.4-5 11.1-11.7 11.1S15.3 31.8 15.3 25.4C15.3 19.3 20.1 14.5 27 14.5Z" fill="#fff"/>
+              <path d="M16.4 23.6c3.7-2.2 17.5-2.2 21.2 0-.7 3-2.4 4.9-4 5.4-2.2-1.2-11-1.2-13.2 0-1.6-.5-3.3-2.4-4-5.4Z" fill="#4f46e5"/>
+              <circle cx="21.6" cy="25.6" r="1.9" fill="#fff"/>
+              <circle cx="32.4" cy="25.6" r="1.9" fill="#fff"/>
+              <path d="M27 30.2c2.2 0 3.9 1.3 3.9 3 0 1.9-1.7 3.4-3.9 3.4s-3.9-1.5-3.9-3.4c0-1.7 1.7-3 3.9-3Z" fill="#fff"/>
+              <circle cx="27" cy="32.4" r="1.8" fill="#4f46e5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="namewrap">
+          <div class="name">Ferret<span class="dot">.</span></div>
+          <div class="kicker">Context Engine for AI</div>
+        </div>
+      </div>
+
+      <div class="hero">Dig Deep.<br>Deliver Context.</div>
+      <div class="sub">
+        Transforms your code and documentation into <b>relevant, AI-ready context</b>—not
+        entire repositories. Built for <b>any MCP-compatible AI assistant</b>.
+      </div>
+
+      <div class="flow">
+        <div class="step"><span class="d" style="background:#34d399"></span>Index</div>
+        <div class="arr">→</div>
+        <div class="step"><span class="d" style="background:#60a5fa"></span>Search</div>
+        <div class="arr">→</div>
+        <div class="step"><span class="d" style="background:#a78bfa"></span>Context</div>
+        <div class="arr">→</div>
+        <div class="step"><span class="d" style="background:#7dd3fc"></span>AI</div>
+      </div>
+
+      <div class="badges">
+        <div class="badge net">.NET 9</div>
+        <div class="badge">Cross-platform</div>
+        <div class="badge mit">MIT</div>
+      </div>
+    </div>
+
+    <!-- RIGHT : pipeline -->
+    <div class="right">
+      <div class="ptitle">How it works</div>
+      <div class="sources">
+        <div class="src">Code</div>
+        <div class="src">Docs</div>
+        <div class="src">Logs</div>
+        <div class="src">Wiki</div>
+      </div>
+      <div class="down"><span>↓</span></div>
+      <div class="node">
+        <div class="mini">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="42" y1="42" x2="55.5" y2="55.5" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+            <circle cx="27" cy="27" r="20.5" stroke="#fff" stroke-width="5"/>
+            <circle cx="18.6" cy="17.6" r="4.6" fill="#fff"/>
+            <circle cx="35.4" cy="17.6" r="4.6" fill="#fff"/>
+            <path d="M27 14.5c6.9 0 11.7 4.8 11.7 10.9 0 6.4-5 11.1-11.7 11.1S15.3 31.8 15.3 25.4C15.3 19.3 20.1 14.5 27 14.5Z" fill="#fff"/>
+            <path d="M16.4 23.6c3.7-2.2 17.5-2.2 21.2 0-.7 3-2.4 4.9-4 5.4-2.2-1.2-11-1.2-13.2 0-1.6-.5-3.3-2.4-4-5.4Z" fill="#4338ca"/>
+          </svg>
+        </div>
+        Ferret
+      </div>
+      <div class="down"><span>↓</span><span style="font-size:13px;letter-spacing:2px;color:#7e8cb3;margin-top:6px">VIA MCP</span></div>
+      <div class="endnode">Any <b>AI assistant</b></div>
+    </div>
+
+  </div>
+</body>
+</html>
