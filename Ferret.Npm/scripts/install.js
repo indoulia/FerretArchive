@@ -41,14 +41,28 @@ async function install(opts = {}) {
     await fsp.mkdir(stagingDir, { recursive: true });
     await extract(zipPath, stagingDir);
 
+    // The release zip wraps its payload in a single top-level folder
+    // (Ferret-<version>-<rid>/, the same layout the manual install flow uses).
+    // If the archive has exactly one top-level entry and it is a directory,
+    // treat that as the package root so the binary lands at <finalDir>/<binary>.
+    let contentRoot = stagingDir;
+    const entries = await fsp.readdir(stagingDir, { withFileTypes: true });
+    if (entries.length === 1 && entries[0].isDirectory()) {
+        contentRoot = path.join(stagingDir, entries[0].name);
+    }
+    try {
+        await fsp.access(path.join(contentRoot, asset.binary));
+    } catch {
+        throw new Error(`Expected ${asset.binary} in the extracted package but did not find it.`);
+    }
+
     await fsp.rm(finalDir, { recursive: true, force: true });
     await fsp.mkdir(path.dirname(finalDir), { recursive: true });
     try {
-        await fsp.rename(stagingDir, finalDir);
+        await fsp.rename(contentRoot, finalDir);
     } catch (err) {
         if (err.code !== 'EXDEV') throw err; // cross-device: copy then remove
-        await fsp.cp(stagingDir, finalDir, { recursive: true });
-        await fsp.rm(stagingDir, { recursive: true, force: true });
+        await fsp.cp(contentRoot, finalDir, { recursive: true });
     }
 
     if (platform !== 'win32') {

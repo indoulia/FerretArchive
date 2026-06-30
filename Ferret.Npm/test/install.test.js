@@ -18,9 +18,11 @@ test('install downloads, verifies, and atomically installs the binary', async ()
     const home = path.join(base, 'home');
     await fsp.mkdir(home, { recursive: true });
 
-    // Build a real zip asset and its manifest entry.
+    // Build a real zip asset and its manifest entry. The release zip wraps its
+    // payload in a top-level Ferret-<version>-<rid>/ folder (matching package.ps1
+    // and the manual install flow), so the entry is nested under that folder.
     const zipPath = path.join(base, 'Ferret-1.2.3-linux-x64.zip');
-    writeSingleEntryZip(zipPath, 'ferret', '#!/bin/sh\necho ferret-stub\n');
+    writeSingleEntryZip(zipPath, 'Ferret-1.2.3-linux-x64/ferret', '#!/bin/sh\necho ferret-stub\n');
     const sha = createHash('sha256')
         .update(await fsp.readFile(zipPath))
         .digest('hex');
