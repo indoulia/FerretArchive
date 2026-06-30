@@ -46,10 +46,19 @@ public sealed class DocumentExpander
             return [];
         }
 
-        using var semaphore = new SemaphoreSlim(MaxConcurrency, MaxConcurrency);
-        var tasks = hits.Select(hit => FetchOneAsync(hit, semaphore, ct)).ToArray();
-        var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-        return results.Where(d => d is not null).Select(d => d!).ToList();
+        // NOTE: SemaphoreSlim is disposed in finally (not a using-statement) so CA2025 can verify
+        // all tasks complete before disposal. This intentionally leaves the cs/missed-using-statement note.
+        var semaphore = new SemaphoreSlim(MaxConcurrency, MaxConcurrency);
+        try
+        {
+            var tasks = hits.Select(hit => FetchOneAsync(hit, semaphore, ct)).ToArray();
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+            return results.Where(d => d is not null).Select(d => d!).ToList();
+        }
+        finally
+        {
+            semaphore.Dispose();
+        }
     }
 
     private async Task<Document?> FetchOneAsync(
