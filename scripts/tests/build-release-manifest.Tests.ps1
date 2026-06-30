@@ -37,6 +37,27 @@ try {
     # The generator must self-validate the manifest with the installer's parser.
     if ($output -notmatch "manifest valid: schema 1") { throw "manifest parser validation line not found in output" }
 
+    # Regression: an empty artifacts dir must fail with the "no zips" message,
+    # not a StrictMode crash on a missing .Count (single/zero-item scalar). The
+    # generator runs with ErrorActionPreference=Stop, so Write-Error is a
+    # terminating error and must be caught.
+    $empty = Join-Path ([System.IO.Path]::GetTempPath()) ("ferret-manifest-empty-" + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $empty -Force | Out-Null
+    try {
+        $threw = $false
+        try {
+            & $gen -Version "9.9.9" -ArtifactsDir $empty -Published "2026-06-30" 2>&1 | Out-Null
+        }
+        catch {
+            $threw = $true
+            if ("$_" -notmatch "No Ferret-9.9.9-\*\.zip files found") { throw "wrong error for empty dir: $_" }
+        }
+        if (-not $threw) { throw "expected failure for empty artifacts dir" }
+    }
+    finally {
+        Remove-Item $empty -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     Write-Host "PASS: build-release-manifest.ps1 tests"
 }
 finally {

@@ -32,7 +32,9 @@ if (-not $Published) { $Published = (Get-Date).ToUniversalTime().ToString("yyyy-
 $SchemaVersion = 1
 $RidOrder = @("win-x64", "linux-x64", "osx-arm64", "osx-x64")
 
-$zips = Get-ChildItem -Path $ArtifactsDir -Filter "Ferret-$Version-*.zip" -File | Sort-Object Name
+# @(...) forces an array so .Count is valid under StrictMode even for a single
+# matching zip (Get-ChildItem returns a scalar for one item otherwise).
+$zips = @(Get-ChildItem -Path $ArtifactsDir -Filter "Ferret-$Version-*.zip" -File | Sort-Object Name)
 if ($zips.Count -eq 0) {
     Write-Error "No Ferret-$Version-*.zip files found in $ArtifactsDir."
     exit 1

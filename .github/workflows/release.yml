@@ -49,6 +49,9 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "VERSION_PREFIX=$PREFIX" >> "$GITHUB_OUTPUT"
           echo "VERSION_SUFFIX=$SUFFIX" >> "$GITHUB_OUTPUT"
+          # Capture the release date once and pass it explicitly to the manifest
+          # generator so the generated manifest is deterministic for this run.
+          echo "DATE=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -78,6 +81,22 @@ jobs:
           /p:VersionSuffix=${{ steps.version.outputs.VERSION_SUFFIX }}
           --output ./artifacts
 
+      - name: Build distribution packages (all RIDs)
+        shell: pwsh
+        run: |
+          $rids = @('win-x64','linux-x64','osx-arm64','osx-x64')
+          foreach ($rid in $rids) {
+            ./package.ps1 -Version '${{ steps.version.outputs.VERSION }}' -Rid $rid
+          }
+
+      - name: Build release manifest
+        shell: pwsh
+        run: |
+          ./scripts/build-release-manifest.ps1 `
+            -Version '${{ steps.version.outputs.VERSION }}' `
+            -ArtifactsDir './artifacts' `
+            -Published '${{ steps.version.outputs.DATE }}'
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -85,4 +104,8 @@ jobs:
           name: Ferret v${{ steps.version.outputs.VERSION }}
           draft: true
           generate_release_notes: true
-          files: ./artifacts/*.nupkg
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/Ferret-*.zip
+            ./artifacts/SHA256SUMS.txt
+            ./artifacts/release-manifest.json
