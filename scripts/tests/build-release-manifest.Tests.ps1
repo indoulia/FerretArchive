@@ -4,12 +4,16 @@ $ErrorActionPreference = "Stop"
 
 $scriptsDir = Split-Path -Parent $PSScriptRoot
 $gen = Join-Path $scriptsDir "build-release-manifest.ps1"
+$RidOrderCheck = @("win-x64", "linux-x64", "osx-arm64", "osx-x64")
 
 $work = Join-Path ([System.IO.Path]::GetTempPath()) ("ferret-manifest-test-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $work -Force | Out-Null
 try {
     "win-binary" | Set-Content (Join-Path $work "Ferret-9.9.9-win-x64.zip")
     "linux-binary" | Set-Content (Join-Path $work "Ferret-9.9.9-linux-x64.zip")
+    # Stale artifact from a longer-prefixed version must NOT be picked up when
+    # building 9.9.9 (the captured RID 'rc1-win-x64' is not a known RID).
+    "stale" | Set-Content (Join-Path $work "Ferret-9.9.9-rc1-win-x64.zip")
 
     $output = & $gen -Version "9.9.9" -ArtifactsDir $work -Published "2026-06-30" | Out-String
 
@@ -25,6 +29,7 @@ try {
     if ($m.minimumInstallerSchema -ne 1) { throw "minimumInstallerSchema != 1" }
     if ($m.metadata.generator -ne "build-release-manifest.ps1") { throw "metadata.generator wrong" }
     if (@($m.assets).Count -ne 2) { throw "expected 2 assets, got $(@($m.assets).Count)" }
+    if (@($m.assets) | Where-Object { $_.rid -notin $RidOrderCheck }) { throw "manifest contains an unknown RID (stale artifact leaked in)" }
 
     $win = @($m.assets) | Where-Object { $_.rid -eq "win-x64" }
     if ($win.binary -ne "ferret.exe") { throw "win binary name wrong: $($win.binary)" }

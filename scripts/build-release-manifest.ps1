@@ -31,6 +31,10 @@ if (-not $Published) { $Published = (Get-Date).ToUniversalTime().ToString("yyyy-
 
 $SchemaVersion = 1
 $RidOrder = @("win-x64", "linux-x64", "osx-arm64", "osx-x64")
+# Constrain the matched RID to the known set so a stale artifact from a
+# longer-prefixed version (e.g. 0.14.0-rc1 when building 0.14.0) can never be
+# mistaken for a "<version>-<rid>.zip" of this release.
+$ridPattern = ($RidOrder | ForEach-Object { [regex]::Escape($_) }) -join '|'
 
 # @(...) forces an array so .Count is valid under StrictMode even for a single
 # matching zip (Get-ChildItem returns a scalar for one item otherwise).
@@ -44,7 +48,7 @@ $assets = @()
 $sumsLines = @()
 $escaped = [regex]::Escape($Version)
 foreach ($zip in $zips) {
-    if ($zip.Name -notmatch "^Ferret-$escaped-(.+)\.zip$") { continue }
+    if ($zip.Name -notmatch "^Ferret-$escaped-($ridPattern)\.zip$") { continue }
     $rid = $Matches[1]
     $hash = (Get-FileHash $zip.FullName -Algorithm SHA256).Hash.ToLower()
     $binary = if ($rid -like "win-*") { "ferret.exe" } else { "ferret" }
@@ -56,6 +60,11 @@ foreach ($zip in $zips) {
         binary = $binary
     }
     $sumsLines += "$hash  $($zip.Name)"
+}
+
+if (@($assets).Count -eq 0) {
+    Write-Error "No Ferret-$Version-<rid>.zip files matching a known RID ($($RidOrder -join ', ')) found in $ArtifactsDir."
+    exit 1
 }
 
 # Stable, deterministic asset ordering by known RID order, then by rid name.
