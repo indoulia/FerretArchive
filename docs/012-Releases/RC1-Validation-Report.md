@@ -34,24 +34,51 @@ No feature or architectural changes were introduced.
 
 ## 2. Package Contents
 
-**Archive:** `Ferret-0.14.0-rc1-win-x64.zip` (33,498,412 bytes, ≈31.9 MB)
-**SHA256(zip):** `124120923bd5e2ae9fa1dff5e0f7aab7cfee8ee85dd30f61387f18d03aa9957e`
+**Archive:** `Ferret-0.14.0-rc1-win-x64.zip` (33,500,745 bytes, ≈31.9 MB)
+**SHA256(zip):** `0b7026ffd83ac493f84944f786e5d33c39ed0b700463bd641c30dbb072a1ebcd`
 
 Archive root folder: `Ferret-0.14.0-rc1-win-x64/`
+Assembled by `package.ps1` from the committed binary plus the end-user
+`packaging/README.md`, `LICENSE`, `CHANGELOG.md`, and `install.ps1` /
+`uninstall.ps1`.
 
 | File | Size (bytes) | SHA256 |
 |---|---|---|
 | `ferret.exe` | 38,978,901 | `7cafedf34ee0aa22f9c1829b64f8357c2f5b1ce7b075d089dc5e5bf8c569bc43` |
 | `LICENSE` | 1,097 | `b7f67431745306afdd8259eea11ac7f879a97b874b5a9c27eb0aefdfe4580e3d` |
-| `README.md` | 2,446 | `9e59d9c22c5b7052968b823c3f241a4f2fea78fe084692e7f35930c4161be81a` |
+| `README.md` | 4,534 | `a60f2aeddb8901393ff382362c13b71340faf52f1a330371aded4af63970b986` |
 | `CHANGELOG.md` | 9,604 | `31b0ec869358d7927e3b06b24c9a485e5a86763d6a3f6fcf890200f9f061f8ad` |
-| `install.ps1` | 2,268 | `2701bf9528a5f0021747fb8d663f92c820bbd2b1290cacaba7d4fc7f7d79a261` |
-| `uninstall.ps1` | 1,559 | `381cdd042e632ed67b23e6fbcfeeee786c4cf79721ec316724cdc54d36890cee` |
+| `install.ps1` | 4,710 | `351d96d1a0c869e37d205829ecf48126ea4c128b10af00b2c734cfc8c7e19b4b` |
+| `uninstall.ps1` | 2,366 | `87461ff8820f1c4ae26d890ae2b2a92be78487ee75177c20a6402692e8615439` |
 | `SHA256SUMS.txt` | 470 | (manifest of the above) |
 
-`SHA256SUMS.txt` was re-verified against the extracted files on a clean machine: **6/6 OK, 0 failures.**
+**Per-file SHA256s are the integrity reference** and are stable across rebuilds.
+The zip *wrapper* hash is not byte-reproducible (`Compress-Archive` embeds entry
+timestamps), so it changes if the archive is regenerated; the hash above
+identifies the exact published artifact.
 
-`install.ps1` / `uninstall.ps1` are new for RC1 (per-user, no-admin): install copies `ferret.exe` to `%LOCALAPPDATA%\Programs\Ferret` and adds it to the user `PATH`; uninstall reverses both and preserves workspace data.
+`install.ps1` / `uninstall.ps1` are new for RC1 (per-user, no-admin): install
+copies `ferret.exe` to `%LOCALAPPDATA%\Programs\Ferret` and adds it to the user
+`PATH`; uninstall reverses both and preserves workspace data.
+
+### Post-validation hardening (repackaged)
+
+After the initial clean-machine validation below, the install tooling was
+hardened and the package re-assembled. The `ferret.exe`, `LICENSE`, and
+`CHANGELOG.md` are byte-identical to the originally validated build (hashes
+unchanged); only the install scripts and the packaged README changed:
+
+- `install.ps1` / `uninstall.ps1` now read and write the user `PATH` via the
+  raw registry value (`DoNotExpandEnvironmentNames`) and preserve the existing
+  value kind, so pre-existing `%USERPROFILE%`-style entries can no longer be
+  clobbered. `install.ps1` also `Unblock-File`s the copied exe and broadcasts
+  `WM_SETTINGCHANGE`.
+- The packaged `README.md` was replaced with an end-user install/usage guide
+  (the zip previously shipped the developer README).
+
+The install → uninstall round-trip was re-validated on a clean temp directory:
+PATH entry added then removed, exe runs, and the raw user `PATH` is
+byte-identical to baseline afterwards. The GO decision is unchanged.
 
 ---
 
