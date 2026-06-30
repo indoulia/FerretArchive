@@ -1,0 +1,52 @@
+name: Publish NPM
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.14.0)'
+        required: true
+
+jobs:
+  publish:
+    name: Publish @indoulia/ferret
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Resolve version
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ github.event.inputs.version }}"
+          else
+            V="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "VERSION=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Set package version
+        working-directory: Ferret.Npm
+        run: npm version "${{ steps.v.outputs.VERSION }}" --no-git-tag-version --allow-same-version
+
+      - name: Install (no scripts)
+        working-directory: Ferret.Npm
+        run: npm ci --ignore-scripts
+
+      - name: Test
+        working-directory: Ferret.Npm
+        run: npm test
+
+      - name: Publish
+        working-directory: Ferret.Npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
