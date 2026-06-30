@@ -1,3 +1,5 @@
+using System.Reflection;
+
 using Ferret.Mcp.Protocol;
 using Ferret.Mcp.Registry;
 
@@ -11,7 +13,8 @@ namespace Ferret.Mcp.Transport.Stdio;
 /// <summary>MCP transport that communicates over standard input/output.</summary>
 public sealed class StdioTransport : IMcpTransport
 {
-    private static readonly Implementation FerretServerInfo = new() { Name = "Ferret", Version = "0.11.0" };
+    // Version derived from the running assembly so it cannot drift from the product version.
+    private static readonly Implementation FerretServerInfo = new() { Name = "Ferret", Version = ResolveVersion() };
 
     private readonly ILoggerFactory _loggerFactory;
 
@@ -73,5 +76,19 @@ public sealed class StdioTransport : IMcpTransport
                 ReadResourceHandler = SdkResourceAdapter.CreateReadHandler(resources),
             },
         };
+    }
+
+    private static string ResolveVersion()
+    {
+        var asm = Assembly.GetEntryAssembly() ?? typeof(StdioTransport).Assembly;
+        var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (string.IsNullOrEmpty(info))
+        {
+            return asm.GetName().Version?.ToString(3) ?? "0.0.0";
+        }
+
+        // Strip the "+<commit>" source-revision suffix for a clean client-facing version.
+        var plus = info.IndexOf('+', StringComparison.Ordinal);
+        return plus >= 0 ? info[..plus] : info;
     }
 }
