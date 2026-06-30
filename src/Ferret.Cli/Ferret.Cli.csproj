@@ -4,7 +4,7 @@
     <AssemblyName>ferret</AssemblyName>
     <RootNamespace>Ferret.Cli</RootNamespace>
     <OutputType>Exe</OutputType>
-    <Version>0.11.0</Version>
+    <Version>0.14.0</Version>
     <!-- MCP SDK pulls Extensions v10+; allow transitive resolution without CPM pinning -->
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
@@ -14,6 +14,8 @@
     <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
     <PublishTrimmed>false</PublishTrimmed>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- Embed native deps (e_sqlite3) so the single file works without sidecar DLLs. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
