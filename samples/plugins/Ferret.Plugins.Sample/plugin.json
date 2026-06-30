@@ -1,0 +1,12 @@
+{
+  "id": "ferret.sample.minimal",
+  "version": "1.0.0",
+  "compatibility": {
+    "min": "1.0",
+    "max": "1.*"
+  },
+  "entryPoint": "Ferret.Plugins.Sample.SamplePlugin, Ferret.Plugins.Sample",
+  "permissions": [],
+  "interfaces": [],
+  "dependencies": []
+}

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Ferret.Providers.Ollama</AssemblyName>
+    <RootNamespace>Ferret.Providers.Ollama</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OllamaSharp" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ferret.Providers.Ollama.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ferret.Core\Ferret.Core.csproj" />
+    <ProjectReference Include="..\Ferret.Configuration.AI\Ferret.Configuration.AI.csproj" />
+  </ItemGroup>
+
+</Project>

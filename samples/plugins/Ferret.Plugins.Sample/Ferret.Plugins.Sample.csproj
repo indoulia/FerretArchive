@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Ferret.Plugins.Sample</AssemblyName>
+    <RootNamespace>Ferret.Plugins.Sample</RootNamespace>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!--
+    Plugins reference only Ferret.Plugin.SDK (which brings Ferret.Core).
+    Never reference Ferret.Runtime, Ferret.Cli, or Ferret.Mcp — ARCH-001 §8.3.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Ferret.Plugin.SDK\Ferret.Plugin.SDK.csproj" />
+  </ItemGroup>
+
+</Project>

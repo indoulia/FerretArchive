@@ -1,0 +1,54 @@
+{
+  "$schema": "https://ferret.dev/schemas/ai-config/1.0.0",
+  "model": {
+    "default": "claude-sonnet-4-6",
+    "premium": "claude-opus-4-8",
+    "fast": "claude-haiku-4-5-20251001",
+    "selectionPolicy": "use-default-unless-justified"
+  },
+  "context": {
+    "targetTokens": 50000,
+    "warnAt": 75000,
+    "compactAt": 100000,
+    "maxTokens": 150000,
+    "strategy": "tokensave-first"
+  },
+  "exploration": {
+    "primaryTool": "tokensave_context",
+    "fileReadBudget": {
+      "target": 5,
+      "warn": 10,
+      "max": 20
+    },
+    "repositoryBudget": {
+      "projects": 1,
+      "namespaces": 1,
+      "symbols": 5,
+      "files": 5
+    }
+  },
+  "workflow": {
+    "tdd": true,
+    "requireAdrForArchitecturalChanges": true,
+    "requireSpecBeforeImplementation": true,
+    "subagentThreshold": "clearly-reduces-effort"
+  },
+  "output": {
+    "style": "concise",
+    "comments": "only-non-obvious-why",
+    "documentation": false,
+    "emojis": false
+  },
+  "memory": {
+    "globalMaxLines": 100,
+    "projectMaxLines": 200,
+    "sessionMaxKb": 2,
+    "contextMaxEntries": 100
+  },
+  "code": {
+    "parallelToolCalls": true,
+    "modifyOnlyAffectedFiles": true,
+    "noUnrelatedCleanup": true,
+    "noBackwardsCompatHacks": true
+  }
+}

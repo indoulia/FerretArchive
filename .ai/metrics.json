@@ -1,0 +1,47 @@
+{
+  "$schema": "https://ferret.dev/schemas/metrics/1.0.0",
+  "snapshot": {
+    "date": "2026-06-27",
+    "sprint": 0,
+    "phase": "Foundation"
+  },
+  "repository": {
+    "totalFiles": 0,
+    "sourceFiles": 0,
+    "testFiles": 0,
+    "documentationFiles": 49,
+    "templateFiles": 13
+  },
+  "coverage": {
+    "line": null,
+    "branch": null,
+    "targets": {
+      "core": { "line": 90, "branch": 85 },
+      "application": { "line": 80, "branch": 75 },
+      "infrastructure": { "line": 70, "branch": 65 },
+      "api": { "line": 80, "branch": 75 }
+    }
+  },
+  "quality": {
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "openHighSecurityFindings": 0,
+    "openADRs": 0,
+    "unresolvedOpenQuestions": 0
+  },
+  "sprint": {
+    "sprint0": {
+      "planned": 2,
+      "completed": 1,
+      "inProgress": 1,
+      "tasks": {
+        "task-1": { "name": "Repository structure", "status": "done" },
+        "task-1.1": { "name": "Repository refinement", "status": "in-progress" }
+      }
+    }
+  },
+  "velocity": {
+    "sprintsCompleted": 0,
+    "averageTasksPerSprint": null
+  }
+}

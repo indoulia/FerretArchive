@@ -1,0 +1,122 @@
+# DECISION-LOG — Ferret Project Decision History
+
+This document captures the major decisions made across all sprints: technology choices, architectural patterns adopted or rejected, process decisions, and product pivots. It is the human-readable companion to the ADR index.
+
+**Last updated:** 2026-06-28 | **Status:** Living document
+
+---
+
+## How to Read This Log
+
+Entries are grouped by sprint and category. Within each sprint, decisions are listed as:
+
+- **Accepted** — in effect
+- **Rejected** — not pursued and why
+- **Deferred** — considered but postponed to a named future sprint
+
+---
+
+## Sprint 0 — Project Foundation
+
+| Decision | Category | Outcome | Notes |
+|---|---|---|---|
+| Use .NET 9 / C# 13 | Technology | Accepted | Current LTS, `net9.0` TFM throughout |
+| StyleCop enforced via `AnalysisMode: All` | Standards | Accepted | TreatWarningsAsErrors=true from day 1 |
+| xUnit for all tests | Technology | Accepted | Matches .NET open-source convention |
+| `Directory.Build.props` for shared props | Build | Accepted | Single source of truth for SDK, nullability, LangVersion |
+| Separate src/ and tests/ directory trees | Structure | Accepted | Keeps test projects out of release output |
+| PowerShell for dev scripts | Tooling | Accepted | Windows-first, cross-platform via pwsh |
+| MIT license | Governance | Accepted | Open-source friendly, enterprise-compatible |
+| ADR discipline from Sprint 0 | Process | Accepted | See ADR-0001 |
+
+---
+
+## Sprint 1–3 — Core Kernel
+
+| Decision | Category | Outcome | Notes |
+|---|---|---|---|
+| Zero external dependencies in `Ferret.Core` | Architecture | Accepted | Core = contracts + value objects + exceptions only |
+| `WorkspaceId`, `WorkspacePath` as value types | Architecture | Accepted | Typed IDs prevent primitive obsession errors |
+| `Result<T>` and `CommandResult` types | Architecture | Accepted | Eliminates exception-as-flow-control for expected failures |
+| `IModule` + `IModuleDescriptor` lifecycle | Architecture | Accepted | Every capability is a module; DI-first composition |
+| `Ferret.Events` in-process event bus | Architecture | Accepted | Decoupled lifecycle events; no external broker dependency |
+| Domain / Integration / System event taxonomy | Architecture | Accepted | Matches DDD event classification |
+| `WorkspaceException` hierarchy root | Architecture | Accepted | All domain errors traceable to a single base |
+| Use Channels for event routing | Technology | Deferred | Sprint 3+ evaluated; deferred to post-M1 |
+| Polly for resilience | Technology | Deferred | Not needed in Core; deferred to connectivity layer |
+| Scrutor for DI scanning | Technology | Rejected | Explicit registration preferred for testability and clarity |
+
+---
+
+## Sprint 4 — Architecture Documentation Baseline + Public Contracts
+
+| Decision | Category | Outcome | Notes |
+|---|---|---|---|
+| Architecture document baseline: ARCH-001, ARCH-011, ARCH-013, ARCH-014 | Documentation | Accepted | Locked in system architecture before implementation |
+| `IWorkspaceEngine`, `IWorkspaceLocator`, `IWorkspaceStateStore` as frozen contracts | Architecture | Accepted | Interface-first, impl follows in Sprint 5+ |
+| `WorkspacePath`, `WorkspaceContext`, `WorkspaceStatistics` as sealed value types | Architecture | Accepted | No inheritance; pure data |
+| `.ferret/` as workspace directory (was `.ai/`) | Architecture | Accepted | Matches product rename; `WorkspaceLayout` owns all path constants |
+| `WorkspaceOptions` as nullable open-extension bag | Architecture | Accepted | Avoids constructor explosion for options |
+| `Changeset` for incremental index updates | Architecture | Accepted | AG-005: incremental at every layer |
+| All public types require XML doc comments | Standards | Accepted | `GenerateDocumentationFile=true` enforced by StyleCop |
+
+---
+
+## Sprint 5 — Runtime Host
+
+| Decision | Category | Outcome | Notes |
+|---|---|---|---|
+| Wrap `Microsoft.Extensions.Hosting` internally | Architecture | Accepted | Not exposed through `Ferret.Core` contracts |
+| `IHostedService` for `RuntimeHost` lifecycle | Technology | Accepted | Standard .NET hosted service lifecycle |
+| `IRuntimeHost.StartAsync` / `StopAsync` / `RunAsync` | Architecture | Accepted | Mirrors `IHost` without coupling to it |
+| `ModuleRegistry` eager-load at startup | Architecture | Accepted | Fail fast: missing module surfaced at boot |
+| `ILifecycleParticipant` for ordered teardown | Architecture | Accepted | Prevents race conditions on shutdown |
+| Product renamed AISpace → Ferret | Product | Accepted | See ADR-0005 |
+| ContextOS as technology platform name | Product | Accepted | Survives the product rename; powers Ferret |
+
+---
+
+## Sprint 6 — Platform Entry Point & CLI Host
+
+| Decision | Category | Outcome | Notes |
+|---|---|---|---|
+| `System.CommandLine` for CLI parsing | Technology | Accepted | Microsoft-backed, .NET-native, composable |
+| `ICliModule` / `CommandDefinition` pattern | Architecture | Accepted | Modules contribute commands; root factory builds tree |
+| `IFerretContext` wraps every handler invocation | Architecture | Accepted | Handler isolation: no static state, no `Console` direct access |
+| `IOutputFormatter` for all CLI output | Architecture | Accepted | Enables testing output without stdout coupling |
+| `ICommandHandler.ExecuteAsync` signature | Architecture | Accepted | Single-method interface; easily mockable |
+| `CommandDefinition.Group` for subcommand nesting | Architecture | Accepted | Unused until Sprint 7; activates `workspace init` / `workspace status` |
+| `DiagnosticRunner` collects all `IDiagnosticCheck` | Architecture | Accepted | `ferret doctor` is module-contributed, not hardcoded |
+| `ferret status` — not-running stub | Architecture | Accepted | Full IPC (process liveness) deferred to Sprint 7 |
+| M1 Platform Foundation frozen | Architecture | Accepted | See ADR-0012; no breaking changes without superseding ADR |
+
+---
+
+## Sprint 7 — Workspace Engine (planned, not yet started)
+
+| Decision | Category | Outcome | Notes |
+|---|---|---|---|
+| `.ferret/` directory as ContextOS workspace root | Architecture | Accepted | Full tree: connectors/, indexes/, memory/, knowledge/, models/, snapshots/, telemetry/ |
+| `IConnector` + connector contracts in `Ferret.Core` | Architecture | Accepted | Contracts only in Sprint 7; `FilesystemConnector` in Sprint 8 |
+| `state.json` nested statistics sub-object | Architecture | Accepted | `WriteStatisticsAsync` reads-before-write to preserve knowledgeVersion / graphVersion |
+| `config/` seeded with 4 empty JSON files | Architecture | Accepted | runtime.json, plugins.json, models.json, connectors.json — ContextOS configuration layer |
+| Sprint 8 = Filesystem Connector | Architecture | Deferred | First connector proves the IConnector architecture |
+
+---
+
+## Technology Evaluation Summary
+
+See `TECH-001-Technology-Evaluation.md` for the full evaluation grid.
+
+| Technology | Decision | Sprint |
+|---|---|---|
+| System.CommandLine | Accepted | Sprint 6 |
+| Microsoft.Extensions.Hosting | Accepted (internal wrap) | Sprint 5 |
+| System.Text.Json | Accepted (BCL) | Sprint 7 |
+| xUnit | Accepted | Sprint 0 |
+| StyleCop | Accepted | Sprint 0 |
+| Scrutor | Rejected | Sprint 3 |
+| Polly | Deferred (post-M1) | Sprint 3 |
+| MediatR | Rejected | Sprint 3 |
+| Channels | Deferred | Sprint 3 |
+| Health Checks middleware | Deferred | Sprint 6 |

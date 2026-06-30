@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Ferret.Providers.Compliance</AssemblyName>
+    <RootNamespace>Ferret.Providers.Compliance</RootNamespace>
+    <!-- Class library — not a test runner. Derived concrete classes in provider test projects run these tests. -->
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Ferret.Core\Ferret.Core.csproj" />
+  </ItemGroup>
+
+</Project>

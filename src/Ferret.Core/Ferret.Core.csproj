@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Ferret.Core</AssemblyName>
+    <RootNamespace>Ferret.Core</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Zero project references — enforced at build time by Directory.Build.targets ARCH001 target -->
+
+</Project>

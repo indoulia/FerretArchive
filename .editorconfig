@@ -1,0 +1,152 @@
+# =============================================================================
+# Ferret — .editorconfig
+# https://editorconfig.org
+# =============================================================================
+
+root = true
+
+# ---- All files --------------------------------------------------------------
+[*]
+charset                  = utf-8
+end_of_line              = crlf
+indent_style             = space
+indent_size              = 4
+insert_final_newline     = true
+trim_trailing_whitespace = true
+
+# ---- C# source files --------------------------------------------------------
+[*.cs]
+indent_size = 4
+
+# .NET / Roslyn formatting
+dotnet_sort_system_directives_first                                        = true
+dotnet_separate_import_directive_groups                                    = true
+dotnet_style_qualification_for_field                                       = false
+dotnet_style_qualification_for_property                                    = false
+dotnet_style_qualification_for_method                                      = false
+dotnet_style_qualification_for_event                                       = false
+dotnet_style_coalesce_expression                                           = true : suggestion
+dotnet_style_null_propagation                                              = true : suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method          = true : suggestion
+dotnet_style_prefer_auto_properties                                        = true : silent
+dotnet_style_object_initializer                                            = true : suggestion
+dotnet_style_collection_initializer                                        = true : suggestion
+dotnet_style_prefer_simplified_boolean_expressions                        = true : suggestion
+dotnet_style_prefer_conditional_expression_over_assignment                = true : silent
+dotnet_style_prefer_conditional_expression_over_return                    = true : silent
+dotnet_style_explicit_tuple_names                                         = true : suggestion
+dotnet_style_prefer_inferred_tuple_names                                  = true : suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names                  = true : suggestion
+dotnet_style_prefer_compound_assignment                                   = true : suggestion
+dotnet_style_prefer_simplified_interpolation                              = true : suggestion
+
+# C# specific
+csharp_style_var_for_built_in_types                                       = false : silent
+csharp_style_var_when_type_is_apparent                                    = true  : suggestion
+csharp_style_var_elsewhere                                                = false : silent
+csharp_style_expression_bodied_methods                                    = false : silent
+csharp_style_expression_bodied_constructors                               = false : silent
+csharp_style_expression_bodied_operators                                  = false : silent
+csharp_style_expression_bodied_properties                                 = true  : silent
+csharp_style_expression_bodied_indexers                                   = true  : silent
+csharp_style_expression_bodied_accessors                                  = true  : silent
+csharp_style_expression_bodied_lambdas                                    = true  : silent
+csharp_style_expression_bodied_local_functions                            = false : silent
+csharp_style_pattern_matching_over_is_with_cast_check                    = true  : suggestion
+csharp_style_pattern_matching_over_as_with_null_check                    = true  : suggestion
+csharp_style_inlined_variable_declaration                                 = true  : suggestion
+csharp_style_deconstructed_variable_declaration                           = true  : suggestion
+csharp_style_prefer_index_operator                                        = true  : suggestion
+csharp_style_prefer_range_operator                                        = true  : suggestion
+csharp_style_throw_expression                                             = true  : suggestion
+csharp_style_conditional_delegate_call                                    = true  : suggestion
+csharp_prefer_braces                                                      = true  : silent
+csharp_prefer_static_local_function                                       = true  : suggestion
+csharp_prefer_simple_using_statement                                      = true  : suggestion
+csharp_style_prefer_switch_expression                                     = true  : suggestion
+
+# Naming conventions — PascalCase for public members
+dotnet_naming_rule.public_members_pascal.symbols  = public_members
+dotnet_naming_rule.public_members_pascal.style    = pascal_case
+dotnet_naming_rule.public_members_pascal.severity = suggestion
+
+dotnet_naming_symbols.public_members.applicable_kinds            = property,method,field,event,delegate
+dotnet_naming_symbols.public_members.applicable_accessibilities  = public,protected,protected_internal
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+# ---- XML / config / project files ------------------------------------------
+[*.{xml,csproj,vbproj,fsproj,props,targets,nuspec,resx,ruleset,config}]
+indent_size = 2
+
+# ---- JSON -------------------------------------------------------------------
+[*.json]
+indent_size = 2
+
+# ---- YAML -------------------------------------------------------------------
+[*.{yml,yaml}]
+indent_size = 2
+
+# ---- Markdown ---------------------------------------------------------------
+[*.md]
+trim_trailing_whitespace = false
+indent_size              = 2
+
+# ---- Shell scripts ----------------------------------------------------------
+[*.{sh,bash}]
+end_of_line  = lf
+indent_size  = 2
+
+[*.ps1]
+indent_size = 4
+
+# ---- Makefile ---------------------------------------------------------------
+[Makefile]
+indent_style = tab
+
+# ---- StyleCop Analyzers --------------------------------------------------------
+[*.cs]
+# SA1633: File must have file header — not used in this project
+dotnet_diagnostic.SA1633.severity = none
+# SA1101: Prefix local calls with this — modern C# style omits this
+dotnet_diagnostic.SA1101.severity = none
+# SA1309: Field names must not begin with underscore — project uses _field convention
+dotnet_diagnostic.SA1309.severity = none
+# IDE0161: Use file-scoped namespace — enforced
+csharp_style_namespace_declarations = file_scoped : warning
+
+# CA1716: Reserved language keywords as parameter names — module used intentionally in Runtime contracts
+[src/Ferret.Core/Runtime/*.cs]
+dotnet_diagnostic.CA1716.severity = none
+
+# Test projects — relax rules incompatible with test conventions
+[tests/**/*.cs]
+# SA0001: XML analysis disabled — test projects don't generate XML doc files
+dotnet_diagnostic.SA0001.severity = none
+# CA1707: test method names use underscore-separated naming (Given_When_Then)
+dotnet_diagnostic.CA1707.severity = none
+# SA1600: no XML docs required in test classes
+dotnet_diagnostic.SA1600.severity = none
+# CA1515: test classes must be public — xUnit v2 discovery requires public types
+dotnet_diagnostic.CA1515.severity = none
+# SA1402: test files may contain multiple types (fakes, helpers, test classes)
+dotnet_diagnostic.SA1402.severity = none
+# SA1202: internal fakes may precede public test classes in the same file
+dotnet_diagnostic.SA1202.severity = none
+# SA1516: single-line method bodies in fakes don't need blank-line separators
+dotnet_diagnostic.SA1516.severity = none
+# SA1649: test helper files may have a different name from their first type
+dotnet_diagnostic.SA1649.severity = none
+# SA1512: section-separator comments before blank lines are common in test files
+dotnet_diagnostic.SA1512.severity = none
+# CA2007: ConfigureAwait conflicts with xUnit1030 (which forbids ConfigureAwait(false) in tests)
+dotnet_diagnostic.CA2007.severity = none
+
+# Sample projects — relax documentation requirements
+[samples/**/*.cs]
+dotnet_diagnostic.SA1600.severity = none
+
+# Ferret.Cli searcher types — public for injection and testing
+[src/Ferret.Cli/Search/*.cs]
+# CA1515: types are intentionally public for DI injection and test-project access (ADR-0015)
+dotnet_diagnostic.CA1515.severity = none

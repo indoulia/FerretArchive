@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>ferret</AssemblyName>
+    <RootNamespace>Ferret.Cli</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <Version>0.11.0</Version>
+    <!-- MCP SDK pulls Extensions v10+; allow transitive resolution without CPM pinning -->
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <ProjectReference Include="..\Ferret.Core\Ferret.Core.csproj" />
+    <ProjectReference Include="..\Ferret.Runtime\Ferret.Runtime.csproj" />
+    <ProjectReference Include="..\Ferret.Workspace\Ferret.Workspace.csproj" />
+    <ProjectReference Include="..\Ferret.ConnectorPlatform\Ferret.ConnectorPlatform.csproj" />
+    <ProjectReference Include="..\Ferret.Connectors.Filesystem\Ferret.Connectors.Filesystem.csproj" />
+    <ProjectReference Include="..\Ferret.ParserPlatform\Ferret.ParserPlatform.csproj" />
+    <ProjectReference Include="..\Ferret.Indexing\Ferret.Indexing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ferret.Search\Ferret.Search.csproj" />
+    <ProjectReference Include="..\Ferret.Mcp\Ferret.Mcp.csproj" />
+    <ProjectReference Include="..\Ferret.Manual\Ferret.Manual.csproj" />
+    <ProjectReference Include="..\Ferret.Models\Ferret.Models.csproj" />
+    <ProjectReference Include="..\Ferret.Prompts\Ferret.Prompts.csproj" />
+  </ItemGroup>
+
+</Project>

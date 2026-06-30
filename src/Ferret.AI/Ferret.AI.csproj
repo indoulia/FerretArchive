@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Ferret.AI</AssemblyName>
+    <RootNamespace>Ferret.AI</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ferret.Core\Ferret.Core.csproj" />
+    <ProjectReference Include="..\Ferret.Models\Ferret.Models.csproj" />
+    <ProjectReference Include="..\Ferret.Search\Ferret.Search.csproj" />
+    <ProjectReference Include="..\Ferret.Indexing\Ferret.Indexing.csproj" />
+  </ItemGroup>
+
+</Project>

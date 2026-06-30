@@ -1,0 +1,22 @@
+# CODEOWNERS
+# Each line is a file pattern followed by one or more owners.
+# Order matters — the last matching pattern takes precedence.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default — require review from a core maintainer for everything
+*                           @indoulia
+
+# Docs — any contributor can approve
+docs/                       @indoulia
+templates/                  @indoulia
+
+# Security-sensitive paths — require security team review
+SECURITY.md                 @indoulia
+src/**/Security/            @indoulia
+src/**/Auth/                @indoulia
+src/**/Cryptography/        @indoulia
+
+# CI / build infrastructure
+.github/                    @indoulia
+scripts/                    @indoulia
+Directory.Build.props        @indoulia

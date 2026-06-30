@@ -1,0 +1,42 @@
+{
+  "$schema": "https://ferret.dev/schemas/workspace/1.0.0",
+  "workspace": {
+    "name": "Ferret",
+    "description": "Extensible AI platform for building, orchestrating, and operating intelligent agents",
+    "version": "0.1.0-alpha",
+    "repository": "https://github.com/indoulia/Ferret"
+  },
+  "project": {
+    "currentSprint": 0,
+    "currentPhase": "Foundation",
+    "targetRelease": "0.1.0-alpha",
+    "startDate": "2026-06-27",
+    "techStack": {
+      "runtime": "dotnet9",
+      "language": "csharp",
+      "solution": "src/Ferret.sln"
+    }
+  },
+  "conventions": {
+    "branchNaming": "{type}/{short-description}",
+    "commitStyle": "conventional-commits",
+    "testNaming": "{Unit|Integration|E2E}",
+    "docPath": "docs/",
+    "adrPath": "docs/adr/",
+    "specPath": "docs/001-Product/",
+    "templatePath": "docs/templates/"
+  },
+  "quality": {
+    "minCoverage": 80,
+    "maxCyclomaticComplexity": 10,
+    "treatWarningsAsErrors": true
+  },
+  "ai": {
+    "preferredModel": "claude-sonnet-4-6",
+    "contextFile": ".ai/current-context.json",
+    "sessionFile": ".ai/session.md",
+    "knowledgeDir": ".ai/knowledge/",
+    "cacheDir": ".ai/cache/",
+    "maxContextTokens": 100000
+  }
+}

@@ -1,0 +1,153 @@
+# =============================================================================
+# Ferret — .gitignore
+# Generated for a .NET / Node.js / Python multi-component workspace
+# =============================================================================
+
+# ---- Build outputs ----------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+dist/
+# build/ excluded intentionally — build/ contains developer scripts (build/Build.ps1, build/Build.sh)
+*.user
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+
+# ---- .NET specific ----------------------------------------------------------
+*.sln.docstates
+*.sln.DotSettings.user
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio
+.vs/
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+nuget.config.local
+
+# ---- Node / JS / TS ---------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn/
+.pnp.*
+*.tsbuildinfo
+.next/
+.nuxt/
+.output/
+.cache/
+
+# ---- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+.Python
+.venv/
+venv/
+env/
+.tox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# ---- OS / IDE artifacts -----------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/c_cpp_properties.json
+
+# ---- Secrets / credentials --------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+secrets.json
+appsettings.Local.json
+appsettings.Development.Local.json
+
+# ---- Logs & diagnostics -----------------------------------------------------
+*.log
+logs/
+crash-*.txt
+
+# ---- Generated docs ---------------------------------------------------------
+docs/_site/
+docs/.jekyll-cache/
+site/
+
+# ---- Docker -----------------------------------------------------------------
+.dockerignore.local
+
+# ---- AI workspace (transient runtime data — not for version control) --------
+.ai/cache/
+.ai/summaries/
+.ai.zip
+.tokensave/
+.claude/
+.ferret/
+**/.ferret/
+
+# ---- Benchmark / publish output ---------------------------------------------
+BenchmarkDotNet.Artifacts/
+publish/
+*.stackdump
+
+# ---- Misc -------------------------------------------------------------------
+*.bak
+*.tmp
+*.swp
+*~

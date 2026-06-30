@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability
+    url: https://github.com/indoulia/Ferret/security/advisories/new
+    about: Please report security vulnerabilities privately — do NOT use a public issue.
+  - name: Question / Discussion
+    url: https://github.com/indoulia/Ferret/discussions
+    about: For questions and general discussion use GitHub Discussions, not Issues.

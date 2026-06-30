@@ -1,0 +1,35 @@
+namespace Ferret.Core.Documents;
+
+/// <summary>
+/// Richer MIME type resolution result. Returned by IMimeTypeResolver in place of a raw string
+/// so callers have enough context to make decisions (binary skip, kind suggestion, confidence)
+/// without re-examining the file name. Immutable.
+/// </summary>
+public sealed record MediaTypeInfo
+{
+    /// <summary>Gets the resolved MIME type string (e.g. "text/markdown").</summary>
+    public required string MediaType { get; init; }
+
+    /// <summary>Gets a value indicating whether the content is expected to be human-readable text.</summary>
+    public required bool IsText { get; init; }
+
+    /// <summary>Gets a value indicating whether the content is expected to be binary (non-text).</summary>
+    public required bool IsBinary { get; init; }
+
+    /// <summary>Gets an optional suggested DocumentKind hint for the parser.
+    /// The parser may override this based on content inspection.</summary>
+    public DocumentKind? SuggestedKind { get; init; }
+
+    /// <summary>Gets the resolver's confidence in this classification (0.0–1.0).
+    /// 1.0 means the extension is well-known; lower values indicate a fallback mapping.</summary>
+    public double Confidence { get; init; } = 1.0;
+
+    /// <summary>Gets a <see cref="MediaTypeInfo"/> representing an unrecognized binary file.</summary>
+    public static MediaTypeInfo Unknown => new()
+    {
+        MediaType = "application/octet-stream",
+        IsText = false,
+        IsBinary = true,
+        Confidence = 0.5,
+    };
+}

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Ferret.Benchmarks</RootNamespace>
+    <AssemblyName>Ferret.Benchmarks</AssemblyName>
+    <!-- Optimise for accurate measurements -->
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Ferret.Core\Ferret.Core.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.Indexing\Ferret.Indexing.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.Search\Ferret.Search.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.ConnectorPlatform\Ferret.ConnectorPlatform.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.ParserPlatform\Ferret.ParserPlatform.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.Connectors.Filesystem\Ferret.Connectors.Filesystem.csproj" />
+  </ItemGroup>
+
+</Project>

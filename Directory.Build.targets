@@ -1,0 +1,31 @@
+<Project>
+
+  <!--
+    Enforce ARCH-001 §8 dependency rules as build-time errors.
+    Targets run before project references are resolved, so violations
+    fail immediately with a descriptive error code.
+  -->
+
+  <!-- ARCH001: Ferret.Core must have zero ProjectReference elements -->
+  <Target Name="EnforceCoreDependencyRule"
+          BeforeTargets="ResolveProjectReferences"
+          Condition="'$(MSBuildProjectName)' == 'Ferret.Core'">
+    <Error Condition="@(ProjectReference->Count()) &gt; 0"
+           Code="ARCH001"
+           Text="ARCH-001 §8: Ferret.Core must have zero project references. Found: @(ProjectReference->'%(Filename)')" />
+  </Target>
+
+  <!-- ARCH002: Ferret.Runtime must not reference Ferret.Cli or Ferret.Mcp -->
+  <Target Name="EnforceRuntimeForbiddenReferences"
+          BeforeTargets="ResolveProjectReferences"
+          Condition="'$(MSBuildProjectName)' == 'Ferret.Runtime'">
+    <ItemGroup>
+      <_RuntimeForbiddenRef Include="@(ProjectReference)"
+                            Condition="'%(Filename)' == 'Ferret.Cli' Or '%(Filename)' == 'Ferret.Mcp'" />
+    </ItemGroup>
+    <Error Condition="@(_RuntimeForbiddenRef->Count()) &gt; 0"
+           Code="ARCH002"
+           Text="ARCH-001 §8: Ferret.Runtime must not reference Ferret.Cli or Ferret.Mcp. Found: @(_RuntimeForbiddenRef->'%(Filename)')" />
+  </Target>
+
+</Project>
