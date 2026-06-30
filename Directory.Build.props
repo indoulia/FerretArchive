@@ -17,10 +17,14 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Versioning">
-    <!-- Overridden by CI via /p:VersionPrefix=X.Y.Z -->
+    <!-- CI overrides via /p:VersionPrefix=X.Y.Z (numeric only) and
+         /p:VersionSuffix=<prerelease>. VersionPrefix MUST stay numeric:
+         FileVersion is derived from it and rejects a prerelease label. -->
     <VersionPrefix>0.1.0</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
-    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+    <!-- Pinned for stable assembly identity / binding; the real version is
+         carried by FileVersion and InformationalVersion. -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>$(VersionPrefix).0</FileVersion>
   </PropertyGroup>
 

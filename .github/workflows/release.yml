@@ -34,10 +34,21 @@ jobs:
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            VERSION="${{ github.event.inputs.version }}"
           else
-            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+            VERSION="${GITHUB_REF#refs/tags/v}"
           fi
+          # Split into a numeric prefix (major.minor.patch) and an optional
+          # prerelease suffix. VersionPrefix must be numeric — FileVersion is
+          # derived from it and rejects a prerelease label (CS7034/CS7035).
+          PREFIX="${VERSION%%-*}"
+          case "$VERSION" in
+            *-*) SUFFIX="${VERSION#*-}" ;;
+            *)   SUFFIX="" ;;
+          esac
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "VERSION_PREFIX=$PREFIX" >> "$GITHUB_OUTPUT"
+          echo "VERSION_SUFFIX=$SUFFIX" >> "$GITHUB_OUTPUT"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -52,7 +63,8 @@ jobs:
           dotnet build src/Ferret.sln
           --no-restore
           --configuration Release
-          /p:VersionPrefix=${{ steps.version.outputs.VERSION }}
+          /p:VersionPrefix=${{ steps.version.outputs.VERSION_PREFIX }}
+          /p:VersionSuffix=${{ steps.version.outputs.VERSION_SUFFIX }}
 
       - name: Test
         run: dotnet test src/Ferret.sln --no-build --configuration Release
@@ -62,7 +74,8 @@ jobs:
           dotnet pack src/Ferret.sln
           --no-build
           --configuration Release
-          /p:VersionPrefix=${{ steps.version.outputs.VERSION }}
+          /p:VersionPrefix=${{ steps.version.outputs.VERSION_PREFIX }}
+          /p:VersionSuffix=${{ steps.version.outputs.VERSION_SUFFIX }}
           --output ./artifacts
 
       - name: Create GitHub Release
