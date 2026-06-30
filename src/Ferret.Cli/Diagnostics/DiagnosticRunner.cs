@@ -28,13 +28,17 @@ internal static class DiagnosticRunner
                 result = DiagnosticCheckResult.Fail(ex.Message);
             }
 
-            if (result.Passed)
+            string detail = result.FailureReason is not null ? $": {result.FailureReason}" : string.Empty;
+            if (result.IsWarning)
+            {
+                context.Services.Output.WriteLine($"! {check.Name}{detail}");
+            }
+            else if (result.Passed)
             {
                 context.Services.Output.WriteSuccess(check.Name);
             }
             else
             {
-                string detail = result.FailureReason is not null ? $": {result.FailureReason}" : string.Empty;
                 context.Services.Output.WriteError($"{check.Name}{detail}");
                 allPassed = false;
             }

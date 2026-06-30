@@ -136,6 +136,35 @@ public sealed class ConnectorManagerTests : IDisposable
         Assert.Same(first[0], second[0]);
     }
 
+    /// <summary>Empty store with a filesystem factory → synthesized default connector rooted at the workspace.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Fact]
+    public async Task GetActiveConnectorsAsync_Synthesizes_Default_Filesystem_When_Store_Empty()
+    {
+        var factory = new FakeConnectorManagerFactory("filesystem");
+        using var manager = new ConnectorManager(_store, [factory], _root);
+
+        var runtimes = await manager.GetActiveConnectorsAsync();
+
+        Assert.Single(runtimes);
+        Assert.Equal("default", runtimes[0].Instance.Id.Value);
+        Assert.Equal("filesystem", runtimes[0].Instance.ConnectorType.Value);
+        Assert.Equal(_root.FullPath, runtimes[0].Instance.Configuration.GetValue("rootPath"));
+    }
+
+    /// <summary>Empty store with no filesystem factory registered → no synthesized default.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Fact]
+    public async Task GetActiveConnectorsAsync_Does_Not_Synthesize_When_No_Filesystem_Factory()
+    {
+        var factory = new FakeConnectorManagerFactory("fake");
+        using var manager = new ConnectorManager(_store, [factory], _root);
+
+        var runtimes = await manager.GetActiveConnectorsAsync();
+
+        Assert.Empty(runtimes);
+    }
+
     /// <summary>Unknown ID returns null.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]

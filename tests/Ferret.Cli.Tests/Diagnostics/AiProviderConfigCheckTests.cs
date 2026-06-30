@@ -25,14 +25,15 @@ public sealed class AiProviderConfigCheckTests
     }
 
     [Fact]
-    public async Task Fail_WhenNoAiProvidersConfigured()
+    public async Task Warn_WhenNoAiProvidersConfigured()
     {
         var config = new ConfigurationBuilder().Build();
         using var sw = new StringWriter();
         var ctx = FerretContext.CreateTest(sw);
         var check = new AiProviderConfigCheck(config);
         var result = await check.RunAsync(ctx, CancellationToken.None);
-        Assert.False(result.Passed);
+        Assert.True(result.IsWarning);
+        Assert.True(result.Passed);
         Assert.NotNull(result.FailureReason);
     }
 

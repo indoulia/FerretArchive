@@ -66,6 +66,8 @@ public sealed class WorkspaceFixture : IAsyncLifetime
     }
 
     /// <summary>Runs a ferret command in the workspace directory.</summary>
+    /// <param name="args">The command arguments to pass to the ferret binary.</param>
+    /// <param name="timeout">Optional timeout; defaults to 30 seconds.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public Task<(int ExitCode, string Stdout, string Stderr)> RunAsync(
         string args,

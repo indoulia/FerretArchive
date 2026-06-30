@@ -22,13 +22,13 @@ internal sealed class IndexFreshnessCheck : IDiagnosticCheck
     {
         if (!File.Exists(_dbPath))
         {
-            return Task.FromResult(DiagnosticCheckResult.Fail($"Index not found: {_dbPath}. Run 'ferret index' to build."));
+            return Task.FromResult(DiagnosticCheckResult.Warn($"Index not found: {_dbPath}. Run 'ferret index' to build."));
         }
 
         var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(_dbPath);
         if (age > MaxAge)
         {
-            return Task.FromResult(DiagnosticCheckResult.Fail(
+            return Task.FromResult(DiagnosticCheckResult.Warn(
                 $"Index is {age.TotalHours:F1}h old (limit: 24h). Run 'ferret index' to refresh."));
         }
 

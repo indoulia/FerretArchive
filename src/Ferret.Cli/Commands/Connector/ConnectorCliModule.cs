@@ -84,7 +84,8 @@ internal sealed class ConnectorCliModule : CliModuleBase
         yield return new CommandDefinition(
             new CommandMetadata("validate", "Validate connector instances against the registry."),
             typeof(ConnectorValidateCommandHandler),
-            Group: "connector");
+            Group: "connector")
+            .WithArgument("type", "Optional connector type to validate (e.g. filesystem).", isRequired: false);
     }
 
     /// <inheritdoc/>

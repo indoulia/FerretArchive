@@ -25,16 +25,17 @@ public sealed class WorkspacePathTests
     [Fact]
     public void Combine_WithRelativePath_ReturnsCombinedPath()
     {
-        var root = WorkspacePath.Create(@"C:\repos\myproject");
+        var basePath = @"C:\repos\myproject".Replace('\\', Path.DirectorySeparatorChar);
+        var root = WorkspacePath.Create(basePath);
         var combined = root.Combine(".ai");
-        Assert.Equal(@"C:\repos\myproject\.ai", combined.FullPath);
+        Assert.Equal(Path.Combine(basePath, ".ai"), combined.FullPath);
     }
 
     [Fact]
     public void IsUnder_WhenChildIsUnderParent_ReturnsTrue()
     {
-        var parent = WorkspacePath.Create(@"C:\repos\myproject");
-        var child = WorkspacePath.Create(@"C:\repos\myproject\src\file.cs");
+        var parent = WorkspacePath.Create(@"C:\repos\myproject".Replace('\\', Path.DirectorySeparatorChar));
+        var child = WorkspacePath.Create(@"C:\repos\myproject\src\file.cs".Replace('\\', Path.DirectorySeparatorChar));
         Assert.True(child.IsUnder(parent));
     }
 

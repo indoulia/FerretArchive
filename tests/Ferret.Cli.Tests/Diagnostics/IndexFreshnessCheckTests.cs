@@ -29,19 +29,20 @@ public sealed class IndexFreshnessCheckTests
     }
 
     [Fact]
-    public async Task Fail_WhenIndexFileIsMissing()
+    public async Task Warn_WhenIndexFileIsMissing()
     {
         using var sw = new StringWriter();
         var ctx = FerretContext.CreateTest(sw);
         var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "keyword-index.db");
         var check = new IndexFreshnessCheck(missing);
         var result = await check.RunAsync(ctx, CancellationToken.None);
-        Assert.False(result.Passed);
+        Assert.True(result.IsWarning);
+        Assert.True(result.Passed);
         Assert.NotNull(result.FailureReason);
     }
 
     [Fact]
-    public async Task Fail_WhenIndexFileIsStale()
+    public async Task Warn_WhenIndexFileIsStale()
     {
         var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -54,7 +55,8 @@ public sealed class IndexFreshnessCheckTests
             var ctx = FerretContext.CreateTest(sw);
             var check = new IndexFreshnessCheck(dbPath);
             var result = await check.RunAsync(ctx, CancellationToken.None);
-            Assert.False(result.Passed);
+            Assert.True(result.IsWarning);
+            Assert.True(result.Passed);
             Assert.NotNull(result.FailureReason);
         }
         finally

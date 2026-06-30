@@ -13,6 +13,8 @@ namespace Ferret.ConnectorPlatform;
 /// </summary>
 internal sealed class ConnectorManager : IConnectorManager, IDisposable
 {
+    private static readonly ConnectorId DefaultConnectorType = new("filesystem");
+
     private readonly IConnectorInstanceStore _store;
     private readonly Dictionary<ConnectorId, IConnectorFactory> _factories;
     private readonly WorkspacePath _rootPath;
@@ -42,6 +44,14 @@ internal sealed class ConnectorManager : IConnectorManager, IDisposable
         CancellationToken ct = default)
     {
         var instances = await _store.LoadAllAsync(_rootPath, ct).ConfigureAwait(false);
+
+        // Zero-config default: a brand-new workspace (empty store) indexes its own root
+        // via the filesystem connector. Once the user configures any connector, the store
+        // is no longer empty and this synthetic default no longer applies.
+        if (instances.Count == 0 && _factories.ContainsKey(DefaultConnectorType))
+        {
+            instances = [BuildDefaultFilesystemInstance(_rootPath)];
+        }
 
         await _cacheLock.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -94,4 +104,14 @@ internal sealed class ConnectorManager : IConnectorManager, IDisposable
 
     /// <inheritdoc/>
     public void Dispose() => _cacheLock.Dispose();
+
+    private static ConnectorInstance BuildDefaultFilesystemInstance(WorkspacePath rootPath) =>
+        new()
+        {
+            Id = new ConnectorInstanceId("default"),
+            ConnectorType = DefaultConnectorType,
+            DisplayName = "filesystem",
+            IsEnabled = true,
+            Configuration = ConnectorConfiguration.Empty.With("rootPath", rootPath.FullPath),
+        };
 }

@@ -23,6 +23,14 @@ internal sealed class ConnectorValidateCommandHandler : ICommandHandler
     public async Task<CommandResult> ExecuteAsync(IFerretContext context)
     {
         var rootPath = WorkspacePath.Create(context.WorkingDirectory);
+
+        var type = context.GetOption<string>("type");
+        if (!string.IsNullOrWhiteSpace(type) && !_registry.IsRegistered(new ConnectorId(type)))
+        {
+            context.Services.Output.WriteError($"Connector type '{type}' is not registered.");
+            return CommandResult.Failure;
+        }
+
         var result = await ValidateAsync(rootPath, context.CancellationToken).ConfigureAwait(false);
 
         if (result.IsValid)

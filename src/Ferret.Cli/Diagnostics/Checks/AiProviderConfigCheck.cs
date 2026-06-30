@@ -25,7 +25,7 @@ internal sealed class AiProviderConfigCheck : IDiagnosticCheck
         bool hasProviders = section.GetChildren().Any();
         var result = hasProviders
             ? DiagnosticCheckResult.Pass()
-            : DiagnosticCheckResult.Fail("No AI providers found under 'Ferret:Ai:Providers'. Add Ollama or OpenAi config.");
+            : DiagnosticCheckResult.Warn("No AI providers found under 'Ferret:Ai:Providers'. Add Ollama or OpenAi config.");
         return Task.FromResult(result);
     }
 }
