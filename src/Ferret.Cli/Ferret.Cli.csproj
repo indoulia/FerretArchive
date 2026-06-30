@@ -4,7 +4,7 @@
     <AssemblyName>ferret</AssemblyName>
     <RootNamespace>Ferret.Cli</RootNamespace>
     <OutputType>Exe</OutputType>
-    <Version>0.14.0</Version>
+    <Version>0.15.0</Version>
     <!-- MCP SDK pulls Extensions v10+; allow transitive resolution without CPM pinning -->
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
