@@ -80,6 +80,13 @@ test('install downloads, verifies, and atomically installs the binary', async ()
                 'binary is executable'
             );
         }
+
+        // Re-install over an existing install: exercises the backup-and-swap
+        // path and must leave a working binary in place.
+        const finalDir2 = await install({ version: '1.2.3', platform: 'linux', env: {}, home });
+        assert.strictEqual(finalDir2, finalDir, 'same install dir on re-install');
+        assert.ok(fs.existsSync(binPath), 'binary present after re-install');
+        assert.ok(!fs.existsSync(`${finalDir}.bak-${process.pid}`), 'backup cleaned up');
     } finally {
         await new Promise((r) => server.close(r));
         delete process.env.FERRET_DIST_RELEASE_ENDPOINT;

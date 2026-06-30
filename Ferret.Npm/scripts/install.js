@@ -56,14 +56,35 @@ async function install(opts = {}) {
         throw new Error(`Expected ${asset.binary} in the extracted package but did not find it.`);
     }
 
-    await fsp.rm(finalDir, { recursive: true, force: true });
+    // Atomic swap that never destroys a working install: move any existing
+    // install aside to a sibling backup, move the new payload into place, then
+    // drop the backup. If the move-into-place fails, restore the backup so the
+    // user is never left without a working install.
     await fsp.mkdir(path.dirname(finalDir), { recursive: true });
+    const backupDir = `${finalDir}.bak-${process.pid}`;
+    await fsp.rm(backupDir, { recursive: true, force: true });
+    let hadExisting = false;
     try {
-        await fsp.rename(contentRoot, finalDir);
+        await fsp.rename(finalDir, backupDir);
+        hadExisting = true;
     } catch (err) {
-        if (err.code !== 'EXDEV') throw err; // cross-device: copy then remove
-        await fsp.cp(contentRoot, finalDir, { recursive: true });
+        if (err.code !== 'ENOENT') throw err; // no existing install is fine
     }
+    try {
+        try {
+            await fsp.rename(contentRoot, finalDir);
+        } catch (err) {
+            if (err.code !== 'EXDEV') throw err; // cross-device: copy instead of rename
+            await fsp.cp(contentRoot, finalDir, { recursive: true });
+        }
+    } catch (err) {
+        if (hadExisting) {
+            await fsp.rm(finalDir, { recursive: true, force: true });
+            await fsp.rename(backupDir, finalDir);
+        }
+        throw err;
+    }
+    await fsp.rm(backupDir, { recursive: true, force: true });
 
     if (platform !== 'win32') {
         await fsp.chmod(path.join(finalDir, asset.binary), 0o755);
