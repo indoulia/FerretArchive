@@ -17,15 +17,15 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Versioning">
-    <!-- CI overrides via /p:VersionPrefix=X.Y.Z (numeric only) and
-         /p:VersionSuffix=<prerelease>. VersionPrefix MUST stay numeric:
-         FileVersion is derived from it and rejects a prerelease label. -->
+    <!-- CI overrides via /p:VersionPrefix=X.Y.Z and /p:VersionSuffix=<prerelease>.
+         These feed only the semantic version (Version / InformationalVersion /
+         NuGet package version). AssemblyVersion and FileVersion are pinned to
+         1.0.0.0 for a stable binary identity that never moves with the release
+         version (and so a prerelease label can never break the build). -->
     <VersionPrefix>0.1.0</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
-    <!-- Pinned for stable assembly identity / binding; the real version is
-         carried by FileVersion and InformationalVersion. -->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>$(VersionPrefix).0</FileVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Target Framework">
