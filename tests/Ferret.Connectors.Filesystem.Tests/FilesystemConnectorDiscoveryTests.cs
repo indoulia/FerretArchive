@@ -98,6 +98,27 @@ public sealed class FilesystemConnectorDiscoveryTests
         Assert.Equal(r1.Id, r2.Id);
     }
 
+    [Theory]
+    [InlineData("node_modules")]
+    [InlineData("bin")]
+    [InlineData("obj")]
+    public async Task DiscoverAsync_Skips_BuildAndDependency_Directories(string skipDir)
+    {
+        using var dir = new TempDirectory();
+        Directory.CreateDirectory(System.IO.Path.Join(dir.Path, skipDir));
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, skipDir, "ignored.cs"), "class Ignored {}");
+        await File.WriteAllTextAsync(System.IO.Path.Join(dir.Path, "keep.cs"), "class Keep {}");
+        var connector = MakeConnector(dir.Path);
+
+        var results = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
+
+        Assert.Contains(results, r => r.DisplayName == "keep.cs");
+        Assert.DoesNotContain(results, r => r.DisplayName == skipDir);
+        Assert.DoesNotContain(
+            results,
+            r => r.CanonicalUri.ToString().Contains($"/{skipDir}/", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task DiscoverAsync_Skips_Assets_Ignored_By_Provider()
     {

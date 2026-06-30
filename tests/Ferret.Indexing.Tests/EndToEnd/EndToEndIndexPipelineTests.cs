@@ -123,6 +123,39 @@ public sealed class EndToEndIndexPipelineTests
             $"Expected > 0 indexed after rebuild but got {result.DocumentsIndexed}");
     }
 
+    /// <summary>
+    /// Subdirectories are structural, not readable assets. Walking into a nested
+    /// directory must index the file it contains without recording the directory
+    /// entry itself as a failure (a directory cannot be opened as a file stream).
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Fact]
+    public async Task FullIndexRun_WithSubdirectory_DoesNotFailOnDirectoryEntries()
+    {
+        using var tempDir = new TempDirectory();
+        await File.WriteAllTextAsync(
+            Path.Join(tempDir.Path, "root.txt"), "root level content");
+        Directory.CreateDirectory(Path.Join(tempDir.Path, "nested"));
+        await File.WriteAllTextAsync(
+            Path.Join(tempDir.Path, "nested", "child.txt"), "nested content");
+
+        var dbPath = Path.Join(tempDir.Path, ".ferret", "subdir-index.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        using var engine = new SqliteKeywordIndexEngine(dbPath);
+
+        var pipeline = BuildRealPipeline(tempDir.Path, engine);
+
+        var result = await pipeline.RunAsync(
+            WorkspaceId.Create("e2e-subdir"),
+            IndexPipelineOptions.Default,
+            CancellationToken.None);
+
+        Assert.Equal(0, result.Failures);
+        Assert.True(
+            result.DocumentsIndexed >= 2,
+            $"Expected >= 2 indexed (root.txt, nested/child.txt) but got {result.DocumentsIndexed}");
+    }
+
     // ── Shared pipeline builder ─────────────────────────────────────────────
 
     /// <summary>
