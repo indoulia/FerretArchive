@@ -113,13 +113,30 @@ node_modules/
 { "singleQuote": true, "printWidth": 100, "trailingComma": "es5" }
 ```
 
-`Ferret.Npm/eslint.config.js`:
+`Ferret.Npm/eslint.config.js` (Node globals declared manually so `no-undef` does not flag `require`/`module`/`process`/etc. — keeps the zero-extra-dependency rule):
 ```js
 'use strict';
+
+const nodeGlobals = {
+  require: 'readonly',
+  module: 'writable',
+  exports: 'writable',
+  process: 'readonly',
+  console: 'readonly',
+  Buffer: 'readonly',
+  __dirname: 'readonly',
+  __filename: 'readonly',
+  fetch: 'readonly',
+  performance: 'readonly',
+  URL: 'readonly',
+  setTimeout: 'readonly',
+  clearTimeout: 'readonly',
+};
+
 module.exports = [
   {
     files: ['**/*.js'],
-    languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs' },
+    languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: nodeGlobals },
     rules: { 'no-unused-vars': 'error', 'no-undef': 'error' },
   },
 ];
