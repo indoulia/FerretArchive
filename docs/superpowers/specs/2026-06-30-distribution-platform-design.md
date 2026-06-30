@@ -43,8 +43,11 @@ Out of scope (this milestone):
   unnotarized — an intentional limitation of this milestone, to be addressed
   if/when macOS becomes a first-class supported platform. macOS users will see
   a Gatekeeper prompt.
-- Additional consumers (Homebrew, winget, Chocolatey, Scoop). The manifest is
-  designed to support them later; none are implemented now.
+- Additional consumers (Homebrew, winget, Chocolatey, Scoop, enterprise package
+  mirror). The manifest is designed to support them later; none are implemented
+  now. An enterprise package mirror is explicitly anticipated — many companies
+  will not let developer machines talk directly to GitHub, and the optional
+  `releaseEndpoint` config exists for exactly that case.
 - No business logic, no .NET source changes, no bundled binaries, no TypeScript.
 
 ## Approach Decisions
@@ -95,10 +98,15 @@ consumer.
   "releaseTag": "v0.14.0",
   "published": "<workflow date>",
   "minimumInstallerSchema": 1,
+  "metadata": {
+    "generator": "build-release-manifest.ps1",
+    "generatorVersion": "1"
+  },
   "assets": [
     {
       "rid": "win-x64",
       "file": "Ferret-0.14.0-win-x64.zip",
+      "size": 33421231,
       "sha256": "...",
       "binary": "ferret.exe"
     }
@@ -115,7 +123,11 @@ Field meanings:
 - `minimumInstallerSchema` — the minimum installer schema this release expects.
   An installer compares its own schema support and either continues or tells the
   user to upgrade the installer.
-- `assets[]` — one entry per RID: `rid`, `file` (zip name), `sha256`, and
+- `metadata` — reserved namespace for provenance (`generator`,
+  `generatorVersion`). Populated now but not consumed by any installer yet;
+  reserved so future tooling has a stable place to record provenance.
+- `assets[]` — one entry per RID: `rid`, `file` (zip name), `size` (bytes —
+  enables download progress reporting and a size sanity check), `sha256`, and
   `binary` (the executable name inside the zip: `ferret` or `ferret.exe`).
 
 ### Manifest compatibility flow
@@ -186,6 +198,14 @@ Reserved, not implemented. Today there is effectively one release source
 through the distribution config rather than scattering source-specific logic.
 No abstraction is built now — only the concept is reserved.
 
+### Reserved capability — `ferret self-update`
+
+Reserved, not implemented. A future `ferret self-update` command would consume
+exactly the same `release-manifest.json` (resolve newest version → select asset
+for RID → download → verify → atomic install) as the NPM wrapper. The design
+already enables it; it is noted here so the manifest contract is not narrowed in
+a way that would preclude it.
+
 ## Data Flow (Install)
 
 ```
@@ -197,12 +217,27 @@ npm i -g @indoulia/ferret@X
   → select asset for RID
   → download zip to temp
   → verify sha256 (fail hard on mismatch)
-  → extract to install dir
+  → extract to a temporary staging folder (atomic install — see below)
+  → rename staging folder into the final install dir
   → mark executable (chmod +x on POSIX)
   → clean temp
   → done
 bin/ferret.js (every invocation): locate installed binary, spawn, forward args
 ```
+
+## Atomic Installation
+
+Extraction must never overwrite the active installation in place. Extract into a
+temporary staging folder, then rename (move) it into the final install dir as
+the last step:
+
+```
+extract → temporary staging folder → rename → complete
+```
+
+If anything fails before the rename, the existing installation is untouched and
+the staging folder is discarded. This protects users from a half-written binary
+left by an interrupted install.
 
 ## Install Locations (platform conventions)
 
