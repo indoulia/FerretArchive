@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "version": "0.14.0",
+  "releaseTag": "v0.14.0",
+  "published": "2026-06-30",
+  "minimumInstallerSchema": 1,
+  "metadata": {
+    "generator": "build-release-manifest.ps1",
+    "generatorVersion": "1"
+  },
+  "assets": [
+    {
+      "rid": "win-x64",
+      "file": "Ferret-0.14.0-win-x64.zip",
+      "size": 33421231,
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "binary": "ferret.exe"
+    },
+    {
+      "rid": "linux-x64",
+      "file": "Ferret-0.14.0-linux-x64.zip",
+      "size": 31200512,
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "binary": "ferret"
+    },
+    {
+      "rid": "osx-arm64",
+      "file": "Ferret-0.14.0-osx-arm64.zip",
+      "size": 30100480,
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "binary": "ferret"
+    },
+    {
+      "rid": "osx-x64",
+      "file": "Ferret-0.14.0-osx-x64.zip",
+      "size": 30500864,
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "binary": "ferret"
+    }
+  ]
+}

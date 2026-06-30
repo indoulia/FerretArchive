@@ -1333,11 +1333,42 @@ Get-Content $manifestPath
 Run (Windows): `powershell -ExecutionPolicy Bypass -File scripts/tests/build-release-manifest.Tests.ps1`
 Expected: `PASS: build-release-manifest.ps1 tests`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Validate the generated manifest with the same parser (frozen contract)**
+
+The manifest is the frozen `schemaVersion = 1` public contract. The generator MUST NOT emit a shape the wrapper's parser rejects. Add a final validation block to the END of `scripts/build-release-manifest.ps1` (after writing `release-manifest.json`) that runs the wrapper's own `parseManifest` against the generated file and fails the script on rejection:
+```powershell
+# Validate the generated manifest with the wrapper's own parser (same logic
+# the installer uses) so a malformed manifest never reaches a release.
+$validator = Join-Path (Split-Path -Parent $PSScriptRoot) "Ferret.Npm"
+$node = Get-Command node -ErrorAction SilentlyContinue
+if ($node) {
+    $script = @"
+const { parseManifest } = require('$($validator -replace '\\','/')/lib/manifest');
+const fs = require('fs');
+const m = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+parseManifest(m);
+const rids = m.assets.map(a => a.rid).sort().join(',');
+for (const a of m.assets) {
+  for (const k of ['rid','file','size','sha256','binary']) {
+    if (!(k in a)) throw new Error('asset ' + a.rid + ' missing ' + k);
+  }
+  if (!/^[0-9a-f]{64}$/.test(a.sha256)) throw new Error('bad sha256 for ' + a.rid);
+}
+console.log('manifest valid: schema ' + m.schemaVersion + ', rids [' + rids + ']');
+"@
+    & node -e $script $manifestPath
+    if ($LASTEXITCODE -ne 0) { Write-Error "Generated manifest failed parser validation."; exit 1 }
+} else {
+    Write-Warning "node not found - skipping manifest parser validation."
+}
+```
+Extend the test in `build-release-manifest.Tests.ps1` to assert the validation line appears (when node is available) by checking the generator's output contains `manifest valid: schema 1`. Re-run the test; expected PASS.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add scripts/build-release-manifest.ps1 scripts/tests/build-release-manifest.Tests.ps1 .claude/
-git commit -m "feat(release): generate SHA256SUMS.txt and release-manifest.json"
+git commit -m "feat(release): generate and self-validate SHA256SUMS.txt and release-manifest.json"
 ```
 
 ---
