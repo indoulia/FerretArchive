@@ -18,7 +18,38 @@ Ferret is a modular, open-source AI platform that provides:
 - **CLI Tooling** — developer-friendly command-line interface for all platform operations
 - **Observability** — structured logging, tracing, and metrics built in from day one
 
-## Quick Start
+## Download & Install
+
+Pre-built, **self-contained** binaries are published on the
+[Releases](https://github.com/indoulia/Ferret/releases) page. They bundle the
+.NET runtime and all native dependencies — no SDK, no separate runtime, and no
+administrator rights required.
+
+> **Platform:** Windows x64. macOS and Linux packages are planned for a future
+> release.
+
+1. Download `Ferret-<version>-win-x64.zip` from the latest release and extract it.
+2. (Optional) Verify the download against the bundled `SHA256SUMS.txt`:
+   ```powershell
+   Get-FileHash .\ferret.exe -Algorithm SHA256   # compare with SHA256SUMS.txt
+   ```
+3. Install for the current user (the `-ExecutionPolicy Bypass` is per-process
+   and does not change your machine policy):
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\install.ps1
+   ```
+4. Open a **new** terminal so `ferret` resolves on `PATH`, then verify:
+   ```powershell
+   ferret --version
+   ```
+
+`install.ps1` copies `ferret.exe` to `%LOCALAPPDATA%\Programs\Ferret` and adds
+it to your user `PATH`. To remove it, run `uninstall.ps1` from the same folder;
+your workspace data (`.ferret\` folders) is left untouched. See the README
+inside the release package for the full command reference, MCP setup, and
+troubleshooting.
+
+## Build from Source
 
 ```powershell
 # Clone the repository
