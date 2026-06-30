@@ -54,8 +54,11 @@ if (-not $Version) {
     }
 }
 
-$isWindows = $Rid -like "win-*"
-$binaryName = if ($isWindows) { "ferret.exe" } else { "ferret" }
+# Use a custom name, not $isWindows: on PowerShell Core $IsWindows is a
+# read-only automatic variable (names are case-insensitive) and assigning to it
+# throws on the Linux release runner.
+$ridIsWindows = $Rid -like "win-*"
+$binaryName = if ($ridIsWindows) { "ferret.exe" } else { "ferret" }
 
 # Publish (unless skipping) using the version prefix so the embedded version matches.
 if (-not $SkipPublish) {
@@ -85,7 +88,7 @@ Copy-Item (Join-Path $RepoRoot "LICENSE")        (Join-Path $StageDir "LICENSE")
 Copy-Item (Join-Path $RepoRoot "CHANGELOG.md")   (Join-Path $StageDir "CHANGELOG.md") -Force
 Copy-Item (Join-Path $PackagingDir "README.md")  (Join-Path $StageDir "README.md")    -Force
 
-if ($isWindows) {
+if ($ridIsWindows) {
     Copy-Item (Join-Path $RepoRoot "install.ps1")   (Join-Path $StageDir "install.ps1")   -Force
     Copy-Item (Join-Path $RepoRoot "uninstall.ps1") (Join-Path $StageDir "uninstall.ps1") -Force
 }
