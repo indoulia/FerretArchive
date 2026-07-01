@@ -75,4 +75,18 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Office (OpenXML) parsing">
+    <PackageVersion Include="DocumentFormat.OpenXml" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="PDF parsing">
+    <!--
+      Plan pinned 0.1.9, but that stable release is not obtainable from the configured feeds
+      (only 0.1.9-alpha001-patch1 and 1.7.0-custom-5 are exposed). Pinned to the curated stable
+      1.7.0-custom-5; PdfPig reader/writer API used here (PdfDocument.Open, GetPages, page.Text,
+      NumberOfPages, Information.*, PdfDocumentBuilder writer) is validated by Ferret.Parsers.Pdf.Tests.
+    -->
+    <PackageVersion Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
+  </ItemGroup>
+
 </Project>

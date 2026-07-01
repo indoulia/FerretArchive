@@ -343,7 +343,13 @@ enterprise data is exported as CSV (Jira, Azure DevOps, SQL, SAP, Oracle, Excel
 
 ## PdfParser (`Ferret.Parsers.Pdf`)
 
-- **Library:** UglyToad.PdfPig (pure managed, MIT).
+- **Library:** UglyToad.PdfPig (pure managed, MIT). **Version pinned to `1.7.0-custom-5`**
+  (not the originally-planned `0.1.9`): the stable `0.1.9` release is not obtainable from the
+  configured NuGet feeds in this environment — only `0.1.9-alpha001-patch1` (prerelease) and the
+  curated `1.7.0-custom-5` are exposed. The `1.7.0-custom-5` build was validated against the full
+  reader/writer surface used here (`PdfDocument.Open`, `GetPages`, `page.Text`, `NumberOfPages`,
+  `Information.*`, and the `PdfDocumentBuilder` writer). One API difference from the 0.1.x line:
+  `PdfDocumentBuilder` is now `IDisposable` and must be disposed by writer/fixture code.
 - **Extraction:** open from the provided `Stream` (do **not** dispose), iterate
   pages in order, extract page text, join with newlines.
 - **Output:** `DocumentKind.Prose`, `MediaType = "application/pdf"`. Metadata via

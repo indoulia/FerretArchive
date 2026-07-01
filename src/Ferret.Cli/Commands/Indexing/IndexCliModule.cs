@@ -4,7 +4,7 @@ using Ferret.Core.Events;
 using Ferret.Core.Indexing;
 using Ferret.Core.Workspace;
 using Ferret.Indexing;
-using Ferret.ParserPlatform;
+using Ferret.Parsers;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -64,8 +64,8 @@ internal sealed class IndexCliModule : CliModuleBase
         services.AddSingleton<SwappableEventBus>(_ => new SwappableEventBus(NullEventBus.Instance));
         services.AddSingleton<IEventBus>(sp => sp.GetRequiredService<SwappableEventBus>());
 
-        // Parser platform — resolves IParserDispatcher required by IIndexPipeline.
-        ParserPlatformModule.ConfigureServices(services);
+        // Parser pack — platform + PDF parser; resolves IParserDispatcher required by IIndexPipeline.
+        ParserPackModule.ConfigureServices(services);
 
         // IIndexEngine — SQLite FTS5 database at workspace-resolved path.
         services.AddSingleton<IIndexEngine>(_ => new SqliteKeywordIndexEngine(dbPath));

@@ -912,11 +912,11 @@ In `Directory.Packages.props`, add a new `ItemGroup`:
 
 ```xml
 <ItemGroup Label="PDF parsing">
-  <PackageVersion Include="UglyToad.PdfPig" Version="0.1.9" />
+  <PackageVersion Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
 </ItemGroup>
 ```
 
-Version **pinned** to `0.1.9`. Bumping it later is a separate maintenance task, not part of this implementation.
+Version **pinned** to `1.7.0-custom-5` (implementation deviation from the originally-planned `0.1.9`, which is not obtainable from the configured NuGet feeds; see Sprint 2's version-deviation note). One adapted API difference: `PdfDocumentBuilder` is `IDisposable` in this build. Bumping it later is a separate maintenance task, not part of this implementation.
 
 - [ ] **Interfaces update:** `PdfParser`'s constructor takes `ParserOptions` (Task 1); `PdfParserModule` registers a default `ParserOptions` via `TryAddSingleton` and the parser.
 
@@ -3351,6 +3351,6 @@ git commit -m "feat(bench): add parser throughput benchmark and Enterprise Conte
 - DocumentKind evolution / PowerPoint fast-follow → documented in spec; no code ✅
 - Reserved Enterprise Content Pack 2 (PPTX/Outlook/Visio/RTF/ODT/ODS/HTML/XML) → spec only, no task ✅
 
-**Placeholder scan:** No "TBD"/"handle edge cases" left; failure handling is concrete (throw → dispatcher `Failed`; empty text → `Empty`). Package versions are **pinned** (PdfPig 0.1.9, OpenXml 3.1.0) — no "verify latest" hedges. The one genuinely environment-dependent item (OOXML byte-determinism for `.docx`/`.xlsx`) carries an explicit fallback (compare extracted text).
+**Placeholder scan:** No "TBD"/"handle edge cases" left; failure handling is concrete (throw → dispatcher `Failed`; empty text → `Empty`). Package versions are **pinned** (PdfPig `1.7.0-custom-5` — see version-deviation note — OpenXml 3.1.0) — no "verify latest" hedges. The one genuinely environment-dependent item (OOXML byte-determinism for `.docx`/`.xlsx`) carries an explicit fallback (compare extracted text).
 
 **Type consistency:** `MediaCategory`, `DocumentMetadata`, `ParserOptions`, `ExtractionLimiter` (all Task 1) consumed identically across Tasks 2/2b/3/4/6. All four heavyweight/structured parsers (Csv, Pdf, Word, Excel) take `ParserOptions` and call `ExtractionLimiter.ApplyCharacterLimit`; `ParserPlatformModule` (Csv), `PdfParserModule`, and `OfficeParserModule` each `TryAddSingleton(new ParserOptions())` (idempotent — `TryAdd` means the first registration wins, so composing them in `ParserPackModule` is safe). `OfficeMediaTypes.Docx`/`.Xlsx` (Task 4) reused in Task 5 test. `CorpusDocument(Title, Blocks, Tables)` and `CorpusTable(Headers, Rows)` (Task 7) consumed by `DocxRenderer`/`XlsxRenderer`/`EnterpriseArchetypes`/generator consistently. `SyntheticEnterpriseCorpusGenerator(int seed).Generate(CorpusSize, string)` consistent across Tasks 7/8/9. `TestAsset.For(path, mediaType)` referenced in Tasks 8/9 (define once per consuming project).

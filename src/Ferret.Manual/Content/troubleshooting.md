@@ -187,6 +187,27 @@ netstat -ano | findstr 4321   # Windows
 lsof -i :4321                 # macOS/Linux
 ```
 
+## 11. My file isn't indexing
+
+**Symptom:** A file is present in the workspace but never appears in search results.
+
+**Root cause:** The extension is unmapped, the file type is treated as an opaque binary, the parser package isn't installed, or the path is excluded.
+
+**Fix:** Run `ferret doctor` and read the **Parser Platform** report, then follow the tree:
+
+```
+Is the extension listed by `ferret doctor`?
+  ├─ No  → unsupported extension (not mapped) — the file is skipped
+  └─ Yes → Which category?
+           ├─ Parseable Binary → is the parser installed? (doctor lists it)
+           │     ├─ Yes → re-run `ferret index`
+           │     └─ No  → install/enable the parser package
+           ├─ Text            → check .ferretignore and your workspace scope
+           └─ Opaque Binary   → currently treated as opaque; not indexed
+```
+
+Run `ferret doctor --verbose` to see the full opaque-extension list and per-parser details.
+
 ## Related
 
 - [CLI Reference](../reference/cli) — `ferret doctor` flags

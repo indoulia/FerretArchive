@@ -18,6 +18,24 @@ Ferret is a modular, open-source AI platform that provides:
 - **CLI Tooling** — developer-friendly command-line interface for all platform operations
 - **Observability** — structured logging, tracing, and metrics built in from day one
 
+## Supported file types
+
+`ferret index` extracts searchable text and lightweight metadata from:
+
+- **Source code, text & config** — plain text, Markdown, and JSON (built-in text parsers)
+- **CSV / TSV** — structure-aware `CsvParser` (header + rows), so column tokens and cell values are searchable
+- **PDF** — `Ferret.Parsers.Pdf` (page text + document info), a dependency-isolated package
+- **Word `.docx`** and **Excel `.xlsx`** — `Ferret.Parsers.Office` (paragraphs/tables and sheet/header/cell values; Excel reads cached values via a streaming reader)
+
+Parsers are composed into a single pack (`Ferret.Parsers` / `ParserPackModule`) and
+kept dependency-isolated — heavyweight PDF/OpenXML dependencies never leak into the
+parser platform or the text parsers. Opaque binaries (images, archives, native
+libraries) are never indexed.
+
+Extracted text is unlimited by default; set `Ferret:Parsers:MaxExtractedCharacters`
+to cap per-document extraction (truncated documents are flagged in metadata).
+`ferret doctor` lists the installed parsers and the number of supported extensions.
+
 ## Download & Install
 
 Pre-built, **self-contained** binaries are published on the

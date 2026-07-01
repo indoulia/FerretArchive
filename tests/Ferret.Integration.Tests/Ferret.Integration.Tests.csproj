@@ -13,6 +13,8 @@
     <ProjectReference Include="..\..\src\Ferret.Cli\Ferret.Cli.csproj" />
     <ProjectReference Include="..\..\src\Ferret.Connectors.Filesystem\Ferret.Connectors.Filesystem.csproj" />
     <ProjectReference Include="..\..\src\Ferret.ParserPlatform\Ferret.ParserPlatform.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.Parsers\Ferret.Parsers.csproj" />
+    <ProjectReference Include="..\Ferret.Benchmarks\Ferret.Benchmarks.csproj" />
   </ItemGroup>
 
   <ItemGroup>

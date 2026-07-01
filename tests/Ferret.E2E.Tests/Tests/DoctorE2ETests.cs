@@ -42,4 +42,16 @@ public sealed class DoctorE2ETests : IAsyncLifetime
 
         Assert.Contains("Ferret Doctor", stdout, StringComparison.Ordinal);
     }
+
+    /// <summary>doctor emits the Parser Platform report through the published binary.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Fact]
+    public async Task Doctor_ReportsParserPlatformSection()
+    {
+        var (_, stdout, _) = await _workspace.RunAsync("doctor");
+
+        Assert.Contains("Parser Platform", stdout, StringComparison.Ordinal);
+        Assert.Contains("Excel (XLSX) Parser", stdout, StringComparison.Ordinal);
+        Assert.Contains("Parser Packages", stdout, StringComparison.Ordinal);
+    }
 }

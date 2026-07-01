@@ -110,4 +110,39 @@ public sealed class MimeTypeResolverTests
         Assert.Equal(expectedMediaType, info.MediaType);
         Assert.Equal(expectedCategory, info.Category);
     }
+
+    [Fact]
+    public void ExtensionsInCategory_ParseableBinary_IsExactlyTheThreeOfficeFormats()
+    {
+        var parseable = MimeTypeResolver.ExtensionsInCategory(MediaCategory.BinaryParseable)
+            .Select(e => e.Extension).ToList();
+        Assert.Equal([".docx", ".pdf", ".xlsx"], parseable); // ordinal-sorted
+    }
+
+    [Fact]
+    public void ExtensionsInCategory_Parseable_CarriesMediaType()
+    {
+        var docx = MimeTypeResolver.ExtensionsInCategory(MediaCategory.BinaryParseable)
+            .Single(e => e.Extension == ".docx");
+        Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document", docx.MediaType);
+    }
+
+    [Fact]
+    public void ExtensionsInCategory_Opaque_ContainsKnownBinaries_AndIsOrdinalSorted()
+    {
+        var opaque = MimeTypeResolver.ExtensionsInCategory(MediaCategory.BinaryOpaque)
+            .Select(e => e.Extension).ToList();
+        Assert.Contains(".dll", opaque);
+        Assert.Contains(".exe", opaque);
+        Assert.Contains(".zip", opaque);
+        Assert.Equal(opaque.OrderBy(x => x, StringComparer.Ordinal), opaque);
+    }
+
+    [Fact]
+    public void ExtensionsInCategory_Counts_SumToKnownExtensionCount()
+    {
+        var text = MimeTypeResolver.ExtensionsInCategory(MediaCategory.Text).Count;
+        var parseable = MimeTypeResolver.ExtensionsInCategory(MediaCategory.BinaryParseable).Count;
+        Assert.Equal(MimeTypeResolver.KnownExtensionCount, text + parseable);
+    }
 }
