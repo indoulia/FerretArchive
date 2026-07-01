@@ -18,12 +18,17 @@ milestone, so later sprints add parsers without revisiting it.
 
 No new heavyweight dependencies. No new CLI features. No PDF or Office work.
 
+**Backward compatibility:** Sprint 1 introduces no breaking changes to existing
+indexes, parser contracts, CLI behavior, or public APIs. Existing text /
+markdown / JSON indexing is unchanged, and indexes built before Sprint 1 remain
+compatible.
+
 ## Frozen scope
 
 Sprint 1 is exactly these four deliverables:
 
 1. **Core parser foundation** (`Ferret.Core`)
-2. **One-time MimeTypeResolver overhaul** (`Ferret.ParserPlatform`)
+2. **MimeTypeResolver expansion** (`Ferret.ParserPlatform`)
 3. **CSV/TSV parser** (`Ferret.ParserPlatform`)
 4. **End-to-end indexing validation** (`ferret index` → `ferret search`)
 
@@ -45,11 +50,12 @@ Corresponds to parent-plan **Task 1**, unchanged. All in `src/Ferret.Core/Docume
 
 TDD throughout. This is a sequential barrier: it lands before Task 2/2b build.
 
-### 2. One-time MimeTypeResolver overhaul
+### 2. MimeTypeResolver expansion
 
 Corresponds to parent-plan **Task 2**, **plus a filename-resolution addition**
-agreed for this sprint. The intent is to touch this file **once** for the whole
-milestone.
+agreed for this sprint. This extends the existing resolver — the intent is to
+touch this file **once** for the whole milestone rather than revisit it every
+sprint.
 
 **Delta from today's resolver** (already mapped: Rust, Go, Java, Kotlin, C, C++,
 HTML, XML, YAML, TOML, CSV, TSV, and the common code/binary set — these are not
@@ -140,6 +146,23 @@ resolution → parse → index → search:
 - Benchmarks → **Sprint 5**.
 - Enterprise validation + RC packaging → **Sprint 6**.
 - No new NuGet packages, no new `.csproj`, no `doctor` changes in Sprint 1.
+
+## Sprint 1 acceptance criteria
+
+Sprint 1 is signed off when all of the following hold:
+
+- [ ] Existing text / markdown / JSON indexing unchanged
+- [ ] CSV searchable end-to-end (`ferret index` → `ferret search`)
+- [ ] TSV searchable end-to-end
+- [ ] `Dockerfile` resolved correctly (filename resolution)
+- [ ] `Makefile` resolved correctly (filename resolution)
+- [ ] `.pdf` / `.docx` / `.xlsx` classified as `BinaryParseable` with correct
+      media types and suggested kinds
+- [ ] Expanded binary denylist prevents accidental text indexing of opaque files
+- [ ] 100% of existing regression tests green (no regressions)
+- [ ] No new runtime / NuGet dependencies
+- [ ] No CLI changes
+- [ ] Existing indexes remain compatible (no breaking changes)
 
 ## Milestone roadmap
 
