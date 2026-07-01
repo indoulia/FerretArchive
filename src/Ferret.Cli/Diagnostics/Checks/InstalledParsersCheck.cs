@@ -8,7 +8,6 @@ namespace Ferret.Cli.Diagnostics.Checks;
 /// <summary>Reports the content parsers registered in the host and the number of supported file extensions.</summary>
 internal sealed class InstalledParsersCheck : IDiagnosticCheck
 {
-    private readonly IReadOnlyList<string> _parserNames;
     private readonly int _parserCount;
     private readonly int _supportedExtensionCount;
 
@@ -18,7 +17,6 @@ internal sealed class InstalledParsersCheck : IDiagnosticCheck
         int supportedExtensionCount)
     {
         ArgumentNullException.ThrowIfNull(parsers);
-        _parserNames = parsers.Select(p => p.Descriptor.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
         _parserCount = parserCount;
         _supportedExtensionCount = supportedExtensionCount;
     }
@@ -26,7 +24,7 @@ internal sealed class InstalledParsersCheck : IDiagnosticCheck
     /// <inheritdoc/>
     public string Name => string.Create(
         CultureInfo.InvariantCulture,
-        $"Content parsers: {_parserCount} installed, {_supportedExtensionCount} extensions ({string.Join(", ", _parserNames)})");
+        $"Parser platform: {_parserCount} parsers, {_supportedExtensionCount} extensions");
 
     /// <inheritdoc/>
     public Task<DiagnosticCheckResult> RunAsync(IFerretContext context, CancellationToken cancellationToken)
