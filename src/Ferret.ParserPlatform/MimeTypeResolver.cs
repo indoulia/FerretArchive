@@ -160,6 +160,15 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
     /// <summary>Gets the number of mapped extensions that resolve to text or parseable-binary content.</summary>
     public static int KnownExtensionCount => Map.Count(kv => kv.Value.Category != MediaCategory.BinaryOpaque);
 
+    /// <summary>Gets the mapped extensions in the given category, ordered by extension (ordinal).</summary>
+    /// <param name="category">The media category to filter by.</param>
+    /// <returns>The matching extensions and their media types.</returns>
+    public static IReadOnlyList<ExtensionMediaType> ExtensionsInCategory(MediaCategory category) =>
+        Map.Where(kv => kv.Value.Category == category)
+            .Select(kv => new ExtensionMediaType(kv.Key, kv.Value.MediaType))
+            .OrderBy(e => e.Extension, StringComparer.Ordinal)
+            .ToList();
+
     /// <inheritdoc/>
     public MediaTypeInfo Resolve(string fileName)
     {
