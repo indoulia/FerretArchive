@@ -31,6 +31,7 @@
     <ProjectReference Include="..\..\src\Ferret.ParserPlatform\Ferret.ParserPlatform.csproj" />
     <ProjectReference Include="..\..\src\Ferret.Connectors.Filesystem\Ferret.Connectors.Filesystem.csproj" />
     <ProjectReference Include="..\..\src\Ferret.Parsers.Office\Ferret.Parsers.Office.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.Parsers\Ferret.Parsers.csproj" />
   </ItemGroup>
 
 </Project>
