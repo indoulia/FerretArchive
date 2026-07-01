@@ -75,6 +75,10 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Office (OpenXML) parsing">
+    <PackageVersion Include="DocumentFormat.OpenXml" Version="3.1.0" />
+  </ItemGroup>
+
   <ItemGroup Label="PDF parsing">
     <!--
       Plan pinned 0.1.9, but that stable release is not obtainable from the configured feeds
