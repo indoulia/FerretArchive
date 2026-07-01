@@ -89,15 +89,18 @@ mixed-version deployments). Neither ships in this change.
 
 ### 3. `DoctorCommandHandler` + `CoreCliModule` wiring
 
-- The doctor command becomes `CmdWithOptions("doctor", …, new OptionDefinition("--verbose",
-  "Show full parser diagnostics (all opaque extensions, per-parser priority + media type).",
-  typeof(bool)))`.
+- **No new option.** `--verbose` already exists as a global, hidden option
+  (`GlobalOptions.Verbose`) that the root command parses into
+  `IFerretContext.Verbosity == VerbosityLevel.Verbose`. `ferret doctor --verbose` therefore
+  works with no command-definition change; the doctor command stays `Cmd("doctor", …)`.
 - `DoctorCommandHandler` gains a `ParserPlatformReport` dependency; after
-  `DiagnosticRunner.RunAsync(...)` it reads `context.GetOption<bool>("--verbose")` and calls
-  `report.Render(output, verbose)`.
+  `DiagnosticRunner.RunAsync(...)` it computes
+  `bool verbose = context.Verbosity == VerbosityLevel.Verbose` and calls
+  `report.Render(context.Services.Output, verbose)`.
 - `CoreCliModule` builds the report from the same parser `ServiceProvider` it already
   constructs for `InstalledParsersCheck`, and passes it into the handler factory
   (`new DoctorCommandHandler(_checks, report)`).
+- `DoctorCommandHandlerTests` is updated for the new constructor parameter.
 - **Simplify `InstalledParsersCheck`'s line** to drop the now-duplicated parser-name list;
   it remains the health gate: `Parser platform: 7 parsers, 79 extensions`. The names now
   live in the detailed section.
