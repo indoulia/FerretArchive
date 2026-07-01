@@ -1,5 +1,9 @@
 using Ferret.E2E.Tests.Infrastructure;
 
+using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.Fonts.Standard14Fonts;
+using UglyToad.PdfPig.Writer;
+
 namespace Ferret.E2E.Tests.Fixtures;
 
 /// <summary>
@@ -87,6 +91,34 @@ public sealed class WorkspaceFixture : IAsyncLifetime
         await File.WriteAllTextAsync(
             Path.Join(WorkspaceDir, "workitems.tsv"),
             workItemsTsv).ConfigureAwait(false);
+    }
+
+    /// <summary>Writes two real, text-bearing PDFs into the workspace using PdfPig's writer.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public async Task WriteSamplePdfFilesAsync()
+    {
+        WritePdf(
+            Path.Join(WorkspaceDir, "architecture-decision.pdf"),
+            "Architecture Decision Record",
+            "We will adopt a streaming indexing pipeline to maximize throughput.");
+
+        WritePdf(
+            Path.Join(WorkspaceDir, "incident-report.pdf"),
+            "Incident Report",
+            "Root cause was a saturated connection pool during the nightly export.");
+
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    // PdfDocumentBuilder is IDisposable in PdfPig 1.7.0-custom-5 (was not in the 0.1.x API the plan targeted).
+    private static void WritePdf(string path, string title, string body)
+    {
+        using var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        var page = builder.AddPage(595, 842);
+        page.AddText(title, 14, new PdfPoint(25, 800), font);
+        page.AddText(body, 11, new PdfPoint(25, 770), font);
+        File.WriteAllBytes(path, builder.Build());
     }
 
     /// <summary>Runs a ferret command in the workspace directory.</summary>
