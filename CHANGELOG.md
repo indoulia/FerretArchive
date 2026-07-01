@@ -5,6 +5,70 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.16.0] — Enterprise Content Pack 1 — 2026-07-01
+
+### Summary
+
+Ferret now indexes enterprise documents. Enterprise Content Pack 1 takes Ferret from 3
+parsers (text, Markdown, JSON) to **7** by adding CSV/TSV, PDF, Word (.docx), and Excel
+(.xlsx). This release also fixes anonymous npm installation, which broke when the source
+repository was made private.
+
+### Added
+
+**Parsers (7 total: PlainText, Markdown, JSON, CSV, PDF, Word, Excel)**
+- `CsvParser` — dependency-free, structure-aware CSV/TSV parsing (`Data` document kind).
+- `Ferret.Parsers.Pdf` — PDF text and lightweight metadata extraction via PdfPig.
+- `Ferret.Parsers.Office` — Word (.docx) and Excel (.xlsx) via Open XML. Excel uses
+  streaming extraction for large workbooks, resolves shared strings, and reads cached
+  cell values (no formula recomputation).
+- `Ferret.Parsers` composition project exposing `ParserPackModule`.
+
+**File classification**
+- MIME resolution reclassifies PDF/DOCX/XLSX as binary-parseable; expanded code/config
+  map and binary denylist; new `MediaCategory` (Text / BinaryParseable / BinaryOpaque).
+- Filename resolution: extensionless files (`Dockerfile`, `Makefile`) are first-class.
+- `ParserOptions.MaxExtractedCharacters` extraction cap (default unlimited; sets
+  `Truncated` metadata when applied).
+
+**Diagnostics**
+- `ferret doctor` Parser Platform report: installed parsers in registration order,
+  extension coverage (parseable vs. opaque), and parser packages.
+- Global `--verbose` is now recursive; `ferret doctor --verbose` shows all opaque
+  extensions plus per-parser priority, media type, and parseable MIME types.
+
+**Benchmarks**
+- Deterministic enterprise corpus generator and BenchmarkDotNet suite for parser and
+  indexing throughput (`tests/Ferret.Benchmarks`).
+
+### Fixed
+
+- **Public download mirror.** `npm install -g @indoulia/ferret` now downloads release
+  binaries from the public `indoulia/ferret-dist` mirror instead of the (now-private)
+  source repo, restoring anonymous installation. Overridable via `FERRET_DIST_OWNER` /
+  `FERRET_DIST_REPO` / `FERRET_DIST_RELEASE_ENDPOINT`. The release pipeline verifies the
+  download endpoint is anonymously reachable before publishing.
+
+---
+
+## [0.15.0] — Distribution Platform — 2026-06-30
+
+### Summary
+
+Ferret is now distributed as a self-contained application, installable without cloning
+the repository or installing the .NET SDK. Establishes GitHub Releases as the single
+source of truth for all distribution channels.
+
+### Added
+
+- Self-contained cross-platform binaries (win-x64, linux-x64, osx-arm64, osx-x64).
+- Versioned `release-manifest.json` distribution contract (`schemaVersion: 1`).
+- NPM installation channel (`@indoulia/ferret`) with SHA256 verification and atomic
+  install; uninstall preserves `.ferret` workspaces, indexes, and configuration.
+- `release.yml` / `npm-publish.yml` pipeline (decoupled), `ARCH-022`.
+
+---
+
 ## [0.14.0] — RC1 — 2026-06-29
 
 ### Summary
