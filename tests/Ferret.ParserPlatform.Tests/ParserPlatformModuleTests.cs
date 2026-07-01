@@ -43,7 +43,7 @@ public sealed class ParserPlatformModuleTests
     }
 
     [Fact]
-    public void ConfigureServices_Registers_Three_Parsers()
+    public void ConfigureServices_Registers_Four_Parsers()
     {
         var services = new ServiceCollection();
 
@@ -51,7 +51,7 @@ public sealed class ParserPlatformModuleTests
 
         var provider = services.BuildServiceProvider();
         var parsers = provider.GetServices<IContentParser>().ToList();
-        Assert.Equal(3, parsers.Count);
+        Assert.Equal(4, parsers.Count);
     }
 
     [Fact]
@@ -68,6 +68,7 @@ public sealed class ParserPlatformModuleTests
         Assert.Contains("text/plain", ids);
         Assert.Contains("text/markdown", ids);
         Assert.Contains("application/json", ids);
+        Assert.Contains("text/csv", ids);
     }
 
     [Fact]
