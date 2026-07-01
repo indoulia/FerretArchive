@@ -10,44 +10,16 @@ on:
     - cron: '0 8 * * 1'
   workflow_dispatch:
 
+# NOTE: CodeQL Analysis and Dependency Review were removed because they require
+# GitHub Advanced Security on a private repo (code scanning + dependency graph
+# APIs return 403 on the free plan). To restore them, make the repo public or
+# enable Advanced Security, then re-add the `codeql` and `dependency-review`
+# jobs and `security-events: write` / `actions: read` permissions.
+
 permissions:
   contents: read
-  security-events: write
 
 jobs:
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: csharp
-          queries: security-extended
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - run: dotnet build src/Ferret.sln --configuration Release
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:csharp"
-
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-
   nuget-audit:
     name: NuGet Vulnerability Audit
     runs-on: ubuntu-latest
