@@ -213,6 +213,15 @@ public static class DocumentMetadata
 
     /// <summary>Set to "true" when extracted text was truncated by the configured limit.</summary>
     public const string Truncated = "Truncated";
+
+    /// <summary>Number of data rows (tabular formats; excludes the header row).</summary>
+    public const string RowCount = "RowCount";
+
+    /// <summary>Number of columns (tabular formats; header field count).</summary>
+    public const string ColumnCount = "ColumnCount";
+
+    /// <summary>Set to "true"/"false": whether a tabular document's first row is treated as a header.</summary>
+    public const string HasHeader = "HasHeader";
 }
 ```
 
@@ -264,6 +273,15 @@ public sealed class ExtractionLimiterTests
         Assert.Equal("hi", text);
         Assert.False(truncated);
     }
+
+    [Fact]
+    public void Limit_Larger_Than_Int_MaxValue_Does_Not_Truncate_Or_Overflow()
+    {
+        var options = new ParserOptions { MaxExtractedCharacters = (long)int.MaxValue + 1000 };
+        var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit("hello world", options);
+        Assert.Equal("hello world", text);
+        Assert.False(truncated);
+    }
 }
 ```
 
@@ -288,7 +306,9 @@ public static class ExtractionLimiter
 
         if (options.MaxExtractedCharacters is long max && text.Length > max)
         {
-            return (text[..(int)max], true);
+            // max < text.Length (an int) here, so it fits int; Math.Min guards against any future reordering.
+            var limit = (int)Math.Min(max, text.Length);
+            return (text[..limit], true);
         }
 
         return (text, false);
@@ -335,7 +355,65 @@ git commit -m "feat(core): add MediaCategory, DocumentMetadata, ParserOptions, E
 - Consumes: `MediaCategory`, `MediaTypeInfo.Category` (Task 1).
 - Produces: resolver emits `application/pdf` (`BinaryParseable`, `Prose`) for `.pdf`; the OpenXML wordprocessing media type (`BinaryParseable`, `Prose`) for `.docx`; the spreadsheet media type (`BinaryParseable`, `Data`) for `.xlsx`; expanded text/code/config mappings; expanded `BinaryOpaque` denylist; and a **filename map** (`Dockerfile`, `Makefile`) consulted after the extension lookup misses.
 
-- [ ] **Step 1: Write the failing test**
+> **Two commits.** This task lands as **2a** (pure `MediaTypeInfo`/`Category`
+> migration — pairs with Task 1's breaking change, no behavior change) then
+> **2b** (MIME expansion + filename resolution, TDD). Splitting keeps review and
+> rollback clean.
+
+#### Commit 2a — migrate the resolver to `Category` (refactor, no behavior change)
+
+- [ ] **Step 1: Migrate the existing `Text`/`Binary` helpers and `UnknownText` to set `Category`**
+
+The current file sets the now-removed `IsText`/`IsBinary` init properties, so the
+solution fails to build after Task 1. Fix it by switching to `Category`. Replace
+the two existing helpers:
+
+```csharp
+private static MediaTypeInfo Text(string mediaType, DocumentKind kind) => new()
+{
+    MediaType = mediaType,
+    Category = MediaCategory.Text,
+    SuggestedKind = kind,
+    Confidence = 1.0,
+};
+
+private static MediaTypeInfo Binary() => new()
+{
+    MediaType = "application/octet-stream",
+    Category = MediaCategory.BinaryOpaque,
+    Confidence = 1.0,
+};
+```
+
+Replace the `UnknownText` field:
+
+```csharp
+private static readonly MediaTypeInfo UnknownText = new()
+{
+    MediaType = "text/plain",
+    Category = MediaCategory.Text,
+    Confidence = 0.5,
+};
+```
+
+Do not change the `Map` entries or `Resolve()` yet — this commit is a pure
+type migration.
+
+- [ ] **Step 2: Build and run existing suites to confirm the refactor is behavior-neutral**
+
+Run: `dotnet build src/Ferret.sln && dotnet test tests/Ferret.ParserPlatform.Tests && dotnet test tests/Ferret.Core.Tests`
+Expected: build succeeds (the Task-1 setter break is resolved), all existing tests PASS. No new tests yet.
+
+- [ ] **Step 3: Commit 2a**
+
+```bash
+git add src/Ferret.ParserPlatform/MimeTypeResolver.cs
+git commit -m "refactor(parsers): migrate MimeTypeResolver to MediaCategory"
+```
+
+#### Commit 2b — MIME expansion + filename resolution (TDD)
+
+- [ ] **Step 4: Write the failing tests**
 
 ```csharp
 // tests/Ferret.ParserPlatform.Tests/MimeTypeResolverTests.cs
@@ -429,34 +507,41 @@ public sealed class MimeTypeResolverTests
         Assert.Equal("text/plain", unknown.MediaType);
         Assert.Equal(0.5, unknown.Confidence);
     }
+
+    // Regression snapshot: a representative set of mappings across every category.
+    // Guards the central resolver against accidental drift when entries are added later.
+    [Theory]
+    [InlineData("Program.cs", "text/x-csharp", MediaCategory.Text)]
+    [InlineData("README.md", "text/markdown", MediaCategory.Text)]
+    [InlineData("data.json", "application/json", MediaCategory.Text)]
+    [InlineData("config.xml", "text/xml", MediaCategory.Text)]
+    [InlineData("index.html", "text/html", MediaCategory.Text)]
+    [InlineData("report.pdf", "application/pdf", MediaCategory.BinaryParseable)]
+    [InlineData("spec.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", MediaCategory.BinaryParseable)]
+    [InlineData("export.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", MediaCategory.BinaryParseable)]
+    [InlineData("archive.zip", "application/octet-stream", MediaCategory.BinaryOpaque)]
+    [InlineData("tool.exe", "application/octet-stream", MediaCategory.BinaryOpaque)]
+    [InlineData("Dockerfile", "text/x-dockerfile", MediaCategory.Text)]
+    [InlineData("Makefile", "text/x-makefile", MediaCategory.Text)]
+    public void Representative_Mappings_Are_Stable(string fileName, string expectedMediaType, MediaCategory expectedCategory)
+    {
+        var info = Resolver.Resolve(fileName);
+        Assert.Equal(expectedMediaType, info.MediaType);
+        Assert.Equal(expectedCategory, info.Category);
+    }
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 5: Run tests to verify they fail**
 
 Run: `dotnet test tests/Ferret.ParserPlatform.Tests --filter MimeTypeResolverTests`
 Expected: FAIL — `.pdf` currently resolves to `application/octet-stream`; `Dockerfile` returns the `text/plain` fallback (Confidence 0.5), not Config.
 
-- [ ] **Step 3: Rewrite the factory helpers and `UnknownText` to use `Category`**
+- [ ] **Step 6: Add the `ParseableBinary` helper, reclassify `.pdf`/`.docx`/`.xlsx`, and add the expanded entries**
 
-In `src/Ferret.ParserPlatform/MimeTypeResolver.cs`, replace the three helpers and the `UnknownText` field:
+Add the new helper alongside the migrated `Text`/`Binary` helpers:
 
 ```csharp
-private static MediaTypeInfo Text(string mediaType, DocumentKind kind) => new()
-{
-    MediaType = mediaType,
-    Category = MediaCategory.Text,
-    SuggestedKind = kind,
-    Confidence = 1.0,
-};
-
-private static MediaTypeInfo Binary() => new()
-{
-    MediaType = "application/octet-stream",
-    Category = MediaCategory.BinaryOpaque,
-    Confidence = 1.0,
-};
-
 private static MediaTypeInfo ParseableBinary(string mediaType, DocumentKind kind) => new()
 {
     MediaType = mediaType,
@@ -465,17 +550,6 @@ private static MediaTypeInfo ParseableBinary(string mediaType, DocumentKind kind
     Confidence = 1.0,
 };
 ```
-
-```csharp
-private static readonly MediaTypeInfo UnknownText = new()
-{
-    MediaType = "text/plain",
-    Category = MediaCategory.Text,
-    Confidence = 0.5,
-};
-```
-
-- [ ] **Step 4: Reclassify `.pdf`/`.docx`/`.xlsx` and add the expanded text/config entries**
 
 In the `Map` dictionary, replace the three existing `Binary()` entries for `.pdf`/`.docx`/`.xlsx` with:
 
@@ -555,7 +629,7 @@ Add the expanded binary denylist (not already mapped):
 [".otf"] = Binary(),
 ```
 
-- [ ] **Step 5: Add the filename map**
+- [ ] **Step 7: Add the filename map**
 
 Add a second static dictionary next to `Map`, keyed on the full file name (extensionless build files are first-class and the map is trivially extensible):
 
@@ -568,7 +642,7 @@ private static readonly Dictionary<string, MediaTypeInfo> FileNameMap =
     };
 ```
 
-- [ ] **Step 6: Rewrite `Resolve()` to fall back to the filename map**
+- [ ] **Step 8: Rewrite `Resolve()` to fall back to the filename map**
 
 Replace the body of `Resolve`. Order: **extension lookup → filename lookup → `UnknownText`.** A present, known extension always wins; the filename map is consulted only when the extension lookup misses; `Path.GetFileName` strips any directory so full paths resolve.
 
@@ -599,17 +673,17 @@ public MediaTypeInfo Resolve(string fileName)
 }
 ```
 
-- [ ] **Step 7: Run test to verify it passes**
+- [ ] **Step 9: Run tests to verify they pass**
 
 Run: `dotnet test tests/Ferret.ParserPlatform.Tests --filter MimeTypeResolverTests`
 Expected: PASS.
 
-- [ ] **Step 8: Run the full ParserPlatform + Core suites and build the solution to confirm no regressions**
+- [ ] **Step 10: Run the full ParserPlatform + Core suites and build the solution to confirm no regressions**
 
 Run: `dotnet build src/Ferret.sln && dotnet test tests/Ferret.ParserPlatform.Tests && dotnet test tests/Ferret.Core.Tests`
-Expected: build succeeds (the Task-1 `IsText`/`IsBinary` setter break in this file is now resolved), all tests PASS.
+Expected: build succeeds, all tests PASS.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 11: Commit 2b**
 
 ```bash
 git add src/Ferret.ParserPlatform/MimeTypeResolver.cs tests/Ferret.ParserPlatform.Tests/MimeTypeResolverTests.cs
@@ -719,6 +793,99 @@ public sealed class CsvParserTests
 
         Assert.True(stream.CanRead); // not disposed
     }
+
+    [Fact]
+    public async Task ParseAsync_Populates_Row_Column_And_Header_Metadata()
+    {
+        var parser = new CsvParser(new ParserOptions());
+        using var stream = MakeStream("Key,Summary,Severity\nBUG-1,Login fails,High\nBUG-2,Crash,Low\n");
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("text/csv")));
+
+        Assert.Equal("2", doc.Metadata[DocumentMetadata.RowCount]);      // data rows, excludes header
+        Assert.Equal("3", doc.Metadata[DocumentMetadata.ColumnCount]);   // header field count
+        Assert.Equal("true", doc.Metadata[DocumentMetadata.HasHeader]);
+    }
+
+    [Fact]
+    public async Task ParseAsync_BlankFile_YieldsEmptyText_And_NoHeader()
+    {
+        var parser = new CsvParser(new ParserOptions());
+        using var stream = MakeStream(string.Empty);
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("text/csv")));
+
+        Assert.Equal(string.Empty, doc.PlainText);
+        Assert.Equal("false", doc.Metadata[DocumentMetadata.HasHeader]);
+        Assert.Equal("0", doc.Metadata[DocumentMetadata.RowCount]);
+    }
+
+    [Theory]
+    [InlineData("Key,Summary\nBUG-1,\n")]                        // empty trailing column
+    [InlineData("Key,Summary,\nBUG-1,Login fails,\n")]           // trailing comma / empty header col
+    [InlineData("Key,Summary\n\nBUG-1,Login fails\n")]           // empty row in the middle
+    [InlineData("Key,Summary\nBUG-1,\"unterminated quote\n")]    // unmatched quote — must not throw
+    public async Task ParseAsync_MalformedInput_DoesNotThrow(string content)
+    {
+        var parser = new CsvParser(new ParserOptions());
+        using var stream = MakeStream(content);
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("text/csv")));
+
+        Assert.NotNull(doc); // parser is total over messy enterprise exports
+        Assert.Equal(DocumentKind.Data, doc.Kind);
+    }
+
+    [Fact]
+    public async Task ParseAsync_Honors_Utf8_Bom()
+    {
+        var parser = new CsvParser(new ParserOptions());
+        var bytes = new byte[] { 0xEF, 0xBB, 0xBF }
+            .Concat(Encoding.UTF8.GetBytes("Key,Summary\nBUG-1,Café crash\n"))
+            .ToArray();
+        using var stream = new MemoryStream(bytes);
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("text/csv")));
+
+        Assert.Contains("Café crash", doc.PlainText, StringComparison.Ordinal);
+        Assert.DoesNotContain("﻿", doc.PlainText); // BOM stripped by the reader, not indexed
+    }
+
+    [Fact]
+    public async Task ParseAsync_VeryLongCell_IsPreserved()
+    {
+        var parser = new CsvParser(new ParserOptions());
+        var longCell = new string('x', 100_000);
+        using var stream = MakeStream($"Key,Notes\nBUG-1,{longCell}\n");
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("text/csv")));
+
+        Assert.Contains(longCell, doc.PlainText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(100)]
+    [InlineData(1_000)]
+    [InlineData(10_000)]
+    [InlineData(100_000)]
+    public async Task ParseAsync_ScalesLinearly_WithoutExhaustingMemory(int rows)
+    {
+        var parser = new CsvParser(new ParserOptions());
+        var sb = new StringBuilder("Key,Summary,Severity\n");
+        for (var i = 0; i < rows; i++)
+        {
+            sb.Append("BUG-").Append(i).Append(",Issue ").Append(i).Append(",High\n");
+        }
+
+        using var stream = MakeStream(sb.ToString());
+
+        // Bounded working set: the reader streams records; assert the parse completes,
+        // reports the exact row count, and never throws OutOfMemoryException.
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("text/csv")));
+
+        Assert.Equal(rows.ToString(System.Globalization.CultureInfo.InvariantCulture), doc.Metadata[DocumentMetadata.RowCount]);
+        Assert.Contains("BUG-" + (rows - 1), doc.PlainText, StringComparison.Ordinal);
+    }
 }
 ```
 
@@ -788,6 +955,7 @@ internal static class CsvRecordReader
 
 ```csharp
 // src/Ferret.ParserPlatform/Parsers/CsvParser.cs
+using System.Globalization;
 using System.Text;
 
 using Ferret.Core.Documents;
@@ -798,7 +966,8 @@ namespace Ferret.ParserPlatform.Parsers;
 /// <summary>
 /// Structure-aware parser for CSV and TSV (<c>text/csv</c>, <c>text/tab-separated-values</c>).
 /// Dependency-free; lives in the platform beside JSON/Markdown. Emits header + data rows so column
-/// tokens are searchable. Read-only; no chunking, embedding, or AI processing.
+/// tokens are searchable, and lightweight metadata (row/column counts, has-header). Read-only;
+/// no chunking, embedding, or AI processing.
 /// </summary>
 public sealed class CsvParser : IContentParser
 {
@@ -849,9 +1018,22 @@ public sealed class CsvParser : IContentParser
         var raw = await reader.ReadToEndAsync(ct).ConfigureAwait(false);
 
         var sb = new StringBuilder();
+        IReadOnlyList<string>? header = null;
+        var dataRowCount = 0;
+
         foreach (var record in CsvRecordReader.ReadRecords(raw, delimiter))
         {
             ct.ThrowIfCancellationRequested();
+
+            if (header is null)
+            {
+                header = record; // first record is treated as the header
+            }
+            else
+            {
+                dataRowCount++;
+            }
+
             var joined = string.Join('\t', record.Where(f => !string.IsNullOrEmpty(f)));
             if (joined.Length > 0)
             {
@@ -860,7 +1042,14 @@ public sealed class CsvParser : IContentParser
         }
 
         var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit(sb.ToString().Trim(), _options);
-        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [DocumentMetadata.HasHeader] = header is not null ? "true" : "false",
+            [DocumentMetadata.RowCount] = dataRowCount.ToString(CultureInfo.InvariantCulture),
+            [DocumentMetadata.ColumnCount] = (header?.Count ?? 0).ToString(CultureInfo.InvariantCulture),
+        };
+
         if (truncated)
         {
             metadata[DocumentMetadata.Truncated] = "true";
@@ -899,7 +1088,7 @@ The registry factory already aggregates via `GetServices<IContentParser>()`, so 
 - [ ] **Step 6: Run tests to verify they pass**
 
 Run: `dotnet test tests/Ferret.ParserPlatform.Tests --filter CsvParserTests`
-Expected: PASS (6 tests). CSV/TSV are now live through the already-wired `ParserPlatformModule` — no CLI change needed.
+Expected: all CSV tests PASS (correctness, metadata, malformed-input, BOM, long-cell, and the 100/1k/10k/100k scale theory). CSV/TSV are now live through the already-wired `ParserPlatformModule` — no CLI change needed.
 
 - [ ] **Step 7: Commit**
 
@@ -1055,3 +1244,19 @@ Expected: build clean, all tests green.
 - [ ] **Acceptance criteria check** (from the spec)
 
 Confirm each: existing text/markdown/JSON indexing unchanged · CSV searchable e2e · TSV searchable e2e · `Dockerfile` resolved · `Makefile` resolved · `.pdf`/`.docx`/`.xlsx` classified `BinaryParseable` · expanded binary denylist blocks opaque files · 100% regression tests green · no new NuGet deps · no CLI changes · existing indexes compatible.
+
+## Definition of Done
+
+Sprint 1 is done when every box below is checked:
+
+- [ ] All unit tests pass (`Ferret.Core.Tests`, `Ferret.ParserPlatform.Tests`)
+- [ ] All E2E tests pass (`Ferret.E2E.Tests`, incl. `CsvIndexE2ETests`)
+- [ ] Existing parser/index/search tests unchanged and green (no regressions)
+- [ ] No public API regressions (existing consumers compile unchanged except the intended `MediaTypeInfo.Category` migration)
+- [ ] No additional NuGet dependencies (`Directory.Packages.props` unchanged)
+- [ ] No analyzer / StyleCop warnings introduced (`dotnet build` clean)
+- [ ] Build + tests pass on Windows and Linux (CI matrix)
+- [ ] Five commits landed: Task 1 · Task 2a (`Category` refactor) · Task 2b (MIME + filename) · Task 3 (CSV) · Task 4 (E2E)
+
+> **Commit count note:** Task 2 intentionally lands as two commits (2a refactor,
+> 2b feature), so Sprint 1 is **five** commits, not four.
