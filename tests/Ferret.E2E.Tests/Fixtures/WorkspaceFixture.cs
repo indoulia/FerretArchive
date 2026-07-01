@@ -65,6 +65,30 @@ public sealed class WorkspaceFixture : IAsyncLifetime
             "namespace Sample;\npublic class GammaController { }").ConfigureAwait(false);
     }
 
+    /// <summary>Writes realistic enterprise CSV/TSV exports (Jira / Azure DevOps style) into the workspace.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public async Task WriteEnterpriseCsvFilesAsync()
+    {
+        const string issuesCsv =
+            "Key,Summary,Severity,Status,Assignee,Sprint\n" +
+            "PROJ-101,Login fails for SSO users,High,Open,Dana Wells,Sprint 14\n" +
+            "PROJ-102,\"Timeout on export, then crash\",Critical,In Progress,Rahul Menon,Sprint 14\n" +
+            "PROJ-103,Add audit log retention policy,Medium,Done,Dana Wells,Sprint 13\n";
+
+        await File.WriteAllTextAsync(
+            Path.Join(WorkspaceDir, "issues.csv"),
+            issuesCsv).ConfigureAwait(false);
+
+        const string workItemsTsv =
+            "ID\tTitle\tState\tAssignedTo\tIteration\n" +
+            "5001\tAuthentication token refresh\tActive\tPriya Nair\tSprint 14\n" +
+            "5002\tCustomer risk register review\tClosed\tOmar Said\tSprint 13\n";
+
+        await File.WriteAllTextAsync(
+            Path.Join(WorkspaceDir, "workitems.tsv"),
+            workItemsTsv).ConfigureAwait(false);
+    }
+
     /// <summary>Runs a ferret command in the workspace directory.</summary>
     /// <param name="args">The command arguments to pass to the ferret binary.</param>
     /// <param name="timeout">Optional timeout; defaults to 30 seconds.</param>
