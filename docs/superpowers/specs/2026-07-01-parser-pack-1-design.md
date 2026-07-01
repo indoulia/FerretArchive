@@ -48,19 +48,26 @@ Enterprise Content Pack 1 ships:
    classification.
 2. **An expanded binary denylist** preventing opaque binary artifacts from
    entering the text index.
-3. **`Ferret.Parsers.Pdf`** — `PdfParser` using UglyToad.PdfPig.
-4. **`Ferret.Parsers.Office`** — `WordParser` (**DOCX**) and `ExcelParser`
-   (**XLSX**), both on DocumentFormat.OpenXml.
-5. **Additive `MimeTypeResolver` changes** so PDF, DOCX, and XLSX resolve to
+3. **`CsvParser`** in `Ferret.ParserPlatform` — structure-aware CSV/TSV
+   extraction (dependency-free plain text; no new package). Covers the many
+   enterprise systems that export directly to CSV (Jira, Azure DevOps, SQL, SAP,
+   Oracle, Excel "Save As").
+4. **`Ferret.Parsers.Pdf`** — `PdfParser` using UglyToad.PdfPig.
+5. **`Ferret.Parsers.Office`** (the **Enterprise Office** parser) — `WordParser`
+   (**DOCX**) and `ExcelParser` (**XLSX**), both on DocumentFormat.OpenXml.
+   Excel is the highest-value format here: Jira/ADO exports, requirement
+   traceability matrices, test matrices, risk registers, audit/compliance/cost
+   sheets are what people actually search.
+6. **Additive `MimeTypeResolver` changes** so PDF, DOCX, and XLSX resolve to
    dedicated media types that dispatch to their parsers, while preserving the
    existing parser contracts.
-6. **A distinct content model for parseable binaries** (PDF/DOCX/XLSX) vs opaque
+7. **A distinct content model for parseable binaries** (PDF/DOCX/XLSX) vs opaque
    binaries, so future binary-skip logic does not exclude parseable formats.
-7. **A deterministic, multi-format corpus generator** (abstract model +
+8. **A deterministic, multi-format corpus generator** (abstract model +
    format-specific renderers, including a **tabular `CorpusTable`** primitive and
    Excel-specific enterprise datasets) producing realistic documents and mixed
    code repositories at configurable sizes. Assets are **not** committed.
-8. **A configurable extracted-text limit** (default **unlimited**) so large
+9. **A configurable extracted-text limit** (default **unlimited**) so large
    workbooks index completely unless an administrator caps them.
 
 ### Non-goals (deferred, YAGNI)
@@ -124,6 +131,12 @@ lets downstream ranking/AI use it later without re-parsing.
 `.Subject`, `.Keywords`, `.PageCount`, `.SheetCount`, `.Created`, `.Modified`,
 `.Category`, `.Truncated`. Every parser references those constants so keys never
 drift (`PageCount` vs `Pagecount` vs `Page Count`) as future parsers are added.
+
+**Designed for future metadata search.** This metadata schema is captured now
+specifically so a later release can support metadata-filtered queries —
+`author:john`, `created>2025`, `sheet:Security`, `pagecount>100` — without
+re-parsing. Nothing is indexed on metadata in this milestone; the keys are the
+forward-compatible foundation.
 
 ### DocumentKind
 
@@ -306,6 +319,28 @@ The text parsers (plain/markdown/json) are unaffected (small files).
 
 ---
 
+## CsvParser (`Ferret.ParserPlatform`)
+
+CSV lives **in the platform**, not a new package — it is dependency-free plain
+text, like `JsonParser`/`MarkdownParser`. It exists because a huge share of
+enterprise data is exported as CSV (Jira, Azure DevOps, SQL, SAP, Oracle, Excel
+"Save As"), and flat plain-text indexing loses the tabular structure.
+
+- **No dependency:** a small RFC-4180-style reader (quote-aware — handles commas
+  and newlines inside quoted fields; `String.Split` is insufficient).
+- **`CanParse`:** `text/csv` and `text/tab-separated-values`. **Priority 200** so
+  it beats the generic `PlainTextParser` (100) for those media types. The
+  resolver already maps `.csv`/`.tsv` to these types — no resolver change needed.
+- **Flattening:** header row + data rows, one row per line (values joined),
+  mirroring the Excel strategy so cell/column tokens are searchable.
+- **Output:** `DocumentKind.Data`.
+- **Extraction limit:** takes `ParserOptions`; applies the shared
+  `ExtractionLimiter` (SQL/SAP exports can be enormous).
+- **Error handling:** malformed rows are tolerated (best-effort extraction);
+  a genuinely unreadable stream throws → dispatcher returns `Failed`.
+
+---
+
 ## PdfParser (`Ferret.Parsers.Pdf`)
 
 - **Library:** UglyToad.PdfPig (pure managed, MIT).
@@ -478,6 +513,9 @@ Output goes to a temp/`.gitignore`d directory and is **never committed**.
 
 - `PdfParser`: happy path; empty; multi-page ordering; encrypted/corrupt →
   `Failed`; image-only → empty text.
+- `CsvParser`: header + data rows extracted; quoted fields with embedded
+  commas/newlines handled; `text/csv`+`text/tsv` claimed at priority 200 (beats
+  `PlainTextParser`); `DocumentKind.Data`; extraction limit honored.
 - `WordParser`: paragraphs + tables + headers + footers; empty; malformed →
   `Failed`; `.doc` unsupported.
 - `ExcelParser`: shared-string resolution; multi-sheet (sheet names emitted);
@@ -543,13 +581,22 @@ Surface installed parsers and supported extensions at runtime:
 
 ```
 Installed Parsers
-  ✓ Plain Text   ✓ Markdown   ✓ JSON   ✓ PDF   ✓ DOCX   ✓ XLSX
-Supported Extensions: 88
+  ✓ Plain Text   ✓ Markdown   ✓ JSON   ✓ CSV   ✓ PDF   ✓ DOCX   ✓ XLSX
+Supported Extensions: 90
 ```
 
 Implemented as a new `IDiagnosticCheck` (`ferret doctor` already has the check
 framework) — enumerate `GetServices<IContentParser>()` and count
 `MimeTypeResolver`'s non-opaque extensions. No new command, no new framework.
+
+**Reserved for dogfooding (not this milestone):** an *indexed-document count by
+type* view (`PDF: 352, Word: 144, Excel: 52, …`) is very useful when validating
+real enterprise repositories, but it requires querying the index store — outside
+the parser layer — so it is deferred. Likewise, **per-document parsing telemetry**
+(`DocumentParsingStarted/Completed` events carrying parser, duration, size, chars
+extracted) is reserved: valuable for answering "indexing is slow", but it is a
+pipeline concern, not a parser one. Pack 1 captures parse timing in the benchmark
+harness only.
 
 ### Documentation
 
@@ -561,6 +608,7 @@ parser packages (`Ferret.Parsers.Pdf`, `Ferret.Parsers.Office`, composed via
 
 ## Milestone: Enterprise Content Pack 1 — Deliverables Summary
 
+- `CsvParser` in `Ferret.ParserPlatform` (structure-aware CSV/TSV, no new dependency).
 - `Ferret.Parsers.Pdf` (PdfParser, PdfPig).
 - `Ferret.Parsers.Office` (**WordParser + ExcelParser**, OpenXml).
 - `Ferret.Parsers` composition project (`ParserPackModule`) + host callsite
@@ -577,7 +625,7 @@ parser packages (`Ferret.Parsers.Pdf`, `Ferret.Parsers.Office`, composed via
 - Deterministic Synthetic Enterprise Corpus Generator (abstract model +
   renderers, **`CorpusTable`** + **XLSX renderer** + enterprise tabular
   archetypes + enterprise-like titles) in `tests/Ferret.Benchmarks`.
-- Parser introspection diagnostic check for `ferret doctor` (6 parsers).
+- Parser introspection diagnostic check for `ferret doctor` (7 parsers).
 - Unit tests, end-to-end integration test (incl. XLSX cell-search), performance
   report (incl. large-workbook case), documentation updates.
 
@@ -586,15 +634,16 @@ parser packages (`Ferret.Parsers.Pdf`, `Ferret.Parsers.Office`, composed via
 ## Reserved: Enterprise Content Pack 2 (future, not this milestone)
 
 Once the `GetServices<IContentParser>()` extension pattern is proven, the natural
-follow-up is high-coverage formats plus the deferred **PowerPoint** fast-follow:
+follow-up formats are:
 
-`PPTX, HTML, XML, RTF, CSV, YAML, TOML, INI`
+`PowerPoint (PPTX), Outlook (MSG/PST), Visio (VSDX), RTF, ODT, ODS, HTML, XML`
 
-**Honest scoping note:** CSV/YAML/TOML/INI/XML/HTML *already index today* as plain
-text via the fallback. Pack 2's value for those is **structure-aware** extraction
-(CSV → rows/columns, HTML → text without markup). PPTX and RTF are genuinely
-unindexed today. This reservation sets direction; scope is decided when Pack 2 is
-specced.
+**Honest scoping note:** YAML/TOML/INI/XML/HTML *already index today* as plain
+text via the fallback; Pack 2's value for the structured ones (HTML → text
+without markup, XML → element text, ODS → sheets) is **structure-aware**
+extraction. PPTX, RTF, ODT, Outlook, and Visio are genuinely unindexed today —
+PPTX and RTF are the cheapest wins. CSV is **not** here: it ships in Pack 1.
+This reservation sets direction; scope is decided when Pack 2 is specced.
 
 ---
 

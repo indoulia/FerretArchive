@@ -30,6 +30,92 @@
 
 ---
 
+## Sprint Map & Parallel Execution
+
+The nine tasks group into a **foundation → fan-out → integration → benchmark →
+RC** shape. The foundation is a hard barrier; once it lands, the heavy parser
+work and the corpus/docs work are largely independent and run **concurrently as
+subagent workstreams**; then everything re-converges at integration.
+
+### Dependency graph
+
+```text
+            Phase 1: Foundation (SEQUENTIAL — blocks everything)
+              Task 1 Core primitives  +  Task 2 MimeTypeResolver
+                                   │
+        ┌──────────────┬───────────┼───────────┬──────────────┐
+        ▼              ▼           ▼           ▼              ▼
+   Phase 2: PARALLEL workstreams (independent; run as separate subagents)
+   [A] PDF        [B] Word     [C] Excel   [D] CSV        [E] Corpus     [F] Docs
+   Task 3         Task 4a      Task 4b     Task 2b        Task 7         (README/
+   Pdf pkg        WordParser   ExcelParser CsvParser      generator       manual)
+        └──────────────┴───────────┼───────────┴──────────────┘
+                                   ▼
+        Phase 3: Integration (SEQUENTIAL — single owner, merge point)
+          Task 5 ParserPackModule + CLI wiring · Task 6 doctor · Task 8 integration tests
+                                   │
+                                   ▼
+        Phase 4: Benchmarks (SEQUENTIAL — needs everything)
+          Task 9 throughput · large workbook · memory · report
+                                   │
+                                   ▼
+        Phase 5: RC (SEQUENTIAL) — package · validate · publish
+```
+
+### Phase → task → deliverable
+
+| Phase | Parallel? | Tasks | Deliverable |
+| ----- | --------- | ----- | ----------- |
+| **1 Foundation** | ❌ sequential | Task 1, Task 2 | Parser platform primitives + resolver ready; no behavior change |
+| **2 Fan-out** | ✅ parallel | Task 3 (PDF), Task 4 (Word+Excel), Task 2b (CSV), Task 7 (corpus), docs | Each parser unit+dispatch tested in isolation; corpus + docs progress |
+| **3 Integration** | ❌ sequential | Task 5, Task 6, Task 8 | `ParserPackModule` wired once; 7 parsers live via `ferret index`; e2e green |
+| **4 Benchmark** | ❌ sequential | Task 9 | Throughput / memory / search-latency baseline |
+| **5 RC** | ❌ sequential | (release runbook) | Packaged, validated release candidate |
+
+### Recommended subagent workstreams (Phase 2)
+
+Run in isolated git worktrees so parallel file writes don't collide:
+
+| Subagent | Scope | Touches |
+| -------- | ----- | ------- |
+| **PDF** | Task 3 | `src/Ferret.Parsers.Pdf/**`, its test project |
+| **Office** | Task 4 (Word + Excel) | `src/Ferret.Parsers.Office/**`, its test project |
+| **CSV** | Task 2b | `src/Ferret.ParserPlatform/Parsers/Csv*`, `ParserPlatformModule.cs` |
+| **Corpus** | Task 7 | `tests/Ferret.Benchmarks/Corpus/**` |
+| **Docs** | README/manual | docs only |
+
+Office **may** be split into two subagents (Word, Excel) for six streams if
+time/tokens allow — but they share `OfficeParserModule.cs` and the `.csproj`, so
+give those two files a **single owner** to merge, or let one agent scaffold the
+package/module first and the other add only its parser file.
+
+**Claude's role is integration architect:** spawn the Phase-2 subagents, review
+each branch, then personally own Phase 3 (composition + wiring + integration
+tests) where the streams merge.
+
+### Wiring is a single integration step (not per-parser)
+
+`ParserPackModule` (Task 5) references the Pdf and Office packages, so it only
+compiles once both exist — and more importantly, **CLI wiring must not be edited
+by the parallel parser streams** (three subagents editing `IndexCliModule.cs`
+would collide). Therefore:
+
+- Phase-2 parsers are verified **only** by their own unit + dispatch tests, not
+  by `ferret index`.
+- `IndexCliModule` is touched **once**, in Task 5, swapping
+  `ParserPlatformModule.ConfigureServices` for `ParserPackModule.ConfigureServices`.
+- CSV is the exception that needs no wiring at all — it registers through the
+  already-wired `ParserPlatformModule`, so `.csv`/`.tsv` are searchable as soon
+  as Task 2b merges.
+
+### Do NOT parallelize
+
+Foundation (Task 1/2), composition/wiring (Task 5), integration tests (Task 8),
+benchmarks (Task 9), and RC packaging are **merge points** — single-owner,
+sequential. Parallelism buys nothing there and invites conflicts.
+
+---
+
 ### Task 1: Content model + shared parser primitives (Ferret.Core)
 
 **Files:**
@@ -532,6 +618,276 @@ Expected: PASS.
 ```bash
 git add src/Ferret.ParserPlatform/MimeTypeResolver.cs tests/Ferret.ParserPlatform.Tests/MimeTypeResolverTests.cs
 git commit -m "feat(parsers): map PDF/DOCX/XLSX to parseable-binary media types, expand text and binary maps"
+```
+
+---
+
+### Task 2b: CsvParser (Ferret.ParserPlatform) — Sprint 1
+
+**Files:**
+- Create: `src/Ferret.ParserPlatform/Parsers/CsvParser.cs`
+- Create: `src/Ferret.ParserPlatform/Parsers/CsvRecordReader.cs`
+- Modify: `src/Ferret.ParserPlatform/ParserPlatformModule.cs` (register `CsvParser` + default `ParserOptions`)
+- Test: `tests/Ferret.ParserPlatform.Tests/Parsers/CsvParserTests.cs`
+
+**Interfaces:**
+- Consumes: `ParserOptions`, `ExtractionLimiter`, `DocumentMetadata` (Task 1); `IContentParser`, `ParserDescriptor`, `ParseContext`, `Document` (Ferret.Core).
+- Produces: `public sealed class CsvParser : IContentParser` (ctor takes `ParserOptions`; `CanParse` matches `text/csv` + `text/tab-separated-values`; priority 200); `internal static class CsvRecordReader`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```csharp
+// tests/Ferret.ParserPlatform.Tests/Parsers/CsvParserTests.cs
+using System.Text;
+
+using Ferret.Core.Connectors;
+using Ferret.Core.Documents;
+using Ferret.Core.Primitives;
+using Ferret.ParserPlatform.Parsers;
+
+namespace Ferret.ParserPlatform.Tests.Parsers;
+
+public sealed class CsvParserTests
+{
+    private static AssetDescriptor Asset(string mediaType) => new()
+    {
+        Id = AssetId.From(new Uri("filesystem:///export.csv")),
+        ConnectorId = new ConnectorId("filesystem"),
+        InstanceId = new ConnectorInstanceId("test"),
+        Kind = AssetKind.File,
+        CanonicalUri = new Uri("filesystem:///export.csv"),
+        DisplayName = "export.csv",
+        LastModified = DateTimeOffset.UtcNow,
+        MediaType = mediaType,
+    };
+
+    private static Stream MakeStream(string s) => new MemoryStream(Encoding.UTF8.GetBytes(s));
+
+    [Fact]
+    public void CanParse_Csv_And_Tsv_Only()
+    {
+        var parser = new CsvParser(new ParserOptions());
+        Assert.True(parser.CanParse("text/csv"));
+        Assert.True(parser.CanParse("text/tab-separated-values"));
+        Assert.False(parser.CanParse("text/plain"));
+    }
+
+    [Fact]
+    public void Priority_Is_200_To_Beat_PlainText()
+    {
+        Assert.Equal(200, new CsvParser(new ParserOptions()).Descriptor.Priority);
+    }
+
+    [Fact]
+    public async Task ParseAsync_Extracts_Header_And_Rows_As_Data()
+    {
+        var parser = new CsvParser(new ParserOptions());
+        using var stream = MakeStream("Key,Summary,Severity\nBUG-1,Login fails,High\n");
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("text/csv")));
+
+        Assert.Contains("Severity", doc.PlainText, StringComparison.Ordinal); // header
+        Assert.Contains("Login fails", doc.PlainText, StringComparison.Ordinal); // cell
+        Assert.Equal(DocumentKind.Data, doc.Kind);
+    }
+
+    [Fact]
+    public async Task ParseAsync_Handles_Quoted_Field_With_Embedded_Comma()
+    {
+        var parser = new CsvParser(new ParserOptions());
+        using var stream = MakeStream("Key,Summary\nBUG-2,\"Fails on login, then crashes\"\n");
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("text/csv")));
+
+        Assert.Contains("Fails on login, then crashes", doc.PlainText, StringComparison.Ordinal);
+    }
+}
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `dotnet test tests/Ferret.ParserPlatform.Tests --filter CsvParserTests`
+Expected: FAIL — `CsvParser` does not exist.
+
+- [ ] **Step 3: Implement the quote-aware record reader**
+
+```csharp
+// src/Ferret.ParserPlatform/Parsers/CsvRecordReader.cs
+using System.Text;
+
+namespace Ferret.ParserPlatform.Parsers;
+
+/// <summary>Minimal RFC-4180 reader: yields records of fields. Fields may be quoted with double
+/// quotes and contain the delimiter or newlines; a doubled quote ("") is an escaped quote.</summary>
+internal static class CsvRecordReader
+{
+    public static IEnumerable<IReadOnlyList<string>> ReadRecords(string text, char delimiter)
+    {
+        var field = new StringBuilder();
+        var record = new List<string>();
+        var inQuotes = false;
+        var pending = false; // true once any char/field seen on the current record
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            var c = text[i];
+
+            if (inQuotes)
+            {
+                if (c == '"')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '"') { field.Append('"'); i++; }
+                    else { inQuotes = false; }
+                }
+                else { field.Append(c); }
+
+                continue;
+            }
+
+            switch (c)
+            {
+                case '"': inQuotes = true; pending = true; break;
+                case '\r': break; // ignore; handled by \n
+                case var d when d == delimiter: record.Add(field.ToString()); field.Clear(); pending = true; break;
+                case '\n':
+                    record.Add(field.ToString()); field.Clear();
+                    yield return record;
+                    record = new List<string>(); pending = false; break;
+                default: field.Append(c); pending = true; break;
+            }
+        }
+
+        if (pending || field.Length > 0 || record.Count > 0)
+        {
+            record.Add(field.ToString());
+            yield return record;
+        }
+    }
+}
+```
+
+- [ ] **Step 4: Implement `CsvParser`**
+
+```csharp
+// src/Ferret.ParserPlatform/Parsers/CsvParser.cs
+using System.Text;
+
+using Ferret.Core.Documents;
+using Ferret.Core.Primitives;
+
+namespace Ferret.ParserPlatform.Parsers;
+
+/// <summary>
+/// Structure-aware parser for CSV and TSV (<c>text/csv</c>, <c>text/tab-separated-values</c>).
+/// Dependency-free; lives in the platform beside JSON/Markdown. Emits header + data rows so column
+/// tokens are searchable. Read-only; no chunking, embedding, or AI processing.
+/// </summary>
+public sealed class CsvParser : IContentParser
+{
+    private const string CsvMediaType = "text/csv";
+    private const string TsvMediaType = "text/tab-separated-values";
+
+    private static readonly ParserDescriptor CsvDescriptor = new()
+    {
+        Id = new ParserId("text/csv"),
+        Name = "CSV Parser",
+        Version = "1.0",
+        SupportedMediaTypes = [CsvMediaType, TsvMediaType],
+        Capabilities = [ParserCapabilities.PlainTextExtraction, ParserCapabilities.MetadataExtraction],
+        Priority = 200, // beats PlainTextParser (100) for text/csv and text/tab-separated-values
+    };
+
+    private readonly ParserOptions _options;
+
+    /// <summary>Initializes a new instance of the <see cref="CsvParser"/> class.</summary>
+    /// <param name="options">Host-configurable parser options (extraction limit).</param>
+    public CsvParser(ParserOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _options = options;
+    }
+
+    /// <inheritdoc/>
+    public ParserDescriptor Descriptor => CsvDescriptor;
+
+    /// <inheritdoc/>
+    public bool CanParse(string mediaType)
+    {
+        ArgumentNullException.ThrowIfNull(mediaType);
+        return mediaType.Equals(CsvMediaType, StringComparison.OrdinalIgnoreCase)
+            || mediaType.Equals(TsvMediaType, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask<Document> ParseAsync(Stream content, ParseContext context, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(context);
+
+        var mediaType = context.Asset.MediaType ?? CsvMediaType;
+        var delimiter = mediaType.Equals(TsvMediaType, StringComparison.OrdinalIgnoreCase) ? '\t' : ',';
+
+        using var reader = new StreamReader(content, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
+        var raw = await reader.ReadToEndAsync(ct).ConfigureAwait(false);
+
+        var sb = new StringBuilder();
+        foreach (var record in CsvRecordReader.ReadRecords(raw, delimiter))
+        {
+            ct.ThrowIfCancellationRequested();
+            var joined = string.Join('\t', record.Where(f => !string.IsNullOrEmpty(f)));
+            if (joined.Length > 0)
+            {
+                sb.AppendLine(joined);
+            }
+        }
+
+        var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit(sb.ToString().Trim(), _options);
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (truncated)
+        {
+            metadata[DocumentMetadata.Truncated] = "true";
+        }
+
+        return new Document
+        {
+            Id = DocumentId.From(context.Asset.Id),
+            SourceAssetId = context.Asset.Id,
+            ConnectorId = context.Asset.ConnectorId,
+            InstanceId = context.Asset.InstanceId,
+            MediaType = mediaType,
+            Kind = DocumentKind.Data,
+            PlainText = text,
+            ProducedAt = DateTimeOffset.UtcNow,
+            SourceFingerprint = context.Asset.Fingerprint,
+            Metadata = metadata,
+        };
+    }
+}
+```
+
+- [ ] **Step 5: Register `CsvParser` in `ParserPlatformModule`**
+
+In `src/Ferret.ParserPlatform/ParserPlatformModule.cs`, add the `using` and register the parser + a default `ParserOptions` (so `CsvParser`'s constructor resolves). Add alongside the existing built-in registrations:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection.Extensions; // for TryAddSingleton
+// ...
+services.TryAddSingleton(new ParserOptions()); // unlimited default; host may override before wiring
+services.AddSingleton<IContentParser, CsvParser>();
+```
+
+(The registry factory already aggregates via `GetServices<IContentParser>()`, so no registry change.)
+
+- [ ] **Step 6: Run tests to verify they pass**
+
+Run: `dotnet test tests/Ferret.ParserPlatform.Tests --filter CsvParserTests`
+Expected: PASS (4 tests). CSV/TSV are now searchable through the already-wired `ParserPlatformModule` — no CLI change needed for Sprint 1.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/Ferret.ParserPlatform/Parsers/CsvParser.cs src/Ferret.ParserPlatform/Parsers/CsvRecordReader.cs src/Ferret.ParserPlatform/ParserPlatformModule.cs tests/Ferret.ParserPlatform.Tests/Parsers/CsvParserTests.cs
+git commit -m "feat(parsers): add structure-aware CsvParser for CSV/TSV enterprise exports"
 ```
 
 ---
@@ -1627,14 +1983,14 @@ namespace Ferret.Parsers.Tests;
 public sealed class ParserPackModuleTests
 {
     [Fact]
-    public void Registers_All_Six_Parsers()
+    public void Registers_All_Seven_Parsers()
     {
         var services = new ServiceCollection();
         ParserPackModule.ConfigureServices(services);
         var provider = services.BuildServiceProvider();
 
         var parsers = provider.GetServices<IContentParser>().ToList();
-        Assert.Equal(6, parsers.Count); // PlainText, Markdown, Json, Pdf, Word, Excel
+        Assert.Equal(7, parsers.Count); // PlainText, Markdown, Json, Csv, Pdf, Word, Excel
     }
 
     [Fact]
@@ -1915,7 +2271,7 @@ Expected: PASS.
 - [ ] **Step 6: Manually verify the doctor output**
 
 Run: `dotnet run --project src/Ferret.Cli -- doctor`
-Expected: output includes a line naming the 6 installed parsers (Plain Text, Markdown, JSON, PDF, Word/DOCX, Excel/XLSX) and the supported-extension count.
+Expected: output includes a line naming the 7 installed parsers (Plain Text, Markdown, JSON, CSV, PDF, Word/DOCX, Excel/XLSX) and the supported-extension count.
 
 - [ ] **Step 7: Commit**
 
@@ -2688,7 +3044,7 @@ git commit -m "feat(bench): add deterministic synthetic enterprise corpus genera
 
 ---
 
-### Task 8: End-to-end integration test (index PDF + DOCX + XLSX, exclude opaque binaries)
+### Task 8: End-to-end integration test (index PDF + DOCX + XLSX + CSV, exclude opaque binaries)
 
 **Files:**
 - Modify: `tests/Ferret.Integration.Tests/Ferret.Integration.Tests.csproj` (reference `Ferret.Parsers`, `Ferret.Benchmarks`)
@@ -2740,7 +3096,11 @@ public sealed class ParserPackIndexingTests
         var dispatcher = provider.GetRequiredService<IParserDispatcher>();
         var resolver = (IMimeTypeResolver)new MimeTypeResolver();
 
-        // 4. Parse one PDF, one DOCX, and one XLSX directly through the dispatcher (full resolve path).
+        // Drop a CSV export into the tree (structure-aware CsvParser in the platform).
+        var csvPath = Path.Join(root, "Mixed", "jira-export.csv");
+        await File.WriteAllTextAsync(csvPath, "Key,Summary,Severity\nBUG-1,SSO login fails,High\n");
+
+        // 4. Parse one PDF, DOCX, XLSX, and CSV directly through the dispatcher (full resolve path).
         var pdfPath = Directory.GetFiles(Path.Join(root, "PDF"), "*.pdf").OrderBy(p => p).First();
         var docxPath = Directory.GetFiles(Path.Join(root, "Word"), "*.docx").OrderBy(p => p).First();
         var xlsxPath = Directory.GetFiles(Path.Join(root, "Excel"), "*.xlsx").OrderBy(p => p).First();
@@ -2748,6 +3108,7 @@ public sealed class ParserPackIndexingTests
         var pdfResult = await DispatchFile(dispatcher, resolver, pdfPath);
         var docxResult = await DispatchFile(dispatcher, resolver, docxPath);
         var xlsxResult = await DispatchFile(dispatcher, resolver, xlsxPath);
+        var csvResult = await DispatchFile(dispatcher, resolver, csvPath);
         var soResult = await DispatchFile(dispatcher, resolver, Path.Join(root, "SourceCode", "native.so"));
 
         Assert.Equal(ParseResultKind.Success, pdfResult.Kind);
@@ -2759,6 +3120,11 @@ public sealed class ParserPackIndexingTests
         Assert.Equal(ParseResultKind.Success, xlsxResult.Kind);
         Assert.Equal(DocumentKind.Data, xlsxResult.Value!.Kind);
         Assert.Contains("Priority", xlsxResult.Value!.PlainText, StringComparison.Ordinal);
+
+        // CSV: structure-aware, Data kind, cell value searchable (CsvParser beats PlainTextParser).
+        Assert.Equal(ParseResultKind.Success, csvResult.Kind);
+        Assert.Equal(DocumentKind.Data, csvResult.Value!.Kind);
+        Assert.Contains("SSO login fails", csvResult.Value!.PlainText, StringComparison.Ordinal);
 
         // Opaque binary: resolver yields application/octet-stream, dispatcher finds no parser.
         Assert.Equal(ParseResultKind.Unsupported, soResult.Kind);
@@ -2962,6 +3328,7 @@ git commit -m "feat(bench): add parser throughput benchmark and Enterprise Conte
 **Spec coverage:**
 - Expanded text/code/config MIME mappings + DocumentKind → Task 2 ✅
 - Expanded binary denylist → Task 2 ✅
+- **`CsvParser` (structure-aware CSV/TSV, in ParserPlatform, no new package)** → Task 2b ✅
 - `Ferret.Parsers.Pdf` (PdfPig) → Task 3 ✅
 - `Ferret.Parsers.Office` (**DOCX + XLSX**) → Task 4 ✅
 - Additive MimeTypeResolver / PDF+DOCX+**XLSX** dedicated media types (XLSX → `Data`) → Task 2 ✅
@@ -2970,18 +3337,20 @@ git commit -m "feat(bench): add parser throughput benchmark and Enterprise Conte
 - **Uniform extracted-text limit across PDF/Word/Excel** via shared `ExtractionLimiter` (default unlimited) → Task 1 (Steps 8–9) + Tasks 3/4 ✅
 - **`DocumentMetadata` key constants (no string drift)** → Task 1 (Step 7), used by all parsers ✅
 - **Reserved `ParserCapabilities.StructuredExtraction` (unused, future-proof)** → Task 1 (Step 10) ✅
-- `ParserPackModule` composition (6 parsers) → Task 5 ✅
-- Parser principle (text + metadata only, no calc/formula) → Global Constraints + Tasks 3/4 ✅
+- `ParserPackModule` composition (**7 parsers**) → Task 5 ✅
+- Parser principle (text + metadata only, no calc/formula) → Global Constraints + Tasks 2b/3/4 ✅
 - Lightweight metadata schema (via constants) → Tasks 3 (PDF) + 4 (DOCX/XLSX) ✅
 - `GetServices<IContentParser>()` aggregation (registry untouched) → Task 5 test ✅
 - **Dispatcher (public API) routing verified** → Task 5 (in-memory) + Task 8 (PDF/DOCX/XLSX files) ✅
-- `ferret doctor` parser introspection (6 parsers) → Task 6 ✅
+- `ferret doctor` parser introspection (**7 parsers**) → Task 6 ✅
 - Corpus generator with **`CorpusTable`** + **XLSX renderer** + **9 enterprise tabular archetypes** + **enterprise-like titles** → Task 7 ✅
+- **Metadata-search-ready schema; indexed-doc-count & parsing-telemetry reserved** → spec (doctor section) ✅
 - Unit tests → Tasks 1–7; end-to-end integration test incl. **XLSX cell search** → Task 8; performance report incl. **large-workbook XLSX + peak working set** → Task 9; docs → Task 9 ✅
-- Acceptance criteria (PDF/DOCX/XLSX searchable, Jira-export cell retrievable, opaque excluded, `Data` kind, config limit, 6 parsers) → Tasks 4/6/8 ✅
+- Acceptance criteria (PDF/DOCX/XLSX/CSV searchable, Jira-export cell retrievable, opaque excluded, `Data` kind, config limit, 7 parsers) → Tasks 4/6/8 ✅
+- **Sprint map + parallel subagent execution model** → Sprint Map section ✅
 - DocumentKind evolution / PowerPoint fast-follow → documented in spec; no code ✅
-- Reserved Enterprise Content Pack 2 (incl. PPTX) → spec only, no task ✅
+- Reserved Enterprise Content Pack 2 (PPTX/Outlook/Visio/RTF/ODT/ODS/HTML/XML) → spec only, no task ✅
 
 **Placeholder scan:** No "TBD"/"handle edge cases" left; failure handling is concrete (throw → dispatcher `Failed`; empty text → `Empty`). Package versions are **pinned** (PdfPig 0.1.9, OpenXml 3.1.0) — no "verify latest" hedges. The one genuinely environment-dependent item (OOXML byte-determinism for `.docx`/`.xlsx`) carries an explicit fallback (compare extracted text).
 
-**Type consistency:** `MediaCategory`, `DocumentMetadata`, `ParserOptions`, `ExtractionLimiter` (all Task 1) consumed identically across Tasks 2/3/4/6. All three heavyweight parsers take `ParserOptions` and call `ExtractionLimiter.ApplyCharacterLimit`; `PdfParserModule` and `OfficeParserModule` each `TryAddSingleton(new ParserOptions())`. `OfficeMediaTypes.Docx`/`.Xlsx` (Task 4) reused in Task 5 test. `CorpusDocument(Title, Blocks, Tables)` and `CorpusTable(Headers, Rows)` (Task 7) consumed by `DocxRenderer`/`XlsxRenderer`/`EnterpriseArchetypes`/generator consistently. `SyntheticEnterpriseCorpusGenerator(int seed).Generate(CorpusSize, string)` consistent across Tasks 7/8/9. `TestAsset.For(path, mediaType)` referenced in Tasks 8/9 (define once per consuming project).
+**Type consistency:** `MediaCategory`, `DocumentMetadata`, `ParserOptions`, `ExtractionLimiter` (all Task 1) consumed identically across Tasks 2/2b/3/4/6. All four heavyweight/structured parsers (Csv, Pdf, Word, Excel) take `ParserOptions` and call `ExtractionLimiter.ApplyCharacterLimit`; `ParserPlatformModule` (Csv), `PdfParserModule`, and `OfficeParserModule` each `TryAddSingleton(new ParserOptions())` (idempotent — `TryAdd` means the first registration wins, so composing them in `ParserPackModule` is safe). `OfficeMediaTypes.Docx`/`.Xlsx` (Task 4) reused in Task 5 test. `CorpusDocument(Title, Blocks, Tables)` and `CorpusTable(Headers, Rows)` (Task 7) consumed by `DocxRenderer`/`XlsxRenderer`/`EnterpriseArchetypes`/generator consistently. `SyntheticEnterpriseCorpusGenerator(int seed).Generate(CorpusSize, string)` consistent across Tasks 7/8/9. `TestAsset.For(path, mediaType)` referenced in Tasks 8/9 (define once per consuming project).
