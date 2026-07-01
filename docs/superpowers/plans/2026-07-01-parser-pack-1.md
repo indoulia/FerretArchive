@@ -19,7 +19,8 @@
 - **Parsers MUST be `sealed`.** `CanParse` is pure: no I/O, never throws, deterministic for a given input.
 - **Parser responsibility (hard rule):** extract text + lightweight metadata from the stream only. NO chunking, tokenization, embedding, summarization, AI processing, **spreadsheet calculation, or formula evaluation**. The Excel parser extracts cached cell values — it never recomputes.
 - **Excel reads streaming:** `ExcelParser` uses the OpenXml **`OpenXmlReader` (SAX)** for worksheets, not the DOM — enterprise exports can be 100k+ rows. Word stays DOM.
-- **Extracted-text limit:** a `ParserOptions.MaxExtractedCharacters` (default `null` = unlimited) bounds extraction volume; when set and exceeded, the parser truncates `PlainText`, sets `Metadata["Truncated"]="true"`, and logs. Default is unlimited (no behavior change).
+- **Extracted-text limit (uniform across PDF/Word/Excel):** all three heavyweight parsers take `ParserOptions` and apply the **shared** `ExtractionLimiter.ApplyCharacterLimit` (default `null` = unlimited). When exceeded, the parser truncates `PlainText` and sets `Metadata[DocumentMetadata.Truncated]="true"` (observable, never silent). No per-parser truncation logic; no logging dependency.
+- **Metadata keys are `DocumentMetadata.*` constants**, never raw strings, to prevent key drift across parsers.
 - **Stream ownership:** parsers MUST NOT dispose or close the content stream (use `leaveOpen: true` on any reader).
 - **Failure signaling:** a parser signals failure by **throwing** with a clear message — `ParserDispatcher` catches all non-cancellation exceptions and converts to `ParseResult<Document>.Failed(ex.Message)`. Empty/whitespace `PlainText` becomes `Empty`. `OperationCanceledException` must propagate.
 - **Parser package isolation:** `Ferret.Parsers.Pdf` and `Ferret.Parsers.Office` must NOT reference each other, and `Ferret.ParserPlatform` must NOT reference either (no heavyweight deps in the platform).
@@ -29,15 +30,24 @@
 
 ---
 
-### Task 1: MediaCategory content model (Ferret.Core)
+### Task 1: Content model + shared parser primitives (Ferret.Core)
 
 **Files:**
 - Create: `src/Ferret.Core/Documents/MediaCategory.cs`
 - Modify: `src/Ferret.Core/Documents/MediaTypeInfo.cs`
+- Create: `src/Ferret.Core/Documents/DocumentMetadata.cs` (metadata key constants)
+- Create: `src/Ferret.Core/Documents/ParserOptions.cs` (configurable extraction limit)
+- Create: `src/Ferret.Core/Documents/ExtractionLimiter.cs` (shared truncation helper)
+- Modify: `src/Ferret.Core/Documents/ParserCapabilities.cs` (reserve `StructuredExtraction`)
 - Test: `tests/Ferret.Core.Tests/Documents/MediaTypeInfoTests.cs`
+- Test: `tests/Ferret.Core.Tests/Documents/ExtractionLimiterTests.cs`
 
 **Interfaces:**
-- Produces: `enum MediaCategory { Text, BinaryParseable, BinaryOpaque }`; `MediaTypeInfo.Category` (required init); computed `IsText`/`IsBinary` derived from `Category`.
+- Produces: `enum MediaCategory { Text, BinaryParseable, BinaryOpaque }`; `MediaTypeInfo.Category` (required init); computed `IsText`/`IsBinary`.
+- Produces: `static class DocumentMetadata { const string Author, Subject, Keywords, PageCount, SheetCount, Created, Modified, Category, Truncated; }`.
+- Produces: `sealed record ParserOptions { long? MaxExtractedCharacters { get; init; } }`.
+- Produces: `static class ExtractionLimiter { (string Text, bool Truncated) ApplyCharacterLimit(string text, ParserOptions options); }` — the single truncation implementation shared by PDF/Word/Excel.
+- Produces: `ParserCapabilities.StructuredExtraction` (reserved, unused this milestone).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -157,11 +167,150 @@ Expected: PASS (4 tests).
 Run: `dotnet build src/Ferret.sln`
 Expected: build succeeds. If any code set `IsText`/`IsBinary` directly, it will now fail to compile — fix by setting `Category` instead. (Known setters live only in `MimeTypeResolver.cs`, addressed in Task 2; if the build fails there, continue to Task 2 before committing.)
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Add `DocumentMetadata` key constants**
+
+```csharp
+// src/Ferret.Core/Documents/DocumentMetadata.cs
+namespace Ferret.Core.Documents;
+
+/// <summary>Canonical keys for <see cref="Document.Metadata"/>. Parsers MUST use these constants
+/// (never raw strings) so keys never drift (PageCount vs Pagecount vs "Page Count") across parsers.</summary>
+public static class DocumentMetadata
+{
+    /// <summary>Document author / creator.</summary>
+    public const string Author = "Author";
+
+    /// <summary>Document subject.</summary>
+    public const string Subject = "Subject";
+
+    /// <summary>Document keywords.</summary>
+    public const string Keywords = "Keywords";
+
+    /// <summary>Page count (PDF).</summary>
+    public const string PageCount = "PageCount";
+
+    /// <summary>Worksheet count (XLSX).</summary>
+    public const string SheetCount = "SheetCount";
+
+    /// <summary>Creation timestamp (ISO-8601).</summary>
+    public const string Created = "Created";
+
+    /// <summary>Last-modified timestamp (ISO-8601).</summary>
+    public const string Modified = "Modified";
+
+    /// <summary>Document category.</summary>
+    public const string Category = "Category";
+
+    /// <summary>Set to "true" when extracted text was truncated by the configured limit.</summary>
+    public const string Truncated = "Truncated";
+}
+```
+
+- [ ] **Step 8: Add `ParserOptions`**
+
+```csharp
+// src/Ferret.Core/Documents/ParserOptions.cs
+namespace Ferret.Core.Documents;
+
+/// <summary>Host-configurable options for content parsers.</summary>
+public sealed record ParserOptions
+{
+    /// <summary>Maximum characters of extracted text to keep per document.
+    /// Null (default) means unlimited — documents index completely unless an administrator caps them.</summary>
+    public long? MaxExtractedCharacters { get; init; }
+}
+```
+
+- [ ] **Step 9: Write the failing `ExtractionLimiter` test, then implement it**
+
+```csharp
+// tests/Ferret.Core.Tests/Documents/ExtractionLimiterTests.cs
+using Ferret.Core.Documents;
+
+namespace Ferret.Core.Tests.Documents;
+
+public sealed class ExtractionLimiterTests
+{
+    [Fact]
+    public void Unlimited_By_Default_Returns_Text_Unchanged()
+    {
+        var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit("hello world", new ParserOptions());
+        Assert.Equal("hello world", text);
+        Assert.False(truncated);
+    }
+
+    [Fact]
+    public void Truncates_When_Over_Limit()
+    {
+        var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit("hello world", new ParserOptions { MaxExtractedCharacters = 5 });
+        Assert.Equal("hello", text);
+        Assert.True(truncated);
+    }
+
+    [Fact]
+    public void No_Truncation_When_Under_Limit()
+    {
+        var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit("hi", new ParserOptions { MaxExtractedCharacters = 5 });
+        Assert.Equal("hi", text);
+        Assert.False(truncated);
+    }
+}
+```
+
+Run: `dotnet test tests/Ferret.Core.Tests --filter ExtractionLimiterTests` → FAIL, then implement:
+
+```csharp
+// src/Ferret.Core/Documents/ExtractionLimiter.cs
+namespace Ferret.Core.Documents;
+
+/// <summary>The single shared implementation of the configurable extracted-text limit.
+/// Every heavyweight parser (PDF, Word, Excel) calls this — no per-parser truncation logic.</summary>
+public static class ExtractionLimiter
+{
+    /// <summary>Applies <see cref="ParserOptions.MaxExtractedCharacters"/> to <paramref name="text"/>.</summary>
+    /// <param name="text">The extracted text.</param>
+    /// <param name="options">Parser options carrying the optional limit.</param>
+    /// <returns>The (possibly truncated) text and whether truncation occurred.</returns>
+    public static (string Text, bool Truncated) ApplyCharacterLimit(string text, ParserOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.MaxExtractedCharacters is long max && text.Length > max)
+        {
+            return (text[..(int)max], true);
+        }
+
+        return (text, false);
+    }
+}
+```
+
+Run again → PASS.
+
+- [ ] **Step 10: Reserve the `StructuredExtraction` capability**
+
+In `src/Ferret.Core/Documents/ParserCapabilities.cs`, add a new capability alongside the existing ones (leave `All` and existing members intact):
+
+```csharp
+/// <summary>Reserved: parser produces richer structured extraction (tables, slides, mail parts).
+/// Unused this milestone — declared so future parsers (OCR, PowerPoint, Outlook) can advertise it
+/// without a contract change.</summary>
+public static readonly ParserCapability StructuredExtraction =
+    new(
+        "structured-extraction",
+        "Structured Extraction",
+        "1.0",
+        "Extracts structured content (tables, slides, message parts) beyond flat text.");
+```
+
+(Do not add it to any parser's `Capabilities` list this milestone — it is a reserved extension point only.)
+
+- [ ] **Step 11: Commit**
 
 ```bash
-git add src/Ferret.Core/Documents/MediaCategory.cs src/Ferret.Core/Documents/MediaTypeInfo.cs tests/Ferret.Core.Tests/Documents/MediaTypeInfoTests.cs
-git commit -m "feat(core): add MediaCategory and derive MediaTypeInfo flags from it"
+git add src/Ferret.Core/Documents/MediaCategory.cs src/Ferret.Core/Documents/MediaTypeInfo.cs src/Ferret.Core/Documents/DocumentMetadata.cs src/Ferret.Core/Documents/ParserOptions.cs src/Ferret.Core/Documents/ExtractionLimiter.cs src/Ferret.Core/Documents/ParserCapabilities.cs tests/Ferret.Core.Tests/Documents/MediaTypeInfoTests.cs tests/Ferret.Core.Tests/Documents/ExtractionLimiterTests.cs
+git commit -m "feat(core): add MediaCategory, DocumentMetadata, ParserOptions, ExtractionLimiter, reserved StructuredExtraction"
 ```
 
 ---
@@ -411,7 +560,9 @@ In `Directory.Packages.props`, add a new `ItemGroup`:
 </ItemGroup>
 ```
 
-(Verify `0.1.9` is the latest stable at implementation time; bump if newer.)
+Version **pinned** to `0.1.9`. Bumping it later is a separate maintenance task, not part of this implementation.
+
+- [ ] **Interfaces update:** `PdfParser`'s constructor takes `ParserOptions` (Task 1); `PdfParserModule` registers a default `ParserOptions` via `TryAddSingleton` and the parser.
 
 - [ ] **Step 2: Create the project file**
 
@@ -482,7 +633,7 @@ public sealed class PdfParserTests
     [Fact]
     public void CanParse_True_For_ApplicationPdf_Only()
     {
-        var parser = new PdfParser();
+        var parser = new PdfParser(new ParserOptions());
         Assert.True(parser.CanParse("application/pdf"));
         Assert.False(parser.CanParse("text/plain"));
         Assert.False(parser.CanParse("application/octet-stream"));
@@ -491,7 +642,7 @@ public sealed class PdfParserTests
     [Fact]
     public async Task ParseAsync_Extracts_Text()
     {
-        var parser = new PdfParser();
+        var parser = new PdfParser(new ParserOptions());
         using var stream = MakePdf("Hello enterprise document");
 
         var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("a.pdf")));
@@ -504,18 +655,18 @@ public sealed class PdfParserTests
     [Fact]
     public async Task ParseAsync_Sets_PageCount_Metadata()
     {
-        var parser = new PdfParser();
+        var parser = new PdfParser(new ParserOptions());
         using var stream = MakePdf("page one text");
 
         var doc = await parser.ParseAsync(stream, ParseContext.For(Asset("a.pdf")));
 
-        Assert.Equal("1", doc.Metadata["PageCount"]);
+        Assert.Equal("1", doc.Metadata[DocumentMetadata.PageCount]);
     }
 
     [Fact]
     public async Task ParseAsync_Does_Not_Dispose_Stream()
     {
-        var parser = new PdfParser();
+        var parser = new PdfParser(new ParserOptions());
         using var stream = MakePdf("x");
 
         await parser.ParseAsync(stream, ParseContext.For(Asset("a.pdf")));
@@ -592,6 +743,16 @@ public sealed class PdfParser : IContentParser
         Priority = 200,
     };
 
+    private readonly ParserOptions _options;
+
+    /// <summary>Initializes a new instance of the <see cref="PdfParser"/> class.</summary>
+    /// <param name="options">Host-configurable parser options (extraction limit).</param>
+    public PdfParser(ParserOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _options = options;
+    }
+
     /// <inheritdoc/>
     public ParserDescriptor Descriptor => PdfDescriptor;
 
@@ -618,7 +779,8 @@ public sealed class PdfParser : IContentParser
             sb.AppendLine(page.Text);
         }
 
-        var metadata = BuildMetadata(pdf);
+        var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit(sb.ToString().Trim(), _options);
+        var metadata = BuildMetadata(pdf, truncated);
 
         var document = new Document
         {
@@ -628,7 +790,7 @@ public sealed class PdfParser : IContentParser
             InstanceId = context.Asset.InstanceId,
             MediaType = PdfMediaType,
             Kind = DocumentKind.Prose,
-            PlainText = sb.ToString().Trim(),
+            PlainText = text,
             Title = string.IsNullOrWhiteSpace(pdf.Information.Title) ? null : pdf.Information.Title,
             ProducedAt = DateTimeOffset.UtcNow,
             SourceFingerprint = context.Asset.Fingerprint,
@@ -638,18 +800,23 @@ public sealed class PdfParser : IContentParser
         return ValueTask.FromResult(document);
     }
 
-    private static IReadOnlyDictionary<string, string> BuildMetadata(PdfDocument pdf)
+    private static IReadOnlyDictionary<string, string> BuildMetadata(PdfDocument pdf, bool truncated)
     {
         var map = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["PageCount"] = pdf.NumberOfPages.ToString(CultureInfo.InvariantCulture),
+            [DocumentMetadata.PageCount] = pdf.NumberOfPages.ToString(CultureInfo.InvariantCulture),
         };
 
-        Add(map, "Author", pdf.Information.Author);
-        Add(map, "Subject", pdf.Information.Subject);
-        Add(map, "Keywords", pdf.Information.Keywords);
-        Add(map, "Created", pdf.Information.CreationDate);
-        Add(map, "Modified", pdf.Information.ModifiedDate);
+        if (truncated)
+        {
+            map[DocumentMetadata.Truncated] = "true";
+        }
+
+        Add(map, DocumentMetadata.Author, pdf.Information.Author);
+        Add(map, DocumentMetadata.Subject, pdf.Information.Subject);
+        Add(map, DocumentMetadata.Keywords, pdf.Information.Keywords);
+        Add(map, DocumentMetadata.Created, pdf.Information.CreationDate);
+        Add(map, DocumentMetadata.Modified, pdf.Information.ModifiedDate);
         return map;
     }
 
@@ -672,6 +839,7 @@ public sealed class PdfParser : IContentParser
 using Ferret.Core.Documents;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Ferret.Parsers.Pdf;
 
@@ -683,6 +851,7 @@ public static class PdfParserModule
     public static void ConfigureServices(IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        services.TryAddSingleton(new ParserOptions()); // unlimited default unless a host configured one
         services.AddSingleton<IContentParser, PdfParser>();
     }
 }
@@ -706,7 +875,6 @@ git commit -m "feat(parsers): add Ferret.Parsers.Pdf with PdfPig-based PdfParser
 
 **Files:**
 - Modify: `Directory.Packages.props` (add `DocumentFormat.OpenXml`)
-- Create: `src/Ferret.Core/Documents/ParserOptions.cs` (configurable extraction limit)
 - Create: `src/Ferret.Parsers.Office/Ferret.Parsers.Office.csproj`
 - Create: `src/Ferret.Parsers.Office/OfficeMediaTypes.cs`
 - Create: `src/Ferret.Parsers.Office/WordParser.cs`
@@ -717,9 +885,10 @@ git commit -m "feat(parsers): add Ferret.Parsers.Pdf with PdfPig-based PdfParser
 - Create: `tests/Ferret.Parsers.Office.Tests/ExcelParserTests.cs`
 
 **Interfaces:**
-- Produces: `public static class OfficeMediaTypes { public const string Docx = "..."; public const string Xlsx = "..."; }`; `public sealed class WordParser : IContentParser`; `public sealed class ExcelParser : IContentParser` (ctor takes `ParserOptions`); `public sealed record ParserOptions { long? MaxExtractedCharacters { get; init; } }` (Ferret.Core); `public static class OfficeParserModule { static void ConfigureServices(IServiceCollection); }` — registers **both** Word and Excel.
+- Consumes: `ParserOptions`, `ExtractionLimiter`, `DocumentMetadata` (all from Task 1).
+- Produces: `public static class OfficeMediaTypes { public const string Docx = "..."; public const string Xlsx = "..."; }`; `public sealed class WordParser : IContentParser` (ctor takes `ParserOptions`); `public sealed class ExcelParser : IContentParser` (ctor takes `ParserOptions`); `public static class OfficeParserModule { static void ConfigureServices(IServiceCollection); }` — registers **both** Word and Excel, both honoring the extraction limit.
 
-> Word steps (1–7) are unchanged from the DOCX-only design; the Excel additions follow as Steps E1–E4, then solution-add and commit cover both parsers.
+> Word steps (1–7) are unchanged from the DOCX-only design except that `WordParser` now takes `ParserOptions` and applies the shared `ExtractionLimiter`; the Excel additions follow as Steps E1–E4, then solution-add and commit cover both parsers.
 
 - [ ] **Step 1: Add the package version**
 
@@ -731,7 +900,7 @@ In `Directory.Packages.props`:
 </ItemGroup>
 ```
 
-(Verify latest stable 3.x at implementation time.)
+Version **pinned** to `3.1.0`. Bumping it later is a separate maintenance task.
 
 - [ ] **Step 2: Create the project file**
 
@@ -803,7 +972,7 @@ public sealed class WordParserTests
     [Fact]
     public void CanParse_True_For_Docx_Only()
     {
-        var parser = new WordParser();
+        var parser = new WordParser(new ParserOptions());
         Assert.True(parser.CanParse(OfficeMediaTypes.Docx));
         Assert.False(parser.CanParse("application/pdf"));
         Assert.False(parser.CanParse("application/msword")); // legacy .doc unsupported
@@ -812,7 +981,7 @@ public sealed class WordParserTests
     [Fact]
     public async Task ParseAsync_Extracts_Paragraph_And_Table_Text()
     {
-        var parser = new WordParser();
+        var parser = new WordParser(new ParserOptions());
         using var stream = MakeDocx("Quarterly objectives", "Revenue target");
 
         var doc = await parser.ParseAsync(stream, ParseContext.For(Asset()));
@@ -905,6 +1074,16 @@ public sealed class WordParser : IContentParser
         Priority = 200,
     };
 
+    private readonly ParserOptions _options;
+
+    /// <summary>Initializes a new instance of the <see cref="WordParser"/> class.</summary>
+    /// <param name="options">Host-configurable parser options (extraction limit).</param>
+    public WordParser(ParserOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _options = options;
+    }
+
     /// <inheritdoc/>
     public ParserDescriptor Descriptor => WordDescriptor;
 
@@ -942,7 +1121,8 @@ public sealed class WordParser : IContentParser
             }
         }
 
-        var metadata = BuildMetadata(word);
+        var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit(sb.ToString().Trim(), _options);
+        var metadata = BuildMetadata(word, truncated);
         var props = word.PackageProperties;
 
         var document = new Document
@@ -953,7 +1133,7 @@ public sealed class WordParser : IContentParser
             InstanceId = context.Asset.InstanceId,
             MediaType = OfficeMediaTypes.Docx,
             Kind = DocumentKind.Prose,
-            PlainText = sb.ToString().Trim(),
+            PlainText = text,
             Title = string.IsNullOrWhiteSpace(props.Title) ? null : props.Title,
             ProducedAt = DateTimeOffset.UtcNow,
             SourceFingerprint = context.Asset.Fingerprint,
@@ -978,16 +1158,21 @@ public sealed class WordParser : IContentParser
         }
     }
 
-    private static IReadOnlyDictionary<string, string> BuildMetadata(WordprocessingDocument word)
+    private static IReadOnlyDictionary<string, string> BuildMetadata(WordprocessingDocument word, bool truncated)
     {
         var props = word.PackageProperties;
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
-        Add(map, "Author", props.Creator);
-        Add(map, "Subject", props.Subject);
-        Add(map, "Keywords", props.Keywords);
-        Add(map, "Category", props.Category);
-        Add(map, "Created", props.Created?.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
-        Add(map, "Modified", props.Modified?.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+        if (truncated)
+        {
+            map[DocumentMetadata.Truncated] = "true";
+        }
+
+        Add(map, DocumentMetadata.Author, props.Creator);
+        Add(map, DocumentMetadata.Subject, props.Subject);
+        Add(map, DocumentMetadata.Keywords, props.Keywords);
+        Add(map, DocumentMetadata.Category, props.Category);
+        Add(map, DocumentMetadata.Created, props.Created?.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+        Add(map, DocumentMetadata.Modified, props.Modified?.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
         return map;
     }
 
@@ -1032,24 +1217,11 @@ public static class OfficeParserModule
 }
 ```
 
-> `WordParser` is parameterless; `ExcelParser` takes `ParserOptions` via DI. `TryAddSingleton(new ParserOptions())` supplies an unlimited default; a host that binds `Ferret:Parsers:MaxExtractedCharacters` from config registers its own `ParserOptions` **before** calling `ParserPackModule`, and `TryAdd` leaves it intact.
+> Both `WordParser` and `ExcelParser` take `ParserOptions` via DI. `TryAddSingleton(new ParserOptions())` supplies an unlimited default; a host that binds `Ferret:Parsers:MaxExtractedCharacters` from config registers its own `ParserOptions` **before** calling `ParserPackModule`, and `TryAdd` leaves it intact. (`PdfParserModule` registers the same default, so the option is uniform across all three parsers.)
 
 #### Excel (XLSX) additions
 
-- [ ] **Step E1: Add `ParserOptions` to Ferret.Core**
-
-```csharp
-// src/Ferret.Core/Documents/ParserOptions.cs
-namespace Ferret.Core.Documents;
-
-/// <summary>Host-configurable options for content parsers.</summary>
-public sealed record ParserOptions
-{
-    /// <summary>Maximum characters of extracted text to keep per document.
-    /// Null (default) means unlimited — large workbooks index completely unless an administrator caps them.</summary>
-    public long? MaxExtractedCharacters { get; init; }
-}
-```
+> `ParserOptions`, `ExtractionLimiter`, and `DocumentMetadata` were already added to `Ferret.Core` in Task 1 — Excel consumes them directly.
 
 - [ ] **Step E2: Write the failing Excel tests**
 
@@ -1155,7 +1327,7 @@ public sealed class ExcelParserTests
         Assert.Contains("Login fails on SSO", doc.PlainText, StringComparison.Ordinal); // cell value
         Assert.Equal(DocumentKind.Data, doc.Kind);
         Assert.Equal(OfficeMediaTypes.Xlsx, doc.MediaType);
-        Assert.Equal("1", doc.Metadata["SheetCount"]);
+        Assert.Equal("1", doc.Metadata[DocumentMetadata.SheetCount]);
     }
 
     [Fact]
@@ -1167,7 +1339,7 @@ public sealed class ExcelParserTests
         var doc = await parser.ParseAsync(stream, ParseContext.For(Asset()));
 
         Assert.True(doc.PlainText.Length <= 5);
-        Assert.Equal("true", doc.Metadata["Truncated"]);
+        Assert.Equal("true", doc.Metadata[DocumentMetadata.Truncated]);
     }
 }
 ```
@@ -1298,7 +1470,7 @@ public sealed class ExcelParser : IContentParser
             }
         }
 
-        var (text, truncated) = ApplyLimit(sb.ToString().Trim(), limit);
+        var (text, truncated) = ExtractionLimiter.ApplyCharacterLimit(sb.ToString().Trim(), _options);
         var metadata = BuildMetadata(spreadsheet, sheetCount, truncated);
 
         var document = new Document
@@ -1319,18 +1491,11 @@ public sealed class ExcelParser : IContentParser
         return ValueTask.FromResult(document);
     }
 
-    private static (string Text, bool Truncated) ApplyLimit(string text, long? limit)
-    {
-        if (limit is long max && text.Length > max)
-        {
-            return (text[..(int)max], true);
-        }
-
-        return (text, false);
-    }
-
     private static string ResolveCell(Cell cell, string[] shared)
     {
+        // Read the cell's stored/cached value only. A formula cell (CellFormula) exposes its cached
+        // result in CellValue; we index that. We never read CellFormula, so the formula expression
+        // (e.g. "=SUM(A1:A50)") is never emitted. If the cache is absent, the value is empty and skipped.
         var raw = cell.CellValue?.InnerText;
         if (string.IsNullOrEmpty(raw))
         {
@@ -1345,7 +1510,7 @@ public sealed class ExcelParser : IContentParser
                 : string.Empty;
         }
 
-        // Number, boolean, or cached formula value — emitted as stored (no recomputation).
+        // Number, boolean, or cached formula result — emitted as stored (no recomputation).
         return raw;
     }
 
@@ -1363,18 +1528,18 @@ public sealed class ExcelParser : IContentParser
         var props = spreadsheet.PackageProperties;
         var map = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["SheetCount"] = sheetCount.ToString(CultureInfo.InvariantCulture),
+            [DocumentMetadata.SheetCount] = sheetCount.ToString(CultureInfo.InvariantCulture),
         };
 
         if (truncated)
         {
-            map["Truncated"] = "true";
+            map[DocumentMetadata.Truncated] = "true";
         }
 
-        Add(map, "Author", props.Creator);
-        Add(map, "Category", props.Category);
-        Add(map, "Created", props.Created?.ToString("o", CultureInfo.InvariantCulture));
-        Add(map, "Modified", props.Modified?.ToString("o", CultureInfo.InvariantCulture));
+        Add(map, DocumentMetadata.Author, props.Creator);
+        Add(map, DocumentMetadata.Category, props.Category);
+        Add(map, DocumentMetadata.Created, props.Created?.ToString("o", CultureInfo.InvariantCulture));
+        Add(map, DocumentMetadata.Modified, props.Modified?.ToString("o", CultureInfo.InvariantCulture));
         return map;
     }
 
@@ -1403,7 +1568,7 @@ Expected: PASS (Word: 2 tests, Excel: 3 tests).
 - [ ] **Step 9: Commit**
 
 ```bash
-git add Directory.Packages.props src/Ferret.Core/Documents/ParserOptions.cs src/Ferret.Parsers.Office tests/Ferret.Parsers.Office.Tests src/Ferret.sln
+git add Directory.Packages.props src/Ferret.Parsers.Office tests/Ferret.Parsers.Office.Tests src/Ferret.sln
 git commit -m "feat(parsers): add Office package with Word (docx) and Excel (xlsx) parsers"
 ```
 
@@ -1448,7 +1613,11 @@ git commit -m "feat(parsers): add Office package with Word (docx) and Excel (xls
 
 ```csharp
 // tests/Ferret.Parsers.Tests/ParserPackModuleTests.cs
+using System.Text;
+
+using Ferret.Core.Connectors;
 using Ferret.Core.Documents;
+using Ferret.Core.Primitives;
 using Ferret.Parsers;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -1458,7 +1627,7 @@ namespace Ferret.Parsers.Tests;
 public sealed class ParserPackModuleTests
 {
     [Fact]
-    public void Registers_All_Six_Parsers_And_Resolves_Pdf_Docx_Xlsx()
+    public void Registers_All_Six_Parsers()
     {
         var services = new ServiceCollection();
         ParserPackModule.ConfigureServices(services);
@@ -1466,15 +1635,38 @@ public sealed class ParserPackModuleTests
 
         var parsers = provider.GetServices<IContentParser>().ToList();
         Assert.Equal(6, parsers.Count); // PlainText, Markdown, Json, Pdf, Word, Excel
+    }
 
-        var registry = provider.GetRequiredService<IParserRegistry>();
-        Assert.NotNull(registry.GetParserFor("application/pdf"));
-        Assert.NotNull(registry.GetParserFor("application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
-        Assert.NotNull(registry.GetParserFor("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        Assert.NotNull(registry.GetParserFor("text/x-csharp")); // built-in plain text still works
+    [Fact]
+    public async Task Dispatcher_Routes_A_Stream_To_The_Correct_Parser()
+    {
+        // The dispatcher is the public API; the registry is an implementation detail.
+        var services = new ServiceCollection();
+        ParserPackModule.ConfigureServices(services);
+        var dispatcher = services.BuildServiceProvider().GetRequiredService<IParserDispatcher>();
+
+        var asset = new AssetDescriptor
+        {
+            Id = AssetId.From(new Uri("filesystem:///Greeter.cs")),
+            ConnectorId = new ConnectorId("filesystem"),
+            InstanceId = new ConnectorInstanceId("test"),
+            Kind = AssetKind.File,
+            CanonicalUri = new Uri("filesystem:///Greeter.cs"),
+            DisplayName = "Greeter.cs",
+            LastModified = DateTimeOffset.UtcNow,
+            MediaType = "text/x-csharp",
+        };
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("public class Greeter { }"));
+
+        var result = await dispatcher.DispatchAsync(stream, asset);
+
+        Assert.Equal(ParseResultKind.Success, result.Kind);
+        Assert.Contains("Greeter", result.Value!.PlainText, StringComparison.Ordinal);
     }
 }
 ```
+
+> PDF/DOCX/XLSX dispatch-routing (the same public API with real binary files) is asserted end-to-end in Task 8. This test covers the composed dispatcher wiring cheaply with an in-memory text stream.
 
 - [ ] **Step 3: Run test to verify it fails**
 
@@ -2275,6 +2467,21 @@ public static class EnterpriseArchetypes
             Doc("Risk Register",
                 ["Risk", "Likelihood", "Impact", "Mitigation", "Owner"],
                 rng, 25, i => [$"RISK-{i:D3}: {Phrase(rng)}", Pick(rng, "Low", "Medium", "High"), Pick(rng, "Low", "Medium", "High"), Phrase(rng), Pick(rng, "Alice", "Bob")]),
+            Doc("Test Execution Report",
+                ["Test", "Result", "Duration", "Build", "Tester"],
+                rng, 25, i => [$"TC-{i:D3}", Pick(rng, "Pass", "Fail", "Skipped"), $"{rng.Next(1, 900)}ms", $"build-{rng.Next(100, 999)}", Pick(rng, "Alice", "Bob")]),
+            Doc("Release Checklist",
+                ["Item", "Owner", "Status", "Due", "Notes"],
+                rng, 25, i => [$"Item {i}: {Phrase(rng)}", Pick(rng, "Alice", "Bob", "Chandra"), Pick(rng, "Pending", "Done", "Blocked"), "2026-02-01", Phrase(rng)]),
+            Doc("Deployment Plan",
+                ["Step", "Environment", "Owner", "Rollback", "Status"],
+                rng, 25, i => [$"Step {i}: {Phrase(rng)}", Pick(rng, "Dev", "Staging", "Prod"), Pick(rng, "Alice", "Bob"), Pick(rng, "Yes", "No"), Pick(rng, "Planned", "Complete")]),
+            Doc("Production Incident",
+                ["Incident", "Severity", "Detected", "Resolved", "Root Cause"],
+                rng, 25, i => [$"INC-{i:D3}: {Phrase(rng)}", Pick(rng, "SEV1", "SEV2", "SEV3"), "2026-01-15", "2026-01-15", Phrase(rng)]),
+            Doc("Security Findings",
+                ["Finding", "CVSS", "Component", "Status", "Remediation"],
+                rng, 25, i => [$"SEC-{i:D3}: {Phrase(rng)}", Pick(rng, "3.1", "5.4", "7.8", "9.1"), Pick(rng, "auth", "index", "api"), Pick(rng, "Open", "Fixed"), Phrase(rng)]),
         ];
     }
 
@@ -2382,6 +2589,14 @@ public sealed class SyntheticEnterpriseCorpusGenerator
         renderer.Render(doc, fs);
     }
 
+    // Enterprise-like titles improve search-quality evaluation (titles are strong ranking signals).
+    private static readonly string[] TitleTemplates =
+    [
+        "Sprint {0} Planning", "Architecture Decision {0}", "Bug Investigation {0}",
+        "Quarterly Review {0}", "Security Assessment {0}", "Incident Report {0}",
+        "Design Proposal {0}", "Release Notes {0}", "Runbook {0}", "Postmortem {0}",
+    ];
+
     private CorpusDocument BuildDocument(Random rng, int index)
     {
         var blocks = new List<CorpusBlock>();
@@ -2391,10 +2606,9 @@ public sealed class SyntheticEnterpriseCorpusGenerator
             blocks.Add(new CorpusBlock(CorpusBlockKind.Paragraph, Sentence(rng)));
         }
 
-        return new CorpusDocument(
-            string.Create(CultureInfo.InvariantCulture, $"Document {index} {Words[rng.Next(Words.Length)]}"),
-            blocks,
-            Tables: []);
+        var template = TitleTemplates[rng.Next(TitleTemplates.Length)];
+        var title = string.Format(CultureInfo.InvariantCulture, template, index);
+        return new CorpusDocument(title, blocks, Tables: []);
     }
 
     private string Sentence(Random rng)
@@ -2670,7 +2884,24 @@ public class ParserThroughputBenchmark
 }
 ```
 
-> Reuse/define the same `TestAsset.For` helper used in Task 8 (place a shared copy in the benchmark project). The report records documents/sec and MB/sec per type, and parser-time vs index-time when run through the full pipeline benchmark. **Add a large-workbook case:** generate (or hand-build) a single `.xlsx` with a multi-thousand-row sheet and benchmark it separately, to characterize the streaming reader's memory/throughput on realistic enterprise export sizes.
+> Reuse/define the same `TestAsset.For` helper used in Task 8 (place a shared copy in the benchmark project). The report records documents/sec and MB/sec per type, and parser-time vs index-time when run through the full pipeline benchmark. `[MemoryDiagnoser]` reports **Allocated** managed bytes per benchmark.
+
+- [ ] **Step 1a: Add a large-workbook case with peak-memory capture**
+
+Generate (or hand-build) a single `.xlsx` with a multi-thousand-row sheet and benchmark it separately to characterize the streaming reader on realistic enterprise export sizes. Because `[MemoryDiagnoser]` reports *allocations*, not resident memory, capture **peak working set** explicitly around the run:
+
+```csharp
+[Benchmark]
+public async Task ParseLargeWorkbook()
+{
+    var proc = System.Diagnostics.Process.GetCurrentProcess();
+    await ParseOne(_largeXlsxPath); // built in [GlobalSetup]: one sheet, ~50k rows
+    proc.Refresh();
+    _peakWorkingSetBytes = proc.PeakWorkingSet64; // recorded into the report's "Peak WS" column
+}
+```
+
+Note in the report that `PeakWorkingSet64` is process-wide (not per-call); run the large-workbook benchmark in isolation for a clean reading.
 
 - [ ] **Step 2: Create the report skeleton**
 
@@ -2690,13 +2921,18 @@ Deterministic Small/Medium corpus via SyntheticEnterpriseCorpusGenerator (seed p
 Run: `dotnet run -c Release --project tests/Ferret.Benchmarks`
 
 ## Raw Measurements
-| Type          | Docs/sec | MB/sec | Parser time | Index time |
-| ------------- | -------- | ------ | ----------- | ---------- |
-| PDF           |          |        |             |            |
-| DOCX          |          |        |             |            |
-| XLSX          |          |        |             |            |
-| XLSX (large)  |          |        |             |            |
-| Code          |          |        |             |            |
+| Type          | Docs/sec | MB/sec | Allocated | Peak WS | Parser time | Index time |
+| ------------- | -------- | ------ | --------- | ------- | ----------- | ---------- |
+| PDF           |          |        |           |         |             |            |
+| DOCX          |          |        |           |         |             |            |
+| XLSX          |          |        |           |         |             |            |
+| XLSX (large)  |          |        |           |         |             |            |
+| Code          |          |        |           |         |             |            |
+
+> **Allocated** = `[MemoryDiagnoser]` managed bytes. **Peak WS** =
+> `Process.PeakWorkingSet64` captured around the large-workbook run (see Step 1a) —
+> this is resident memory, which is what "500 MB vs 5 GB" refers to; the diagnoser
+> does not report it.
 
 ## Observations
 
@@ -2730,19 +2966,22 @@ git commit -m "feat(bench): add parser throughput benchmark and Enterprise Conte
 - `Ferret.Parsers.Office` (**DOCX + XLSX**) → Task 4 ✅
 - Additive MimeTypeResolver / PDF+DOCX+**XLSX** dedicated media types (XLSX → `Data`) → Task 2 ✅
 - Parseable-binary distinct from opaque (`MediaCategory`) → Task 1 + Task 2 ✅
-- **Excel streaming reader + shared strings + cached values** → Task 4 (Step E4) ✅
-- **Configurable extracted-text limit (`ParserOptions`, default unlimited)** → Task 4 (Steps E1/E4) ✅
+- **Excel streaming reader + shared strings + cached values (formula expression never emitted)** → Task 4 (Step E4) ✅
+- **Uniform extracted-text limit across PDF/Word/Excel** via shared `ExtractionLimiter` (default unlimited) → Task 1 (Steps 8–9) + Tasks 3/4 ✅
+- **`DocumentMetadata` key constants (no string drift)** → Task 1 (Step 7), used by all parsers ✅
+- **Reserved `ParserCapabilities.StructuredExtraction` (unused, future-proof)** → Task 1 (Step 10) ✅
 - `ParserPackModule` composition (6 parsers) → Task 5 ✅
 - Parser principle (text + metadata only, no calc/formula) → Global Constraints + Tasks 3/4 ✅
-- Lightweight metadata schema → Tasks 3 (PDF) + 4 (DOCX/XLSX) ✅
+- Lightweight metadata schema (via constants) → Tasks 3 (PDF) + 4 (DOCX/XLSX) ✅
 - `GetServices<IContentParser>()` aggregation (registry untouched) → Task 5 test ✅
+- **Dispatcher (public API) routing verified** → Task 5 (in-memory) + Task 8 (PDF/DOCX/XLSX files) ✅
 - `ferret doctor` parser introspection (6 parsers) → Task 6 ✅
-- Corpus generator with **`CorpusTable`** + **XLSX renderer** + **enterprise tabular archetypes** → Task 7 ✅
-- Unit tests → Tasks 1–7; end-to-end integration test incl. **XLSX cell search** → Task 8; performance report incl. **large-workbook XLSX** → Task 9; docs → Task 9 ✅
+- Corpus generator with **`CorpusTable`** + **XLSX renderer** + **9 enterprise tabular archetypes** + **enterprise-like titles** → Task 7 ✅
+- Unit tests → Tasks 1–7; end-to-end integration test incl. **XLSX cell search** → Task 8; performance report incl. **large-workbook XLSX + peak working set** → Task 9; docs → Task 9 ✅
 - Acceptance criteria (PDF/DOCX/XLSX searchable, Jira-export cell retrievable, opaque excluded, `Data` kind, config limit, 6 parsers) → Tasks 4/6/8 ✅
 - DocumentKind evolution / PowerPoint fast-follow → documented in spec; no code ✅
 - Reserved Enterprise Content Pack 2 (incl. PPTX) → spec only, no task ✅
 
-**Placeholder scan:** No "TBD"/"handle edge cases" left; failure handling is concrete (throw → dispatcher `Failed`; empty text → `Empty`). Environment-dependent items (PdfPig/OpenXml versions; OOXML byte-determinism for `.docx`/`.xlsx`) carry explicit fallback instructions, not vague notes.
+**Placeholder scan:** No "TBD"/"handle edge cases" left; failure handling is concrete (throw → dispatcher `Failed`; empty text → `Empty`). Package versions are **pinned** (PdfPig 0.1.9, OpenXml 3.1.0) — no "verify latest" hedges. The one genuinely environment-dependent item (OOXML byte-determinism for `.docx`/`.xlsx`) carries an explicit fallback (compare extracted text).
 
-**Type consistency:** `MediaCategory` (Task 1) used identically in Tasks 2/6. `ParserPackModule.ConfigureServices` (Task 5, 6 parsers) consumed in Tasks 6/8/9. `ParserOptions.MaxExtractedCharacters` (Task 4 E1) consumed by `ExcelParser` (E4) and registered in `OfficeParserModule`. `OfficeMediaTypes.Docx`/`.Xlsx` (Task 4) reused in Task 5 test. `CorpusDocument(Title, Blocks, Tables)` and `CorpusTable(Headers, Rows)` (Task 7 Step 3) consumed by `DocxRenderer`/`XlsxRenderer`/`EnterpriseArchetypes`/generator consistently. `SyntheticEnterpriseCorpusGenerator(int seed).Generate(CorpusSize, string)` consistent across Tasks 7/8/9. `TestAsset.For(path, mediaType)` referenced in Tasks 8/9 (define once per consuming project).
+**Type consistency:** `MediaCategory`, `DocumentMetadata`, `ParserOptions`, `ExtractionLimiter` (all Task 1) consumed identically across Tasks 2/3/4/6. All three heavyweight parsers take `ParserOptions` and call `ExtractionLimiter.ApplyCharacterLimit`; `PdfParserModule` and `OfficeParserModule` each `TryAddSingleton(new ParserOptions())`. `OfficeMediaTypes.Docx`/`.Xlsx` (Task 4) reused in Task 5 test. `CorpusDocument(Title, Blocks, Tables)` and `CorpusTable(Headers, Rows)` (Task 7) consumed by `DocxRenderer`/`XlsxRenderer`/`EnterpriseArchetypes`/generator consistently. `SyntheticEnterpriseCorpusGenerator(int seed).Generate(CorpusSize, string)` consistent across Tasks 7/8/9. `TestAsset.For(path, mediaType)` referenced in Tasks 8/9 (define once per consuming project).

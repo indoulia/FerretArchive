@@ -119,6 +119,12 @@ format provides them:
 keys). Ferret need not consume every key today — capturing it now is free and
 lets downstream ranking/AI use it later without re-parsing.
 
+**Metadata keys are constants, not raw strings.** All keys are defined once on a
+`DocumentMetadata` static class (`Ferret.Core.Documents`) — `DocumentMetadata.Author`,
+`.Subject`, `.Keywords`, `.PageCount`, `.SheetCount`, `.Created`, `.Modified`,
+`.Category`, `.Truncated`. Every parser references those constants so keys never
+drift (`PageCount` vs `Pagecount` vs `Page Count`) as future parsers are added.
+
 ### DocumentKind
 
 - **PDF, DOCX → `DocumentKind.Prose`** (documents).
@@ -129,6 +135,14 @@ lets downstream ranking/AI use it later without re-parsing.
 Future content types may refine `DocumentKind` **without changing parser
 contracts** — `DocumentKind` is an output value, not part of the `IContentParser`
 signature.
+
+### Reserved extension point
+
+Every parser returns a `Document` today. Future formats (OCR, PowerPoint,
+Outlook, OneNote) may want richer, structured extraction. To reserve the seam
+now at zero cost, add a **`ParserCapabilities.StructuredExtraction`** capability
+constant — **unused this milestone**, declared so parsers can advertise it later
+without a contract change. No behavior is attached to it yet.
 
 ---
 
@@ -276,14 +290,19 @@ than a mandatory cap, extraction is bounded by a **configurable** limit:
 - A `ParserOptions` record (`Ferret.Core.Documents`) with
   `long? MaxExtractedCharacters { get; init; }`, **default `null` = unlimited**.
 - Bound from configuration (e.g. `Ferret:Parsers:MaxExtractedCharacters`) and
-  injected into the heavyweight parsers (PDF/Word/Excel).
-- When set and exceeded, the parser truncates `PlainText` to the limit, adds a
-  `Truncated=true` metadata key, and logs the truncation (never silent).
-- **Default behavior is unchanged:** unlimited ⇒ large workbooks index
-  completely. Only an administrator opting in changes this.
+  injected into **all three** heavyweight parsers — **PDF, Word, and Excel treat
+  the limit identically**. A million-character PDF or a 3,000-page DOCX is as
+  real as a huge workbook, so behavior is uniform, not Excel-only.
+- **One shared implementation, no duplication:** a single
+  `ExtractionLimiter.ApplyCharacterLimit(text, options)` helper
+  (`Ferret.Core.Documents`) returns `(string text, bool truncated)`. Every parser
+  calls it — there is no per-parser truncation logic.
+- When set and exceeded, the parser truncates `PlainText` to the limit and sets
+  `DocumentMetadata.Truncated = "true"` (observable, never silent).
+- **Default behavior is unchanged:** unlimited ⇒ documents index completely.
+  Only an administrator opting in changes this.
 
-The text parsers (plain/markdown/json) are unaffected (small files); the option
-is honored where extraction volume is unbounded.
+The text parsers (plain/markdown/json) are unaffected (small files).
 
 ---
 
@@ -292,7 +311,11 @@ is honored where extraction volume is unbounded.
 - **Library:** UglyToad.PdfPig (pure managed, MIT).
 - **Extraction:** open from the provided `Stream` (do **not** dispose), iterate
   pages in order, extract page text, join with newlines.
-- **Output:** `DocumentKind.Prose`, `MediaType = "application/pdf"`.
+- **Output:** `DocumentKind.Prose`, `MediaType = "application/pdf"`. Metadata via
+  `DocumentMetadata` constants (`Author`, `Subject`, `Keywords`, `PageCount`,
+  `Created`, `Modified`).
+- **Extraction limit:** takes `ParserOptions`; applies the shared
+  `ExtractionLimiter` (a large PDF can hold millions of characters).
 - **`CanParse`:** `application/pdf` only.
 - **Error handling:** encrypted/corrupt PDFs throw → dispatcher returns `Failed`.
   Image-only/zero-text yields empty `PlainText` → dispatcher returns `Empty` (no
@@ -307,6 +330,9 @@ is honored where extraction volume is unbounded.
 - **Extraction:** body paragraphs, table cell text, headers, footers. Concatenate
   with structural newlines. Comments deferred.
 - **Output:** `DocumentKind.Prose`, `MediaType =` the OpenXML wordprocessing type.
+  Metadata via `DocumentMetadata` constants.
+- **Extraction limit:** takes `ParserOptions`; applies the shared
+  `ExtractionLimiter` (a 3,000-page DOCX is possible) — identical to PDF/Excel.
 - **Error handling:** legacy `.doc` unsupported (stays `BinaryOpaque`);
   malformed/non-OOXML throws → `Failed`.
 
@@ -326,8 +352,11 @@ not a spreadsheet engine.
 - **Shared strings:** resolve the `SharedStringTablePart` once into an array;
   cells with `DataType == SharedString` index into it. Other cells use
   `CellValue.InnerText`.
-- **Cached values, never recompute:** for formula cells, emit the **cached
-  value** stored in the cell. No calculation engine.
+- **Cached values, never recompute:** for a formula cell, index its **cached
+  value** (`CellValue`, the stored result). If the cache is absent, **skip** the
+  cell. **Never emit the formula expression itself** — indexing `=SUM(A1:A50)`
+  has no search value. The parser reads `CellValue` and never touches
+  `CellFormula`. No calculation engine.
 - **Flattening strategy (for keyword search + context):**
   - Iterate sheets in workbook order.
   - Emit each sheet name as a heading line for context.
@@ -336,7 +365,8 @@ not a spreadsheet engine.
     as the first line so header tokens are searchable alongside data.
   - Skip empty cells and fully empty rows.
 - **Output:** `DocumentKind.Data`, `MediaType =` the OpenXML spreadsheet type.
-  Metadata: `SheetCount`, `Author`, `Created`, `Modified`, `Category`.
+  Metadata via `DocumentMetadata` constants (`SheetCount`, `Author`, `Created`,
+  `Modified`, `Category`).
 - **`CanParse`:** the OpenXML spreadsheet media type only.
 - **Error handling:** legacy `.xls` unsupported (stays `BinaryOpaque`);
   malformed/non-OOXML throws → `Failed`.
@@ -344,8 +374,8 @@ not a spreadsheet engine.
   Excel stores dates as serial numbers, so some dates may surface as serials
   (e.g. `45658`). Acceptable for v1 keyword search; a numFmt-aware enhancement is
   future work.
-- **Extracted-text limit** (above) applies here first — the primary defense for
-  very large workbooks, honored per the configurable option.
+- **Extracted-text limit** applies via the shared `ExtractionLimiter` — the
+  primary defense for very large workbooks (identical mechanism to PDF/Word).
 
 ---
 
@@ -396,14 +426,27 @@ never affecting the production `PdfParser`.
 The generator emits realistic tabular archetypes (deterministic, seeded), so
 benchmarks reflect the artifacts that motivated Excel support:
 
-- **Requirement traceability matrix** — columns like ID, Requirement, Priority,
-  Status, Linked Test, Owner.
+- **Requirement traceability matrix** — ID, Requirement, Priority, Status,
+  Linked Test, Owner.
 - **Bug report export** — Key, Summary, Severity, Status, Assignee, Created.
 - **Sprint backlog** — Story, Points, Sprint, State, Epic.
 - **Risk register** — Risk, Likelihood, Impact, Mitigation, Owner.
+- **Test execution report** — Test, Result, Duration, Build, Tester.
+- **Release checklist** — Item, Owner, Status, Due, Notes.
+- **Deployment plan** — Step, Environment, Owner, Rollback, Status.
+- **Production incident** — Incident, Severity, Detected, Resolved, Root Cause.
+- **Security findings** — Finding, CVSS, Component, Status, Remediation.
 
 Each becomes a `CorpusDocument` with a `CorpusTable`, renderable to `.xlsx` (and,
 for cross-format tests, to `.md`/`.docx`).
+
+### Enterprise-like document titles
+
+Prose/document titles resemble real enterprise artifacts rather than
+`Document 42 platform` — e.g. *Sprint 14 Planning*, *Architecture Decision*,
+*Bug Investigation*, *Quarterly Review*, *Security Assessment*, *Incident
+Report*, *Design Proposal*. Realistic titles materially improve search-quality
+evaluation (titles are strong ranking signals).
 
 ### Determinism
 
@@ -438,9 +481,14 @@ Output goes to a temp/`.gitignore`d directory and is **never committed**.
 - `WordParser`: paragraphs + tables + headers + footers; empty; malformed →
   `Failed`; `.doc` unsupported.
 - `ExcelParser`: shared-string resolution; multi-sheet (sheet names emitted);
-  numeric + cached-formula cells; empty cells/rows skipped; header row + data
-  rows present in text; malformed → `Failed`; `.xls` unsupported; extracted-text
-  limit truncates + sets `Truncated` when configured.
+  numeric + cached-formula cells; formula-without-cache skipped and the formula
+  expression never emitted; empty cells/rows skipped; header row + data rows
+  present in text; malformed → `Failed`; `.xls` unsupported; extracted-text limit
+  truncates + sets `Truncated` when configured.
+- **Dispatch-level test:** assert `IParserDispatcher.DispatchAsync` (the public
+  API) routes a PDF/DOCX/XLSX stream to the correct parser and returns `Success`.
+  The registry lookup is an implementation detail; the dispatcher is what
+  production uses.
 
 ### End-to-end integration test
 
@@ -474,6 +522,12 @@ Extend the benchmark harness to record, per corpus tier: documents/sec, MB/sec,
 time-by-document-type (**including a large multi-thousand-row XLSX case**),
 parser time vs index time, and search latency. Output to a versioned report under
 `docs/benchmarks/<release>/` per the Benchmark Suite Spec format.
+
+**Memory, per parser.** Enterprise users care more about "500 MB vs 5 GB" than
+milliseconds. Record `[MemoryDiagnoser]`'s **Allocated** (managed bytes) per
+parser, and — because that column is *allocations*, not resident set — also
+capture **peak working set** (`Process.PeakWorkingSet64`) for the large-workbook
+XLSX case, which is where the streaming reader's memory profile matters most.
 
 ### Search quality (not just performance)
 
@@ -514,10 +568,15 @@ parser packages (`Ferret.Parsers.Pdf`, `Ferret.Parsers.Office`, composed via
 - `MimeTypeResolver` + `MediaTypeInfo` changes: `MediaCategory` enum;
   PDF/DOCX/XLSX parseable-binary mappings (XLSX → `Data`); expanded text/config
   mappings; expanded binary denylist.
-- `ParserOptions` configurable extracted-text limit (default unlimited).
+- Core additions (`Ferret.Core.Documents`): `ParserOptions` (configurable
+  extracted-text limit, default unlimited); shared `ExtractionLimiter`
+  (single truncation implementation, no per-parser duplication); `DocumentMetadata`
+  key constants (no string drift); reserved `ParserCapabilities.StructuredExtraction`
+  (unused, future-proof). PDF/Word/Excel all take `ParserOptions` and apply the
+  limit uniformly.
 - Deterministic Synthetic Enterprise Corpus Generator (abstract model +
   renderers, **`CorpusTable`** + **XLSX renderer** + enterprise tabular
-  archetypes) in `tests/Ferret.Benchmarks`.
+  archetypes + enterprise-like titles) in `tests/Ferret.Benchmarks`.
 - Parser introspection diagnostic check for `ferret doctor` (6 parsers).
 - Unit tests, end-to-end integration test (incl. XLSX cell-search), performance
   report (incl. large-workbook case), documentation updates.
