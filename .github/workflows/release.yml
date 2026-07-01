@@ -109,3 +109,34 @@ jobs:
             ./artifacts/Ferret-*.zip
             ./artifacts/SHA256SUMS.txt
             ./artifacts/release-manifest.json
+
+      # Publish the downloadable payload to the PUBLIC distribution mirror. The
+      # source repo may be private; anonymous `npm install` can only fetch release
+      # assets from a public repo, so the installer downloads from here (see
+      # Ferret.Npm/lib/distribution-config.js). Published (non-draft) so the
+      # assets are immediately reachable. Requires DIST_REPO_TOKEN — a token with
+      # contents:write on indoulia/ferret-dist (the default GITHUB_TOKEN is scoped
+      # to this repo only). See docs/012-Releases/RELEASE-PROCESS.md.
+      - name: Publish download assets to public distribution mirror
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: indoulia/ferret-dist
+          token: ${{ secrets.DIST_REPO_TOKEN }}
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: Ferret v${{ steps.version.outputs.VERSION }}
+          draft: false
+          body: >
+            Download assets for Ferret v${{ steps.version.outputs.VERSION }}.
+            Source and release notes live in the main repository.
+          files: |
+            ./artifacts/Ferret-*.zip
+            ./artifacts/SHA256SUMS.txt
+            ./artifacts/release-manifest.json
+
+      # Guard against the exact failure this mirror exists to prevent: an
+      # unauthenticated fetch of the manifest must return 200. If the mirror is
+      # private or the publish step was skipped, this fails the release instead
+      # of shipping an npm package that 404s on install.
+      - name: Verify manifest is anonymously reachable
+        working-directory: Ferret.Npm
+        run: node scripts/verify-download-endpoint.js v${{ steps.version.outputs.VERSION }}

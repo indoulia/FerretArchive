@@ -6,12 +6,16 @@ test('releaseBaseUrl builds the GitHub asset URL from owner/repo defaults', () =
     delete process.env.FERRET_DIST_OWNER;
     delete process.env.FERRET_DIST_REPO;
     delete process.env.FERRET_DIST_RELEASE_ENDPOINT;
+    delete require.cache[require.resolve('../lib/distribution-config')];
     const { releaseBaseUrl, OWNER, REPOSITORY } = require('../lib/distribution-config');
+    // Downloads default to a PUBLIC mirror repo, not the (private) source repo.
+    // Anonymous `npm install` can only reach release assets on a public repo, so
+    // the source repo going private must never break installs. See ferret-dist.
     assert.strictEqual(OWNER, 'indoulia');
-    assert.strictEqual(REPOSITORY, 'Ferret');
+    assert.strictEqual(REPOSITORY, 'ferret-dist');
     assert.strictEqual(
         releaseBaseUrl('v0.14.0'),
-        'https://github.com/indoulia/Ferret/releases/download/v0.14.0'
+        'https://github.com/indoulia/ferret-dist/releases/download/v0.14.0'
     );
 });
 
