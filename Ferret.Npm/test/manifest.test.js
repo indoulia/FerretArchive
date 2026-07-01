@@ -59,3 +59,18 @@ test('fetchManifest throws an actionable error on HTTP failure', async () => {
     const fakeFetch = async () => ({ ok: false, status: 404, json: async () => ({}) });
     await assert.rejects(() => fetchManifest('v9.9.9', fakeFetch), /HTTP 404/);
 });
+
+test('fetchManifest 404 error surfaces the exact URL and the private-repo cause', async () => {
+    const fakeFetch = async () => ({ ok: false, status: 404, json: async () => ({}) });
+    // The message must be diagnosable without re-running: it names the exact URL
+    // that 404'd and the most common cause (a private distribution repo), rather
+    // than only asking "is that version published?".
+    await assert.rejects(
+        () => fetchManifest('v9.9.9', fakeFetch),
+        (err) => {
+            assert.match(err.message, /\/v9\.9\.9\/release-manifest\.json/);
+            assert.match(err.message, /private/i);
+            return true;
+        }
+    );
+});

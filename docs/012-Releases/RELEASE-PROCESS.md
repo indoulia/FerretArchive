@@ -20,6 +20,11 @@ GitHub Release; this document is the operational procedure behind them.
 
 > Historical note: the inaugural `v0.15.0` publish used a granular `NPM_TOKEN` automation token to minimize variables during first rollout. Publishing migrated to Trusted Publishing immediately afterward.
 
+- **Public distribution mirror** — the installer downloads release binaries anonymously, and GitHub only serves release assets without authentication from **public** repositories. Download assets are therefore published to the public mirror repo **`indoulia/ferret-dist`** (source can stay private). Configure once:
+  - The mirror repo `indoulia/ferret-dist` must exist and be **public** (assets only, no source).
+  - Add a repository secret **`DIST_REPO_TOKEN`** to `indoulia/Ferret` — a token with `contents: write` on `indoulia/ferret-dist` (fine-grained PAT scoped to that repo, or a classic PAT with `repo`). The default `GITHUB_TOKEN` cannot write to a different repository, so the mirror step needs this.
+  - The installer's download host is defined by `Ferret.Npm/lib/distribution-config.js` (defaults to `indoulia/ferret-dist`) and overridable via `FERRET_DIST_OWNER` / `FERRET_DIST_REPO` / `FERRET_DIST_RELEASE_ENDPOINT`.
+
 ## Release procedure
 
 1. Ensure `main` is green and the version is set: `src/Ferret.Cli/Ferret.Cli.csproj` `<Version>` matches the release.
@@ -29,7 +34,7 @@ GitHub Release; this document is the operational procedure behind them.
    git tag -a v<version> -m "<short milestone summary>"
    git push origin v<version>
    ```
-4. `release.yml` builds the per-RID self-contained zips, `SHA256SUMS.txt`, and `release-manifest.json`, runs the manifest self-validation, and creates a **draft** GitHub Release with all assets attached (alongside the `*.nupkg`).
+4. `release.yml` builds the per-RID self-contained zips, `SHA256SUMS.txt`, and `release-manifest.json`, runs the manifest self-validation, and creates a **draft** GitHub Release with all assets attached (alongside the `*.nupkg`). It then publishes the download payload (zips, `SHA256SUMS.txt`, `release-manifest.json`) to the **public** mirror `indoulia/ferret-dist` as a **published** release, and runs `Ferret.Npm/scripts/verify-download-endpoint.js` to confirm the manifest is anonymously reachable. If the mirror is missing/private or `DIST_REPO_TOKEN` is unset, the release fails here rather than shipping an npm package that 404s on install.
 5. Set the draft's body from `docs/012-Releases/v<version>.md`:
    ```bash
    gh release edit v<version> --notes-file docs/012-Releases/v<version>.md

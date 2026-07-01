@@ -36,7 +36,12 @@ async function fetchManifest(tag, fetchImpl = fetch) {
     const res = await fetchImpl(url);
     if (!res.ok) {
         throw new Error(
-            `Could not fetch release manifest for ${tag} (HTTP ${res.status}). Is that version published?`
+            `Could not fetch the release manifest for ${tag} (HTTP ${res.status}).\n` +
+                `  URL: ${url}\n` +
+                `  The asset may be missing/unpublished, or hosted in a private ` +
+                `repository — GitHub returns 404 for private release assets to ` +
+                `unauthenticated clients. Point downloads at a public host via ` +
+                `FERRET_DIST_OWNER / FERRET_DIST_REPO / FERRET_DIST_RELEASE_ENDPOINT.`
         );
     }
     return parseManifest(await res.json());
