@@ -1,10 +1,12 @@
-# Parser Pack 1 Implementation Plan
+# Enterprise Content Pack 1 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **Naming:** milestone = "Enterprise Content Pack 1"; technical asset names (`Ferret.Parsers.*`, `ParserPackModule`) are unchanged.
 
-**Goal:** Add PDF and DOCX content parsers (plus expanded MIME mappings and a deterministic multi-format corpus generator) so Ferret indexes enterprise documents, not just code/text.
+**Goal:** Add PDF, DOCX, and XLSX content parsers (plus expanded MIME mappings and a deterministic multi-format corpus generator) so Ferret indexes enterprise documents — including the Excel exports (Jira/ADO, RTMs, bug reports, risk registers) enterprises run on — not just code/text.
 
-**Architecture:** `Ferret.ParserPlatform` stays intact (registry, dispatcher, `MimeTypeResolver`, 3 built-in parsers). Two new sibling packages hold heavyweight-format parsers — `Ferret.Parsers.Pdf` (PdfPig) and `Ferret.Parsers.Office` (OpenXml, DOCX only). A thin `Ferret.Parsers` project composes all three via `ParserPackModule`. The registry auto-aggregates every `IContentParser` via `GetServices<IContentParser>()`, so the dispatcher/registry/contract are untouched. Only `MimeTypeResolver` + `MediaTypeInfo` change (additively).
+**Architecture:** `Ferret.ParserPlatform` stays intact (registry, dispatcher, `MimeTypeResolver`, 3 built-in parsers). Two new sibling packages hold heavyweight-format parsers — `Ferret.Parsers.Pdf` (PdfPig) and `Ferret.Parsers.Office` (OpenXml; `WordParser` + `ExcelParser`). A thin `Ferret.Parsers` project composes all three via `ParserPackModule`. The registry auto-aggregates every `IContentParser` via `GetServices<IContentParser>()`, so the dispatcher/registry/contract are untouched. Only `MimeTypeResolver` + `MediaTypeInfo` change (additively).
 
 **Tech Stack:** .NET 9, C#, xUnit, Microsoft.Extensions.DependencyInjection, UglyToad.PdfPig, DocumentFormat.OpenXml, BenchmarkDotNet.
 
@@ -15,7 +17,9 @@
 - **Target framework:** `net9.0`, inherited from `Directory.Build.props` — do NOT set `<TargetFramework>` in new csproj files.
 - **Central Package Management:** every NuGet version lives in `Directory.Packages.props`; `<PackageReference>` in csproj carries **no** `Version` attribute (STD-005 §11.2).
 - **Parsers MUST be `sealed`.** `CanParse` is pure: no I/O, never throws, deterministic for a given input.
-- **Parser responsibility (hard rule):** extract text + lightweight metadata from the stream only. NO chunking, tokenization, embedding, summarization, or AI processing.
+- **Parser responsibility (hard rule):** extract text + lightweight metadata from the stream only. NO chunking, tokenization, embedding, summarization, AI processing, **spreadsheet calculation, or formula evaluation**. The Excel parser extracts cached cell values — it never recomputes.
+- **Excel reads streaming:** `ExcelParser` uses the OpenXml **`OpenXmlReader` (SAX)** for worksheets, not the DOM — enterprise exports can be 100k+ rows. Word stays DOM.
+- **Extracted-text limit:** a `ParserOptions.MaxExtractedCharacters` (default `null` = unlimited) bounds extraction volume; when set and exceeded, the parser truncates `PlainText`, sets `Metadata["Truncated"]="true"`, and logs. Default is unlimited (no behavior change).
 - **Stream ownership:** parsers MUST NOT dispose or close the content stream (use `leaveOpen: true` on any reader).
 - **Failure signaling:** a parser signals failure by **throwing** with a clear message — `ParserDispatcher` catches all non-cancellation exceptions and converts to `ParseResult<Document>.Failed(ex.Message)`. Empty/whitespace `PlainText` becomes `Empty`. `OperationCanceledException` must propagate.
 - **Parser package isolation:** `Ferret.Parsers.Pdf` and `Ferret.Parsers.Office` must NOT reference each other, and `Ferret.ParserPlatform` must NOT reference either (no heavyweight deps in the platform).
@@ -202,6 +206,15 @@ public sealed class MimeTypeResolverTests
         Assert.Equal(MediaCategory.BinaryParseable, info.Category);
     }
 
+    [Fact]
+    public void Xlsx_Resolves_To_Spreadsheet_ParseableBinary_Data()
+    {
+        var info = Resolver.Resolve("jira-export.xlsx");
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", info.MediaType);
+        Assert.Equal(MediaCategory.BinaryParseable, info.Category);
+        Assert.Equal(DocumentKind.Data, info.SuggestedKind);
+    }
+
     [Theory]
     [InlineData("a.so")]
     [InlineData("a.class")]
@@ -282,9 +295,10 @@ Change these two existing entries:
 ```csharp
 [".pdf"] = ParseableBinary("application/pdf", DocumentKind.Prose),
 [".docx"] = ParseableBinary("application/vnd.openxmlformats-officedocument.wordprocessingml.document", DocumentKind.Prose),
+[".xlsx"] = ParseableBinary("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", DocumentKind.Data),
 ```
 
-`.xlsx`/`.pptx` stay `Binary()` (opaque this milestone). Add the expanded text/code/config entries:
+`.pptx` stays `Binary()` (opaque — deferred fast-follow this milestone). Note `.xlsx` is classified `DocumentKind.Data`, not `Prose`. Add the expanded text/code/config entries:
 
 ```csharp
 [".scss"] = Text("text/x-scss", DocumentKind.Code),
@@ -368,7 +382,7 @@ Expected: PASS.
 
 ```bash
 git add src/Ferret.ParserPlatform/MimeTypeResolver.cs tests/Ferret.ParserPlatform.Tests/MimeTypeResolverTests.cs
-git commit -m "feat(parsers): map PDF/DOCX to parseable-binary media types, expand text and binary maps"
+git commit -m "feat(parsers): map PDF/DOCX/XLSX to parseable-binary media types, expand text and binary maps"
 ```
 
 ---
@@ -688,19 +702,24 @@ git commit -m "feat(parsers): add Ferret.Parsers.Pdf with PdfPig-based PdfParser
 
 ---
 
-### Task 4: Ferret.Parsers.Office — WordParser (OpenXml, DOCX only)
+### Task 4: Ferret.Parsers.Office — WordParser (DOCX) + ExcelParser (XLSX)
 
 **Files:**
 - Modify: `Directory.Packages.props` (add `DocumentFormat.OpenXml`)
+- Create: `src/Ferret.Core/Documents/ParserOptions.cs` (configurable extraction limit)
 - Create: `src/Ferret.Parsers.Office/Ferret.Parsers.Office.csproj`
 - Create: `src/Ferret.Parsers.Office/OfficeMediaTypes.cs`
 - Create: `src/Ferret.Parsers.Office/WordParser.cs`
+- Create: `src/Ferret.Parsers.Office/ExcelParser.cs`
 - Create: `src/Ferret.Parsers.Office/OfficeParserModule.cs`
 - Create: `tests/Ferret.Parsers.Office.Tests/Ferret.Parsers.Office.Tests.csproj`
 - Create: `tests/Ferret.Parsers.Office.Tests/WordParserTests.cs`
+- Create: `tests/Ferret.Parsers.Office.Tests/ExcelParserTests.cs`
 
 **Interfaces:**
-- Produces: `public static class OfficeMediaTypes { public const string Docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"; }`; `public sealed class WordParser : IContentParser`; `public static class OfficeParserModule { static void ConfigureServices(IServiceCollection); }`.
+- Produces: `public static class OfficeMediaTypes { public const string Docx = "..."; public const string Xlsx = "..."; }`; `public sealed class WordParser : IContentParser`; `public sealed class ExcelParser : IContentParser` (ctor takes `ParserOptions`); `public sealed record ParserOptions { long? MaxExtractedCharacters { get; init; } }` (Ferret.Core); `public static class OfficeParserModule { static void ConfigureServices(IServiceCollection); }` — registers **both** Word and Excel.
+
+> Word steps (1–7) are unchanged from the DOCX-only design; the Excel additions follow as Steps E1–E4, then solution-add and commit cover both parsers.
 
 - [ ] **Step 1: Add the package version**
 
@@ -851,6 +870,9 @@ public static class OfficeMediaTypes
 {
     /// <summary>The OpenXML WordprocessingML (.docx) media type.</summary>
     public const string Docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+    /// <summary>The OpenXML SpreadsheetML (.xlsx) media type.</summary>
+    public const string Xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 }
 ```
 
@@ -988,21 +1010,385 @@ public sealed class WordParser : IContentParser
 using Ferret.Core.Documents;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Ferret.Parsers.Office;
 
-/// <summary>DI registration for the Office parser package. Word (.docx) only this milestone.</summary>
+/// <summary>DI registration for the Office parser package: Word (.docx) and Excel (.xlsx).</summary>
 public static class OfficeParserModule
 {
-    /// <summary>Registers <see cref="WordParser"/> as an <see cref="IContentParser"/>.</summary>
+    /// <summary>Registers <see cref="WordParser"/> and <see cref="ExcelParser"/> as <see cref="IContentParser"/>s.</summary>
     /// <param name="services">The service collection to configure.</param>
     public static void ConfigureServices(IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+
+        // Default (unlimited) options unless a host has already registered a configured instance.
+        services.TryAddSingleton(new ParserOptions());
+
         services.AddSingleton<IContentParser, WordParser>();
+        services.AddSingleton<IContentParser, ExcelParser>();
     }
 }
 ```
+
+> `WordParser` is parameterless; `ExcelParser` takes `ParserOptions` via DI. `TryAddSingleton(new ParserOptions())` supplies an unlimited default; a host that binds `Ferret:Parsers:MaxExtractedCharacters` from config registers its own `ParserOptions` **before** calling `ParserPackModule`, and `TryAdd` leaves it intact.
+
+#### Excel (XLSX) additions
+
+- [ ] **Step E1: Add `ParserOptions` to Ferret.Core**
+
+```csharp
+// src/Ferret.Core/Documents/ParserOptions.cs
+namespace Ferret.Core.Documents;
+
+/// <summary>Host-configurable options for content parsers.</summary>
+public sealed record ParserOptions
+{
+    /// <summary>Maximum characters of extracted text to keep per document.
+    /// Null (default) means unlimited — large workbooks index completely unless an administrator caps them.</summary>
+    public long? MaxExtractedCharacters { get; init; }
+}
+```
+
+- [ ] **Step E2: Write the failing Excel tests**
+
+```csharp
+// tests/Ferret.Parsers.Office.Tests/ExcelParserTests.cs
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+
+using Ferret.Core.Connectors;
+using Ferret.Core.Documents;
+using Ferret.Core.Primitives;
+using Ferret.Parsers.Office;
+
+namespace Ferret.Parsers.Office.Tests;
+
+public sealed class ExcelParserTests
+{
+    private static AssetDescriptor Asset() => new()
+    {
+        Id = AssetId.From(new Uri("filesystem:///bugs.xlsx")),
+        ConnectorId = new ConnectorId("filesystem"),
+        InstanceId = new ConnectorInstanceId("test"),
+        Kind = AssetKind.File,
+        CanonicalUri = new Uri("filesystem:///bugs.xlsx"),
+        DisplayName = "bugs.xlsx",
+        LastModified = DateTimeOffset.UtcNow,
+        MediaType = OfficeMediaTypes.Xlsx,
+    };
+
+    // Builds a single-sheet .xlsx using the shared-string table, exercising the SharedString path.
+    private static Stream MakeXlsx(string sheetName, string[][] rows)
+    {
+        var ms = new MemoryStream();
+        using (var doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook, autoSave: true))
+        {
+            var wbPart = doc.AddWorkbookPart();
+            wbPart.Workbook = new Workbook();
+
+            var sstPart = wbPart.AddNewPart<SharedStringTablePart>();
+            var sst = new SharedStringTable();
+            var index = new Dictionary<string, int>(StringComparer.Ordinal);
+            int Intern(string s)
+            {
+                if (index.TryGetValue(s, out var i)) return i;
+                i = index.Count;
+                index[s] = i;
+                sst.Append(new SharedStringItem(new Text(s)));
+                return i;
+            }
+
+            var wsPart = wbPart.AddNewPart<WorksheetPart>();
+            var sheetData = new SheetData();
+            foreach (var row in rows)
+            {
+                var r = new Row();
+                foreach (var cellText in row)
+                {
+                    r.Append(new Cell
+                    {
+                        DataType = CellValues.SharedString,
+                        CellValue = new CellValue(Intern(cellText).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    });
+                }
+
+                sheetData.Append(r);
+            }
+
+            wsPart.Worksheet = new Worksheet(sheetData);
+            sstPart.SharedStringTable = sst;
+
+            var sheets = wbPart.Workbook.AppendChild(new Sheets());
+            sheets.Append(new Sheet { Id = wbPart.GetIdOfPart(wsPart), SheetId = 1, Name = sheetName });
+        }
+
+        ms.Position = 0;
+        return ms;
+    }
+
+    [Fact]
+    public void CanParse_True_For_Xlsx_Only()
+    {
+        var parser = new ExcelParser(new ParserOptions());
+        Assert.True(parser.CanParse(OfficeMediaTypes.Xlsx));
+        Assert.False(parser.CanParse(OfficeMediaTypes.Docx));
+        Assert.False(parser.CanParse("application/vnd.ms-excel")); // legacy .xls unsupported
+    }
+
+    [Fact]
+    public async Task ParseAsync_Extracts_Sheet_Header_And_Rows_As_Data()
+    {
+        var parser = new ExcelParser(new ParserOptions());
+        using var stream = MakeXlsx("Bugs",
+        [
+            ["Key", "Summary", "Severity"],
+            ["BUG-1", "Login fails on SSO", "High"],
+        ]);
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset()));
+
+        Assert.Contains("Bugs", doc.PlainText, StringComparison.Ordinal);        // sheet name
+        Assert.Contains("Severity", doc.PlainText, StringComparison.Ordinal);    // header token
+        Assert.Contains("Login fails on SSO", doc.PlainText, StringComparison.Ordinal); // cell value
+        Assert.Equal(DocumentKind.Data, doc.Kind);
+        Assert.Equal(OfficeMediaTypes.Xlsx, doc.MediaType);
+        Assert.Equal("1", doc.Metadata["SheetCount"]);
+    }
+
+    [Fact]
+    public async Task ParseAsync_Honors_Configured_Extraction_Limit()
+    {
+        var parser = new ExcelParser(new ParserOptions { MaxExtractedCharacters = 5 });
+        using var stream = MakeXlsx("Sheet1", [["alpha", "beta", "gamma", "delta"]]);
+
+        var doc = await parser.ParseAsync(stream, ParseContext.For(Asset()));
+
+        Assert.True(doc.PlainText.Length <= 5);
+        Assert.Equal("true", doc.Metadata["Truncated"]);
+    }
+}
+```
+
+- [ ] **Step E3: Run Excel tests to verify they fail**
+
+Run: `dotnet test tests/Ferret.Parsers.Office.Tests --filter ExcelParserTests`
+Expected: FAIL — `ExcelParser` does not exist.
+
+- [ ] **Step E4: Implement `ExcelParser` (streaming reader, shared strings, cached values, configurable limit)**
+
+```csharp
+// src/Ferret.Parsers.Office/ExcelParser.cs
+using System.Globalization;
+using System.Text;
+
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+
+using Ferret.Core.Documents;
+using Ferret.Core.Primitives;
+
+namespace Ferret.Parsers.Office;
+
+/// <summary>
+/// Content parser for OpenXML spreadsheets (.xlsx). Extracts searchable enterprise knowledge —
+/// sheet names, header rows, and cell values — using the streaming OpenXmlReader (SAX) to bound
+/// memory on large exports. Reads cached cell values only: no formula evaluation, no calculation.
+/// </summary>
+public sealed class ExcelParser : IContentParser
+{
+    private static readonly ParserDescriptor XlsxDescriptor = new()
+    {
+        Id = new ParserId(OfficeMediaTypes.Xlsx),
+        Name = "Excel (XLSX) Parser",
+        Version = "1.0",
+        SupportedMediaTypes = [OfficeMediaTypes.Xlsx],
+        Capabilities = [ParserCapabilities.PlainTextExtraction, ParserCapabilities.MetadataExtraction],
+        Priority = 200,
+    };
+
+    private readonly ParserOptions _options;
+
+    /// <summary>Initializes a new instance of the <see cref="ExcelParser"/> class.</summary>
+    /// <param name="options">Host-configurable parser options (extraction limit).</param>
+    public ExcelParser(ParserOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _options = options;
+    }
+
+    /// <inheritdoc/>
+    public ParserDescriptor Descriptor => XlsxDescriptor;
+
+    /// <inheritdoc/>
+    public bool CanParse(string mediaType)
+    {
+        ArgumentNullException.ThrowIfNull(mediaType);
+        return mediaType.Equals(OfficeMediaTypes.Xlsx, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <inheritdoc/>
+    public ValueTask<Document> ParseAsync(Stream content, ParseContext context, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(context);
+
+        using var spreadsheet = SpreadsheetDocument.Open(content, isEditable: false);
+        var wbPart = spreadsheet.WorkbookPart;
+        var shared = ReadSharedStrings(wbPart);
+
+        var sb = new StringBuilder();
+        var sheetCount = 0;
+        var limit = _options.MaxExtractedCharacters;
+
+        var sheets = wbPart?.Workbook?.Sheets?.Elements<Sheet>() ?? [];
+        foreach (var sheet in sheets)
+        {
+            ct.ThrowIfCancellationRequested();
+            sheetCount++;
+            sb.Append("# ").AppendLine(sheet.Name);
+
+            if (sheet.Id?.Value is null || wbPart!.GetPartById(sheet.Id!.Value!) is not WorksheetPart wsPart)
+            {
+                continue;
+            }
+
+            using var reader = OpenXmlReader.Create(wsPart);
+            while (reader.Read())
+            {
+                if (reader.ElementType != typeof(Row))
+                {
+                    continue;
+                }
+
+                var cells = new List<string>();
+                if (reader.ReadFirstChild())
+                {
+                    do
+                    {
+                        if (reader.ElementType == typeof(Cell) && reader.LoadCurrentElement() is Cell cell)
+                        {
+                            var value = ResolveCell(cell, shared);
+                            if (!string.IsNullOrEmpty(value))
+                            {
+                                cells.Add(value);
+                            }
+                        }
+                    }
+                    while (reader.ReadNextSibling());
+                }
+
+                if (cells.Count > 0)
+                {
+                    sb.AppendLine(string.Join('\t', cells));
+                }
+
+                if (limit is long max && sb.Length >= max)
+                {
+                    break; // stop early once the configured limit is reached
+                }
+            }
+
+            if (limit is long capped && sb.Length >= capped)
+            {
+                break;
+            }
+        }
+
+        var (text, truncated) = ApplyLimit(sb.ToString().Trim(), limit);
+        var metadata = BuildMetadata(spreadsheet, sheetCount, truncated);
+
+        var document = new Document
+        {
+            Id = DocumentId.From(context.Asset.Id),
+            SourceAssetId = context.Asset.Id,
+            ConnectorId = context.Asset.ConnectorId,
+            InstanceId = context.Asset.InstanceId,
+            MediaType = OfficeMediaTypes.Xlsx,
+            Kind = DocumentKind.Data,
+            PlainText = text,
+            Title = string.IsNullOrWhiteSpace(spreadsheet.PackageProperties.Title) ? null : spreadsheet.PackageProperties.Title,
+            ProducedAt = DateTimeOffset.UtcNow,
+            SourceFingerprint = context.Asset.Fingerprint,
+            Metadata = metadata,
+        };
+
+        return ValueTask.FromResult(document);
+    }
+
+    private static (string Text, bool Truncated) ApplyLimit(string text, long? limit)
+    {
+        if (limit is long max && text.Length > max)
+        {
+            return (text[..(int)max], true);
+        }
+
+        return (text, false);
+    }
+
+    private static string ResolveCell(Cell cell, string[] shared)
+    {
+        var raw = cell.CellValue?.InnerText;
+        if (string.IsNullOrEmpty(raw))
+        {
+            return cell.InlineString?.Text?.Text ?? string.Empty;
+        }
+
+        if (cell.DataType?.Value == CellValues.SharedString)
+        {
+            return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx)
+                && idx >= 0 && idx < shared.Length
+                ? shared[idx]
+                : string.Empty;
+        }
+
+        // Number, boolean, or cached formula value — emitted as stored (no recomputation).
+        return raw;
+    }
+
+    private static string[] ReadSharedStrings(WorkbookPart? wbPart)
+    {
+        var table = wbPart?.SharedStringTablePart?.SharedStringTable;
+        return table is null
+            ? []
+            : table.Elements<SharedStringItem>().Select(item => item.InnerText).ToArray();
+    }
+
+    private static IReadOnlyDictionary<string, string> BuildMetadata(
+        SpreadsheetDocument spreadsheet, int sheetCount, bool truncated)
+    {
+        var props = spreadsheet.PackageProperties;
+        var map = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SheetCount"] = sheetCount.ToString(CultureInfo.InvariantCulture),
+        };
+
+        if (truncated)
+        {
+            map["Truncated"] = "true";
+        }
+
+        Add(map, "Author", props.Creator);
+        Add(map, "Category", props.Category);
+        Add(map, "Created", props.Created?.ToString("o", CultureInfo.InvariantCulture));
+        Add(map, "Modified", props.Modified?.ToString("o", CultureInfo.InvariantCulture));
+        return map;
+    }
+
+    private static void Add(Dictionary<string, string> map, string key, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            map[key] = value;
+        }
+    }
+}
+```
+
+> Note: `.xls` (legacy binary) is unsupported and stays `BinaryOpaque`; malformed/non-OOXML input makes `SpreadsheetDocument.Open` throw → dispatcher returns `Failed`. Dates stored as serial numbers may surface as serials (documented limitation).
 
 - [ ] **Step 8: Add projects to the solution, build, and run tests**
 
@@ -1012,13 +1398,13 @@ dotnet sln src/Ferret.sln add tests/Ferret.Parsers.Office.Tests/Ferret.Parsers.O
 dotnet test tests/Ferret.Parsers.Office.Tests
 ```
 
-Expected: PASS (2 tests).
+Expected: PASS (Word: 2 tests, Excel: 3 tests).
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add Directory.Packages.props src/Ferret.Parsers.Office tests/Ferret.Parsers.Office.Tests src/Ferret.sln
-git commit -m "feat(parsers): add Ferret.Parsers.Office with OpenXml-based WordParser (docx)"
+git add Directory.Packages.props src/Ferret.Core/Documents/ParserOptions.cs src/Ferret.Parsers.Office tests/Ferret.Parsers.Office.Tests src/Ferret.sln
+git commit -m "feat(parsers): add Office package with Word (docx) and Excel (xlsx) parsers"
 ```
 
 ---
@@ -1072,18 +1458,19 @@ namespace Ferret.Parsers.Tests;
 public sealed class ParserPackModuleTests
 {
     [Fact]
-    public void Registers_All_Five_Parsers_And_Resolves_Pdf_And_Docx()
+    public void Registers_All_Six_Parsers_And_Resolves_Pdf_Docx_Xlsx()
     {
         var services = new ServiceCollection();
         ParserPackModule.ConfigureServices(services);
         var provider = services.BuildServiceProvider();
 
         var parsers = provider.GetServices<IContentParser>().ToList();
-        Assert.Equal(5, parsers.Count); // PlainText, Markdown, Json, Pdf, Word
+        Assert.Equal(6, parsers.Count); // PlainText, Markdown, Json, Pdf, Word, Excel
 
         var registry = provider.GetRequiredService<IParserRegistry>();
         Assert.NotNull(registry.GetParserFor("application/pdf"));
         Assert.NotNull(registry.GetParserFor("application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
+        Assert.NotNull(registry.GetParserFor("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
         Assert.NotNull(registry.GetParserFor("text/x-csharp")); // built-in plain text still works
     }
 }
@@ -1336,7 +1723,7 @@ Expected: PASS.
 - [ ] **Step 6: Manually verify the doctor output**
 
 Run: `dotnet run --project src/Ferret.Cli -- doctor`
-Expected: output includes a line naming the 5 installed parsers and the supported-extension count.
+Expected: output includes a line naming the 6 installed parsers (Plain Text, Markdown, JSON, PDF, Word/DOCX, Excel/XLSX) and the supported-extension count.
 
 - [ ] **Step 7: Commit**
 
@@ -1360,6 +1747,8 @@ git commit -m "feat(cli): add installed-parsers diagnostic check to ferret docto
 - Create: `tests/Ferret.Benchmarks/Corpus/Renderers/JsonRenderer.cs`
 - Create: `tests/Ferret.Benchmarks/Corpus/Renderers/PdfRenderer.cs`
 - Create: `tests/Ferret.Benchmarks/Corpus/Renderers/DocxRenderer.cs`
+- Create: `tests/Ferret.Benchmarks/Corpus/Renderers/XlsxRenderer.cs`
+- Create: `tests/Ferret.Benchmarks/Corpus/EnterpriseArchetypes.cs` (tabular Jira/RTM/bug/risk documents)
 - Create: `tests/Ferret.Benchmarks/Corpus/SyntheticEnterpriseCorpusGenerator.cs`
 - Create: `tests/Ferret.Benchmarks.Tests/Corpus/CorpusGeneratorTests.cs` (new test project, see Step 8)
 
@@ -1368,9 +1757,11 @@ git commit -m "feat(cli): add installed-parsers diagnostic check to ferret docto
 **Interfaces:**
 - Produces:
   - `sealed record CorpusBlock(CorpusBlockKind Kind, string Text)` and `enum CorpusBlockKind { Heading, Paragraph, CodeLine, KeyValue }`
-  - `sealed record CorpusDocument(string Title, IReadOnlyList<CorpusBlock> Blocks)`
+  - `sealed record CorpusTable(IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<string>> Rows)`
+  - `sealed record CorpusDocument(string Title, IReadOnlyList<CorpusBlock> Blocks, IReadOnlyList<CorpusTable> Tables)`
   - `interface IDocumentRenderer { string Extension { get; } void Render(CorpusDocument doc, Stream output); }`
   - `enum CorpusSize { Small, Medium, Enterprise }`
+  - `static class EnterpriseArchetypes { IReadOnlyList<CorpusDocument> Build(Random rng); }` — Jira/RTM/bug/risk tabular docs
   - `sealed class SyntheticEnterpriseCorpusGenerator { SyntheticEnterpriseCorpusGenerator(int seed); void Generate(CorpusSize size, string outputRoot); }`
 
 - [ ] **Step 1: Write the failing determinism test**
@@ -1421,9 +1812,11 @@ public sealed class CorpusGeneratorTests
             Assert.True(Directory.Exists(Path.Join(dir, "Documentation")));
             Assert.True(Directory.Exists(Path.Join(dir, "PDF")));
             Assert.True(Directory.Exists(Path.Join(dir, "Word")));
+            Assert.True(Directory.Exists(Path.Join(dir, "Excel")));
             Assert.True(Directory.Exists(Path.Join(dir, "Mixed")));
             Assert.NotEmpty(Directory.GetFiles(Path.Join(dir, "PDF"), "*.pdf"));
             Assert.NotEmpty(Directory.GetFiles(Path.Join(dir, "Word"), "*.docx"));
+            Assert.NotEmpty(Directory.GetFiles(Path.Join(dir, "Excel"), "*.xlsx"));
         }
         finally
         {
@@ -1456,8 +1849,16 @@ public enum CorpusBlockKind
 /// <summary>A single format-agnostic content block.</summary>
 public sealed record CorpusBlock(CorpusBlockKind Kind, string Text);
 
-/// <summary>A logical, format-agnostic document. Renderers turn it into concrete file bytes.</summary>
-public sealed record CorpusDocument(string Title, IReadOnlyList<CorpusBlock> Blocks);
+/// <summary>A format-agnostic table: a header row plus data rows. Rendered as a Markdown pipe table,
+/// a Word table, or an Excel sheet by the respective renderer.</summary>
+public sealed record CorpusTable(IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<string>> Rows);
+
+/// <summary>A logical, format-agnostic document. Renderers turn it into concrete file bytes.
+/// A document may carry prose blocks, tables, or both.</summary>
+public sealed record CorpusDocument(
+    string Title,
+    IReadOnlyList<CorpusBlock> Blocks,
+    IReadOnlyList<CorpusTable> Tables);
 ```
 
 ```csharp
@@ -1675,14 +2076,38 @@ public sealed class DocxRenderer : IDocumentRenderer
             body.Append(new Paragraph(new Run(new Text(block.Text) { Space = SpaceProcessingModeValues.Preserve })));
         }
 
+        // Tables (e.g. enterprise archetypes) render as real Word tables.
+        foreach (var t in doc.Tables)
+        {
+            var table = new Table();
+            table.Append(RowOf(t.Headers));
+            foreach (var row in t.Rows)
+            {
+                table.Append(RowOf(row));
+            }
+
+            body.Append(table);
+        }
+
         main.Document = new Document(body);
         word.PackageProperties.Title = doc.Title;
         word.PackageProperties.Creator = "Synthetic Corpus Generator";
     }
+
+    private static TableRow RowOf(IReadOnlyList<string> cells)
+    {
+        var row = new TableRow();
+        foreach (var cell in cells)
+        {
+            row.Append(new TableCell(new Paragraph(new Run(new Text(cell) { Space = SpaceProcessingModeValues.Preserve }))));
+        }
+
+        return row;
+    }
 }
 ```
 
-> **Determinism caveat:** OpenXml/Office Open XML packages embed creation timestamps by default. To keep bytes identical across runs, the generator MUST set fixed package timestamps (see Step 7). If byte-identical `.docx` proves impractical, the determinism test asserts identical **extracted text** for `.docx` instead of identical bytes — note this explicitly in the test if you take that path.
+> **Determinism caveat:** OpenXml packages (`.docx` and `.xlsx`) embed creation timestamps by default. To keep bytes identical across runs, pin package timestamps to a fixed value in the OOXML renderers. If byte-identical OOXML proves impractical, the determinism test compares identical **extracted text** for `.docx`/`.xlsx` instead of identical bytes — note this in the test if you take that path.
 
 - [ ] **Step 6: Implement the PDF renderer (PdfPig writer; fallback allowed)**
 
@@ -1729,6 +2154,148 @@ public sealed class PdfRenderer : IDocumentRenderer
 
 > If PdfPig's writer cannot meet a determinism or content requirement, replace this renderer's body with a minimal hand-rolled single-page PDF emitter. This is benchmark-only and never touches the production `PdfParser`.
 
+- [ ] **Step 6a: Implement the XLSX renderer (OpenXml)**
+
+Renders a `CorpusDocument`'s tables as real worksheets (one sheet per table), using shared strings so the `ExcelParser`'s SharedString path is exercised end-to-end.
+
+```csharp
+// tests/Ferret.Benchmarks/Corpus/Renderers/XlsxRenderer.cs
+using System.Globalization;
+
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+
+namespace Ferret.Benchmarks.Corpus.Renderers;
+
+/// <summary>Renders a CorpusDocument's tables as a real .xlsx (one worksheet per table).</summary>
+public sealed class XlsxRenderer : IDocumentRenderer
+{
+    /// <inheritdoc/>
+    public string Extension => ".xlsx";
+
+    /// <inheritdoc/>
+    public void Render(CorpusDocument doc, Stream output)
+    {
+        ArgumentNullException.ThrowIfNull(doc);
+        ArgumentNullException.ThrowIfNull(output);
+
+        using var spreadsheet = SpreadsheetDocument.Create(output, SpreadsheetDocumentType.Workbook, autoSave: true);
+        var wbPart = spreadsheet.AddWorkbookPart();
+        wbPart.Workbook = new Workbook();
+
+        var sstPart = wbPart.AddNewPart<SharedStringTablePart>();
+        var sst = new SharedStringTable();
+        var index = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        int Intern(string s)
+        {
+            if (index.TryGetValue(s, out var i)) return i;
+            i = index.Count;
+            index[s] = i;
+            sst.Append(new SharedStringItem(new Text(s)));
+            return i;
+        }
+
+        Cell SharedCell(string s) => new()
+        {
+            DataType = CellValues.SharedString,
+            CellValue = new CellValue(Intern(s).ToString(CultureInfo.InvariantCulture)),
+        };
+
+        var sheets = wbPart.Workbook.AppendChild(new Sheets());
+        uint sheetId = 1;
+
+        // Fall back to a single sheet built from the title when the doc has no tables.
+        var tables = doc.Tables.Count > 0
+            ? doc.Tables
+            : [new CorpusTable(["Title"], [[doc.Title]])];
+
+        foreach (var t in tables)
+        {
+            var wsPart = wbPart.AddNewPart<WorksheetPart>();
+            var sheetData = new SheetData();
+
+            var headerRow = new Row();
+            foreach (var h in t.Headers) headerRow.Append(SharedCell(h));
+            sheetData.Append(headerRow);
+
+            foreach (var row in t.Rows)
+            {
+                var r = new Row();
+                foreach (var cell in row) r.Append(SharedCell(cell));
+                sheetData.Append(r);
+            }
+
+            wsPart.Worksheet = new Worksheet(sheetData);
+            sheets.Append(new Sheet
+            {
+                Id = wbPart.GetIdOfPart(wsPart),
+                SheetId = sheetId,
+                Name = string.Create(CultureInfo.InvariantCulture, $"Sheet{sheetId}"),
+            });
+            sheetId++;
+        }
+
+        sstPart.SharedStringTable = sst;
+    }
+}
+```
+
+- [ ] **Step 6b: Implement the enterprise tabular archetypes**
+
+```csharp
+// tests/Ferret.Benchmarks/Corpus/EnterpriseArchetypes.cs
+using System.Globalization;
+
+namespace Ferret.Benchmarks.Corpus;
+
+/// <summary>
+/// Builds realistic enterprise tabular documents — the artifacts that motivated Excel support
+/// (requirement traceability, bug reports, sprint backlog, risk register). Deterministic given the RNG.
+/// </summary>
+public static class EnterpriseArchetypes
+{
+    /// <summary>Builds one document per archetype, each carrying a single <see cref="CorpusTable"/>.</summary>
+    /// <param name="rng">Seeded RNG for row content.</param>
+    /// <returns>The archetype documents.</returns>
+    public static IReadOnlyList<CorpusDocument> Build(Random rng)
+    {
+        ArgumentNullException.ThrowIfNull(rng);
+        return
+        [
+            Doc("Requirement Traceability Matrix",
+                ["ID", "Requirement", "Priority", "Status", "Linked Test", "Owner"],
+                rng, 25, i => [$"REQ-{i:D3}", Phrase(rng), Pick(rng, "High", "Medium", "Low"), Pick(rng, "Open", "Done"), $"TC-{i:D3}", Pick(rng, "Alice", "Bob", "Chandra")]),
+            Doc("Bug Report Export",
+                ["Key", "Summary", "Severity", "Status", "Assignee", "Created"],
+                rng, 25, i => [$"BUG-{i:D3}", Phrase(rng), Pick(rng, "Blocker", "Major", "Minor"), Pick(rng, "Open", "In Progress", "Closed"), Pick(rng, "Alice", "Bob"), "2026-01-01"]),
+            Doc("Sprint Backlog",
+                ["Story", "Points", "Sprint", "State", "Epic"],
+                rng, 25, i => [$"STORY-{i:D3}", Pick(rng, "1", "2", "3", "5", "8"), Pick(rng, "S-12", "S-13"), Pick(rng, "To Do", "Doing", "Done"), Pick(rng, "Search", "Indexing")]),
+            Doc("Risk Register",
+                ["Risk", "Likelihood", "Impact", "Mitigation", "Owner"],
+                rng, 25, i => [$"RISK-{i:D3}: {Phrase(rng)}", Pick(rng, "Low", "Medium", "High"), Pick(rng, "Low", "Medium", "High"), Phrase(rng), Pick(rng, "Alice", "Bob")]),
+        ];
+    }
+
+    private static CorpusDocument Doc(
+        string title, string[] headers, Random rng, int rows, Func<int, IReadOnlyList<string>> row)
+    {
+        var data = new List<IReadOnlyList<string>>();
+        for (var i = 1; i <= rows; i++) data.Add(row(i));
+        return new CorpusDocument(title, [], [new CorpusTable(headers, data)]);
+    }
+
+    private static readonly string[] Terms =
+        ["login", "export", "index", "search", "auth", "cache", "report", "sync", "upload", "filter"];
+
+    private static string Phrase(Random rng) =>
+        string.Create(CultureInfo.InvariantCulture, $"{Terms[rng.Next(Terms.Length)]} {Terms[rng.Next(Terms.Length)]}");
+
+    private static string Pick(Random rng, params string[] options) => options[rng.Next(options.Length)];
+}
+```
+
 - [ ] **Step 7: Implement the generator (seeded, deterministic)**
 
 ```csharp
@@ -1741,7 +2308,8 @@ namespace Ferret.Benchmarks.Corpus;
 
 /// <summary>
 /// Generates a deterministic, multi-format synthetic enterprise corpus: source code, documentation,
-/// PDFs, Word documents, and a mixed repo tree. Same seed + size produces identical output.
+/// PDFs, Word documents, Excel workbooks (enterprise tabular archetypes), and a mixed repo tree.
+/// Same seed + size produces identical output.
 /// Reusable beyond benchmarks (demo data, CI fixtures). Lives in the benchmark project; not committed output.
 /// </summary>
 public sealed class SyntheticEnterpriseCorpusGenerator
@@ -1774,6 +2342,19 @@ public sealed class SyntheticEnterpriseCorpusGenerator
         Emit(rng, Path.Join(outputRoot, "Documentation"), counts.Docs, new MarkdownRenderer());
         Emit(rng, Path.Join(outputRoot, "PDF"), counts.Pdf, new PdfRenderer());
         Emit(rng, Path.Join(outputRoot, "Word"), counts.Word, new DocxRenderer());
+
+        // Excel: enterprise tabular archetypes (Jira/RTM/bug/risk), cycled to fill the count.
+        var excelDir = Path.Join(outputRoot, "Excel");
+        Directory.CreateDirectory(excelDir);
+        var xlsx = new XlsxRenderer();
+        for (var i = 0; i < counts.Excel; i++)
+        {
+            var archetypes = EnterpriseArchetypes.Build(rng); // rebuilt per doc so RNG advances deterministically
+            var doc = archetypes[i % archetypes.Count];
+            var fileName = string.Create(CultureInfo.InvariantCulture, $"sheet{i:D5}.xlsx");
+            using var fs = File.Create(Path.Join(excelDir, fileName));
+            xlsx.Render(doc, fs);
+        }
 
         // Mixed: alternate renderers deterministically by index.
         IDocumentRenderer[] mixed = [new CSharpRenderer(), new MarkdownRenderer(), new JsonRenderer(), new HtmlRenderer()];
@@ -1812,7 +2393,8 @@ public sealed class SyntheticEnterpriseCorpusGenerator
 
         return new CorpusDocument(
             string.Create(CultureInfo.InvariantCulture, $"Document {index} {Words[rng.Next(Words.Length)]}"),
-            blocks);
+            blocks,
+            Tables: []);
     }
 
     private string Sentence(Random rng)
@@ -1827,17 +2409,17 @@ public sealed class SyntheticEnterpriseCorpusGenerator
         return string.Join(' ', parts) + ".";
     }
 
-    private static (int Code, int Docs, int Pdf, int Word, int Mixed) CountsFor(CorpusSize size) => size switch
+    private static (int Code, int Docs, int Pdf, int Word, int Excel, int Mixed) CountsFor(CorpusSize size) => size switch
     {
-        CorpusSize.Small => (100, 30, 30, 20, 20),
-        CorpusSize.Medium => (1000, 300, 300, 200, 200),
-        CorpusSize.Enterprise => (9000, 2000, 2000, 1000, 1000),
-        _ => (100, 30, 30, 20, 20),
+        CorpusSize.Small => (90, 30, 30, 20, 10, 20),
+        CorpusSize.Medium => (1000, 300, 300, 200, 100, 100),
+        CorpusSize.Enterprise => (9000, 2000, 2000, 1000, 1000, 1000),
+        _ => (90, 30, 30, 20, 10, 20),
     };
 }
 ```
 
-> Implementation note for determinism: if DOCX/PDF embed wall-clock timestamps, set them to `FixedTimestamp` inside the respective renderers (e.g. `word.PackageProperties.Created = FixedTimestamp;`). Verify the determinism test passes; if byte-identical DOCX is impractical, switch that test to compare extracted text (documented in Step 1's test file).
+> Implementation note for determinism: if DOCX/XLSX/PDF embed wall-clock timestamps, pin them to `FixedTimestamp` inside the respective renderers (e.g. `word.PackageProperties.Created = FixedTimestamp;`, and the spreadsheet's `PackageProperties.Created`). Verify the determinism test passes; if byte-identical OOXML is impractical, switch that test to compare extracted text (documented in Step 1's test file).
 
 - [ ] **Step 8: Create the benchmark-tests project and wire references**
 
@@ -1846,6 +2428,7 @@ Add to `tests/Ferret.Benchmarks/Ferret.Benchmarks.csproj` (new ItemGroup):
 ```xml
 <ItemGroup>
   <PackageReference Include="UglyToad.PdfPig" />
+  <PackageReference Include="DocumentFormat.OpenXml" />
   <ProjectReference Include="..\..\src\Ferret.Parsers.Office\Ferret.Parsers.Office.csproj" />
 </ItemGroup>
 ```
@@ -1891,7 +2474,7 @@ git commit -m "feat(bench): add deterministic synthetic enterprise corpus genera
 
 ---
 
-### Task 8: End-to-end integration test (index PDF + DOCX, exclude opaque binaries)
+### Task 8: End-to-end integration test (index PDF + DOCX + XLSX, exclude opaque binaries)
 
 **Files:**
 - Modify: `tests/Ferret.Integration.Tests/Ferret.Integration.Tests.csproj` (reference `Ferret.Parsers`, `Ferret.Benchmarks`)
@@ -1927,7 +2510,7 @@ namespace Ferret.Integration.Tests;
 public sealed class ParserPackIndexingTests
 {
     [Fact]
-    public async Task Pdf_And_Docx_Are_Parsed_And_Opaque_Binaries_Are_Not()
+    public async Task Pdf_Docx_Xlsx_Parsed_And_Opaque_Binaries_Excluded()
     {
         // 1. Generate a Small corpus.
         var root = Path.Join(Path.GetTempPath(), "pp-int-" + Guid.NewGuid().ToString("N"));
@@ -1943,18 +2526,25 @@ public sealed class ParserPackIndexingTests
         var dispatcher = provider.GetRequiredService<IParserDispatcher>();
         var resolver = (IMimeTypeResolver)new MimeTypeResolver();
 
-        // 4. Parse one PDF and one DOCX directly through the dispatcher (full resolve path).
+        // 4. Parse one PDF, one DOCX, and one XLSX directly through the dispatcher (full resolve path).
         var pdfPath = Directory.GetFiles(Path.Join(root, "PDF"), "*.pdf").OrderBy(p => p).First();
         var docxPath = Directory.GetFiles(Path.Join(root, "Word"), "*.docx").OrderBy(p => p).First();
+        var xlsxPath = Directory.GetFiles(Path.Join(root, "Excel"), "*.xlsx").OrderBy(p => p).First();
 
         var pdfResult = await DispatchFile(dispatcher, resolver, pdfPath);
         var docxResult = await DispatchFile(dispatcher, resolver, docxPath);
+        var xlsxResult = await DispatchFile(dispatcher, resolver, xlsxPath);
         var soResult = await DispatchFile(dispatcher, resolver, Path.Join(root, "SourceCode", "native.so"));
 
         Assert.Equal(ParseResultKind.Success, pdfResult.Kind);
         Assert.False(string.IsNullOrWhiteSpace(pdfResult.Value!.PlainText));
         Assert.Equal(ParseResultKind.Success, docxResult.Kind);
         Assert.False(string.IsNullOrWhiteSpace(docxResult.Value!.PlainText));
+
+        // XLSX: parsed as Data, and a header token from the enterprise archetype is searchable.
+        Assert.Equal(ParseResultKind.Success, xlsxResult.Kind);
+        Assert.Equal(DocumentKind.Data, xlsxResult.Value!.Kind);
+        Assert.Contains("Priority", xlsxResult.Value!.PlainText, StringComparison.Ordinal);
 
         // Opaque binary: resolver yields application/octet-stream, dispatcher finds no parser.
         Assert.Equal(ParseResultKind.Unsupported, soResult.Kind);
@@ -1985,7 +2575,7 @@ Expected: PASS.
 
 ```bash
 git add tests/Ferret.Integration.Tests
-git commit -m "test(parsers): end-to-end PDF/DOCX parsing and opaque-binary exclusion"
+git commit -m "test(parsers): end-to-end PDF/DOCX/XLSX parsing and opaque-binary exclusion"
 ```
 
 ---
@@ -2016,7 +2606,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Ferret.Benchmarks.Benchmarks;
 
-/// <summary>Measures parse throughput per document type (PDF, DOCX, code, markdown) over a Small corpus.</summary>
+/// <summary>Measures parse throughput per document type (PDF, DOCX, XLSX, code, markdown) over a Small corpus.</summary>
 [MemoryDiagnoser]
 public class ParserThroughputBenchmark
 {
@@ -2061,6 +2651,15 @@ public class ParserThroughputBenchmark
         }
     }
 
+    [Benchmark]
+    public async Task ParseAllXlsx()
+    {
+        foreach (var path in Directory.GetFiles(Path.Join(_root, "Excel"), "*.xlsx"))
+        {
+            await ParseOne(path);
+        }
+    }
+
     private async Task ParseOne(string path)
     {
         var mediaType = _resolver.Resolve(Path.GetFileName(path)).MediaType;
@@ -2071,16 +2670,17 @@ public class ParserThroughputBenchmark
 }
 ```
 
-> Reuse/define the same `TestAsset.For` helper used in Task 8 (place a shared copy in the benchmark project). The report should record documents/sec and MB/sec per type, and parser-time vs index-time when run through the full pipeline benchmark.
+> Reuse/define the same `TestAsset.For` helper used in Task 8 (place a shared copy in the benchmark project). The report records documents/sec and MB/sec per type, and parser-time vs index-time when run through the full pipeline benchmark. **Add a large-workbook case:** generate (or hand-build) a single `.xlsx` with a multi-thousand-row sheet and benchmark it separately, to characterize the streaming reader's memory/throughput on realistic enterprise export sizes.
 
 - [ ] **Step 2: Create the report skeleton**
 
 ```markdown
 <!-- docs/benchmarks/parser-pack-1/README.md -->
-# Parser Pack 1 — Performance Report
+# Enterprise Content Pack 1 — Performance Report
 
 ## Objective
-Measure indexing throughput and parse cost for PDF and DOCX vs text/code.
+Measure indexing throughput and parse cost for PDF, DOCX, and XLSX vs text/code,
+including a large-workbook (multi-thousand-row) XLSX case.
 
 ## Environment
 (CPU, RAM, .NET version, corpus size)
@@ -2090,11 +2690,13 @@ Deterministic Small/Medium corpus via SyntheticEnterpriseCorpusGenerator (seed p
 Run: `dotnet run -c Release --project tests/Ferret.Benchmarks`
 
 ## Raw Measurements
-| Type | Docs/sec | MB/sec | Parser time | Index time |
-| ---- | -------- | ------ | ----------- | ---------- |
-| PDF  |          |        |             |            |
-| DOCX |          |        |             |            |
-| Code |          |        |             |            |
+| Type          | Docs/sec | MB/sec | Parser time | Index time |
+| ------------- | -------- | ------ | ----------- | ---------- |
+| PDF           |          |        |             |            |
+| DOCX          |          |        |             |            |
+| XLSX          |          |        |             |            |
+| XLSX (large)  |          |        |             |            |
+| Code          |          |        |             |            |
 
 ## Observations
 
@@ -2103,7 +2705,7 @@ Run: `dotnet run -c Release --project tests/Ferret.Benchmarks`
 
 - [ ] **Step 3: Update README supported file types**
 
-In `README.md`, add a "Supported file types" section listing: source code & text/config (via PlainText/Markdown/JSON), **PDF** (`Ferret.Parsers.Pdf`), **Word .docx** (`Ferret.Parsers.Office`), composed via `Ferret.Parsers`. Mention `ferret doctor` shows installed parsers and the supported-extension count.
+In `README.md`, add a "Supported file types" section listing: source code & text/config (via PlainText/Markdown/JSON), **PDF** (`Ferret.Parsers.Pdf`), **Word .docx** and **Excel .xlsx** (`Ferret.Parsers.Office`), composed via `Ferret.Parsers`. Document the configurable `Ferret:Parsers:MaxExtractedCharacters` setting (default unlimited). Mention `ferret doctor` shows installed parsers and the supported-extension count.
 
 - [ ] **Step 4: Build the benchmark project (compile-only verification)**
 
@@ -2114,7 +2716,7 @@ Expected: build succeeds. (Full benchmark execution is run on demand, not in CI.
 
 ```bash
 git add tests/Ferret.Benchmarks/Benchmarks/ParserThroughputBenchmark.cs docs/benchmarks/parser-pack-1/README.md README.md
-git commit -m "feat(bench): add parser throughput benchmark and Parser Pack 1 docs"
+git commit -m "feat(bench): add parser throughput benchmark and Enterprise Content Pack 1 docs"
 ```
 
 ---
@@ -2125,19 +2727,22 @@ git commit -m "feat(bench): add parser throughput benchmark and Parser Pack 1 do
 - Expanded text/code/config MIME mappings + DocumentKind → Task 2 ✅
 - Expanded binary denylist → Task 2 ✅
 - `Ferret.Parsers.Pdf` (PdfPig) → Task 3 ✅
-- `Ferret.Parsers.Office` (DOCX only) → Task 4 ✅
-- Additive MimeTypeResolver / PDF+DOCX dedicated media types → Task 2 ✅
+- `Ferret.Parsers.Office` (**DOCX + XLSX**) → Task 4 ✅
+- Additive MimeTypeResolver / PDF+DOCX+**XLSX** dedicated media types (XLSX → `Data`) → Task 2 ✅
 - Parseable-binary distinct from opaque (`MediaCategory`) → Task 1 + Task 2 ✅
-- `ParserPackModule` composition → Task 5 ✅
-- Parser principle (text + metadata only) → enforced in Global Constraints + Tasks 3/4 ✅
-- Lightweight metadata schema → Tasks 3 (PDF) + 4 (DOCX) ✅
+- **Excel streaming reader + shared strings + cached values** → Task 4 (Step E4) ✅
+- **Configurable extracted-text limit (`ParserOptions`, default unlimited)** → Task 4 (Steps E1/E4) ✅
+- `ParserPackModule` composition (6 parsers) → Task 5 ✅
+- Parser principle (text + metadata only, no calc/formula) → Global Constraints + Tasks 3/4 ✅
+- Lightweight metadata schema → Tasks 3 (PDF) + 4 (DOCX/XLSX) ✅
 - `GetServices<IContentParser>()` aggregation (registry untouched) → Task 5 test ✅
-- `ferret doctor` parser introspection → Task 6 ✅
-- Synthetic Enterprise Corpus Generator (abstract + renderers, deterministic, not committed) → Task 7 ✅
-- Unit tests → Tasks 1–7; end-to-end integration test → Task 8; performance report → Task 9; docs → Task 9 ✅
-- DocumentKind evolution note / Office future parsers → documented in spec; no code needed ✅
-- Reserved Parser Pack 2 → spec only, no task ✅
+- `ferret doctor` parser introspection (6 parsers) → Task 6 ✅
+- Corpus generator with **`CorpusTable`** + **XLSX renderer** + **enterprise tabular archetypes** → Task 7 ✅
+- Unit tests → Tasks 1–7; end-to-end integration test incl. **XLSX cell search** → Task 8; performance report incl. **large-workbook XLSX** → Task 9; docs → Task 9 ✅
+- Acceptance criteria (PDF/DOCX/XLSX searchable, Jira-export cell retrievable, opaque excluded, `Data` kind, config limit, 6 parsers) → Tasks 4/6/8 ✅
+- DocumentKind evolution / PowerPoint fast-follow → documented in spec; no code ✅
+- Reserved Enterprise Content Pack 2 (incl. PPTX) → spec only, no task ✅
 
-**Placeholder scan:** No "TBD"/"handle edge cases" left; failure handling is concrete (throw → dispatcher `Failed`; empty text → `Empty`). The two genuinely environment-dependent items (exact PdfPig/OpenXml package versions; DOCX/PDF byte-determinism) are called out with explicit fallback instructions, not left vague.
+**Placeholder scan:** No "TBD"/"handle edge cases" left; failure handling is concrete (throw → dispatcher `Failed`; empty text → `Empty`). Environment-dependent items (PdfPig/OpenXml versions; OOXML byte-determinism for `.docx`/`.xlsx`) carry explicit fallback instructions, not vague notes.
 
-**Type consistency:** `MediaCategory` (Task 1) used identically in Task 2 and Task 6. `ParserPackModule.ConfigureServices` (Task 5) consumed in Tasks 6/8/9. `SyntheticEnterpriseCorpusGenerator(int seed).Generate(CorpusSize, string)` consistent across Tasks 7/8/9. `OfficeMediaTypes.Docx` (Task 4) reused in Task 5 test. `IDocumentRenderer.Extension`/`Render` consistent across all renderers. `TestAsset.For(path, mediaType)` helper referenced in Tasks 8/9 (define once in each consuming project).
+**Type consistency:** `MediaCategory` (Task 1) used identically in Tasks 2/6. `ParserPackModule.ConfigureServices` (Task 5, 6 parsers) consumed in Tasks 6/8/9. `ParserOptions.MaxExtractedCharacters` (Task 4 E1) consumed by `ExcelParser` (E4) and registered in `OfficeParserModule`. `OfficeMediaTypes.Docx`/`.Xlsx` (Task 4) reused in Task 5 test. `CorpusDocument(Title, Blocks, Tables)` and `CorpusTable(Headers, Rows)` (Task 7 Step 3) consumed by `DocxRenderer`/`XlsxRenderer`/`EnterpriseArchetypes`/generator consistently. `SyntheticEnterpriseCorpusGenerator(int seed).Generate(CorpusSize, string)` consistent across Tasks 7/8/9. `TestAsset.For(path, mediaType)` referenced in Tasks 8/9 (define once per consuming project).
