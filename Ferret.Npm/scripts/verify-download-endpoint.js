@@ -10,63 +10,80 @@
 
 const { releaseBaseUrl } = require('../lib/distribution-config');
 
-// Release assets can take a few seconds to propagate after publish; retry a few
-// times before failing. Tunable via env for CI and for fast failure-path tests.
-const ATTEMPTS = Number(process.env.FERRET_VERIFY_ATTEMPTS) || 8;
-const DELAY_MS = Number(process.env.FERRET_VERIFY_DELAY_MS) || 3000;
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function check(url) {
-    const res = await fetch(url);
-    if (!res.ok) {
-        return { ok: false, reason: `HTTP ${res.status}` };
-    }
-    const body = await res.json();
-    return { ok: true, body };
-}
+// Resolve the manifest URL for `tag` and confirm it is anonymously fetchable,
+// retrying a few times to absorb post-publish propagation delay. Returns
+// { ok, url, reason }. `fetch` and timing are injectable so this is unit-testable
+// without a network or a local server.
+async function verifyManifest(tag, opts = {}) {
+    const fetchImpl = opts.fetch || fetch;
+    const attempts = opts.attempts || Number(process.env.FERRET_VERIFY_ATTEMPTS) || 8;
+    const delayMs =
+        opts.delayMs != null ? opts.delayMs : Number(process.env.FERRET_VERIFY_DELAY_MS) || 3000;
+    const log = opts.log || console.log;
 
-async function main() {
-    const tag = process.argv[2] || process.env.FERRET_VERIFY_TAG || '';
-    if (!/^v\d+\.\d+\.\d+/.test(tag)) {
-        console.error('Usage: node scripts/verify-download-endpoint.js <vX.Y.Z>');
-        process.exit(2);
-    }
     const url = `${releaseBaseUrl(tag)}/release-manifest.json`;
-    console.log(`Verifying anonymous reachability of ${url}`);
+    log(`Verifying anonymous reachability of ${url}`);
 
     let last = null;
-    for (let i = 1; i <= ATTEMPTS; i++) {
+    for (let i = 1; i <= attempts; i++) {
         try {
-            const res = await check(url);
+            const res = await fetchImpl(url);
             if (res.ok) {
-                if (res.body.releaseTag && res.body.releaseTag !== tag) {
-                    console.error(
-                        `FAIL: manifest releaseTag "${res.body.releaseTag}" != requested "${tag}".`
-                    );
-                    process.exit(1);
+                const body = await res.json();
+                if (body.releaseTag && body.releaseTag !== tag) {
+                    return {
+                        ok: false,
+                        url,
+                        mismatch: true,
+                        reason: `manifest releaseTag "${body.releaseTag}" != requested "${tag}"`,
+                    };
                 }
-                console.log('OK: manifest is publicly reachable and matches the tag.');
-                return;
+                return { ok: true, url };
             }
-            last = res.reason;
+            last = `HTTP ${res.status}`;
         } catch (err) {
             last = err.message;
         }
-        if (i < ATTEMPTS) {
-            console.log(`  attempt ${i}/${ATTEMPTS} not ready (${last}); retrying...`);
-            await sleep(DELAY_MS);
+        if (i < attempts) {
+            log(`  attempt ${i}/${attempts} not ready (${last}); retrying...`);
+            await sleep(delayMs);
         }
     }
+    return { ok: false, url, reason: last };
+}
+
+async function main(argv) {
+    const tag = argv[2] || process.env.FERRET_VERIFY_TAG || '';
+    if (!/^v\d+\.\d+\.\d+/.test(tag)) {
+        console.error('Usage: node scripts/verify-download-endpoint.js <vX.Y.Z>');
+        return 2;
+    }
+    const result = await verifyManifest(tag);
+    if (result.ok) {
+        console.log('OK: manifest is publicly reachable and matches the tag.');
+        return 0;
+    }
+    if (result.mismatch) {
+        console.error(`FAIL: ${result.reason}.`);
+        return 1;
+    }
     console.error(
-        `FAIL: manifest not anonymously reachable after ${ATTEMPTS} attempts (${last}).\n` +
+        `FAIL: manifest not anonymously reachable (${result.reason}).\n` +
             `The distribution repo/host must be PUBLIC. A private source repo cannot\n` +
             `serve release assets to unauthenticated npm installs. See lib/distribution-config.js.`
     );
-    process.exit(1);
+    return 1;
 }
 
-main().catch((err) => {
-    console.error(`FAIL: ${err.message}`);
-    process.exit(1);
-});
+if (require.main === module) {
+    main(process.argv)
+        .then((code) => process.exit(code))
+        .catch((err) => {
+            console.error(`FAIL: ${err.message}`);
+            process.exit(1);
+        });
+}
+
+module.exports = { verifyManifest };
