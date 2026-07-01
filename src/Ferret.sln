@@ -107,6 +107,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ferret.Parsers.Office", "Fe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ferret.Parsers.Office.Tests", "..\tests\Ferret.Parsers.Office.Tests\Ferret.Parsers.Office.Tests.csproj", "{F1F3AC2E-FA7B-4199-93F1-23FC5104B269}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ferret.Benchmarks.Tests", "..\tests\Ferret.Benchmarks.Tests\Ferret.Benchmarks.Tests.csproj", "{E0F03DEB-5D38-419E-91C8-68509B3209F0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -741,6 +743,18 @@ Global
 		{F1F3AC2E-FA7B-4199-93F1-23FC5104B269}.Release|x64.Build.0 = Release|Any CPU
 		{F1F3AC2E-FA7B-4199-93F1-23FC5104B269}.Release|x86.ActiveCfg = Release|Any CPU
 		{F1F3AC2E-FA7B-4199-93F1-23FC5104B269}.Release|x86.Build.0 = Release|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Debug|x64.Build.0 = Debug|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Debug|x86.Build.0 = Debug|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Release|x64.ActiveCfg = Release|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Release|x64.Build.0 = Release|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Release|x86.ActiveCfg = Release|Any CPU
+		{E0F03DEB-5D38-419E-91C8-68509B3209F0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
