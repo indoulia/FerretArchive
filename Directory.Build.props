@@ -49,8 +49,11 @@
     <Deterministic>true</Deterministic>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <!-- CS1591: missing XML comment — relaxed in non-library projects -->
+    <NoWarn>$(NoWarn);CS1591;NU5104</NoWarn>
+    <!-- CS1591: missing XML comment — relaxed in non-library projects.
+         NU5104: UglyToad.PdfPig is pinned to the validated prerelease 1.7.0-custom-5
+         (no obtainable stable); it flows transitively into several packable projects. -->
+
   </PropertyGroup>
 
   <PropertyGroup Label="Test">
