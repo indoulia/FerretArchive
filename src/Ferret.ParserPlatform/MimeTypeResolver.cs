@@ -86,8 +86,7 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
     private static readonly MediaTypeInfo UnknownText = new()
     {
         MediaType = "text/plain",
-        IsText = true,
-        IsBinary = false,
+        Category = MediaCategory.Text,
         Confidence = 0.5,
     };
 
@@ -113,8 +112,7 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
     private static MediaTypeInfo Text(string mediaType, DocumentKind kind) => new()
     {
         MediaType = mediaType,
-        IsText = true,
-        IsBinary = false,
+        Category = MediaCategory.Text,
         SuggestedKind = kind,
         Confidence = 1.0,
     };
@@ -122,8 +120,7 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
     private static MediaTypeInfo Binary() => new()
     {
         MediaType = "application/octet-stream",
-        IsText = false,
-        IsBinary = true,
+        Category = MediaCategory.BinaryOpaque,
         Confidence = 1.0,
     };
 }
