@@ -3,8 +3,6 @@
   <PropertyGroup>
     <RootNamespace>Ferret.Parsers.Pdf</RootNamespace>
     <AssemblyName>Ferret.Parsers.Pdf</AssemblyName>
-    <!-- PdfPig is pinned to a prerelease (validated build; no obtainable stable); NU5104 is expected. -->
-    <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
