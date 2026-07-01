@@ -9,20 +9,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Summary
 
-Ferret now indexes enterprise documents. Enterprise Content Pack 1 takes Ferret from 3
-parsers (text, Markdown, JSON) to **7** by adding CSV/TSV, PDF, Word (.docx), and Excel
-(.xlsx). This release also fixes anonymous npm installation, which broke when the source
-repository was made private.
+Ferret now indexes enterprise documents. This release expands parser support from **3
+formats to 7** — adding PDF, Word (.docx), Excel (.xlsx), and CSV/TSV — so a single index
+covers source code, documentation, structured data, and enterprise documents. It also
+**restores anonymous `npm install`**, which broke when the source repository was made
+private. Full customer-facing notes: `docs/012-Releases/v0.16.0.md`.
 
 ### Added
 
-**Parsers (7 total: PlainText, Markdown, JSON, CSV, PDF, Word, Excel)**
-- `CsvParser` — dependency-free, structure-aware CSV/TSV parsing (`Data` document kind).
-- `Ferret.Parsers.Pdf` — PDF text and lightweight metadata extraction via PdfPig.
-- `Ferret.Parsers.Office` — Word (.docx) and Excel (.xlsx) via Open XML. Excel uses
-  streaming extraction for large workbooks, resolves shared strings, and reads cached
-  cell values (no formula recomputation).
-- `Ferret.Parsers` composition project exposing `ParserPackModule`.
+**Multi-format indexing — 7 parsers (PlainText, Markdown, JSON, CSV, PDF, Word, Excel)**
+- PDF, Word (`.docx`), and Excel (`.xlsx`) documents are now parsed and searchable, taking
+  recognized formats from 3 to 7 (79 parseable extensions total).
+- CSV/TSV — dependency-free, structure-aware parsing (`Data` kind), for Jira/ADO exports,
+  RTMs, and backlogs.
+- Excel uses a streaming reader for large workbooks, resolves shared strings, and reads
+  cached cell values (no formula recomputation). Parsers extract text and lightweight
+  metadata only — no chunking, tokenizing, embedding, summarization, or spreadsheet calc.
+- Implemented as `Ferret.Parsers.Pdf` (PdfPig), `Ferret.Parsers.Office` (Open XML), a
+  dependency-free `CsvParser`, and a `Ferret.Parsers` composition project (`ParserPackModule`).
 
 **File classification**
 - MIME resolution reclassifies PDF/DOCX/XLSX as binary-parseable; expanded code/config
@@ -31,23 +35,27 @@ repository was made private.
 - `ParserOptions.MaxExtractedCharacters` extraction cap (default unlimited; sets
   `Truncated` metadata when applied).
 
-**Diagnostics**
-- `ferret doctor` Parser Platform report: installed parsers in registration order,
-  extension coverage (parseable vs. opaque), and parser packages.
+**Diagnostics — `ferret doctor` Parser Platform report**
+- Lists installed parsers in registration order, extension coverage (parseable vs. opaque),
+  and the parser packages providing each format.
 - Global `--verbose` is now recursive; `ferret doctor --verbose` shows all opaque
   extensions plus per-parser priority, media type, and parseable MIME types.
 
-**Benchmarks**
-- Deterministic enterprise corpus generator and BenchmarkDotNet suite for parser and
-  indexing throughput (`tests/Ferret.Benchmarks`).
+**Benchmarking**
+- Deterministic enterprise corpus generator and BenchmarkDotNet suite for parser
+  throughput, dispatcher overhead, and large-workbook memory (`tests/Ferret.Benchmarks`).
+- Reference results (laptop-class, indicative): PDF ~2,900 docs/sec, Word ~600 docs/sec,
+  Excel ~122 docs/sec; dispatcher overhead negligible; 50k-row workbook ~326 MB peak
+  working set. See `docs/benchmarks/parser-pack-1/README.md`.
 
 ### Fixed
 
-- **Public download mirror.** `npm install -g @indoulia/ferret` now downloads release
-  binaries from the public `indoulia/ferret-dist` mirror instead of the (now-private)
-  source repo, restoring anonymous installation. Overridable via `FERRET_DIST_OWNER` /
-  `FERRET_DIST_REPO` / `FERRET_DIST_RELEASE_ENDPOINT`. The release pipeline verifies the
-  download endpoint is anonymously reachable before publishing.
+- **Anonymous npm installation restored.** `npm install -g @indoulia/ferret` now downloads
+  release binaries from the public `indoulia/ferret-dist` mirror instead of the (now-private)
+  source repo — GitHub only serves release assets anonymously from public repos. Overridable
+  via `FERRET_DIST_OWNER` / `FERRET_DIST_REPO` / `FERRET_DIST_RELEASE_ENDPOINT`. The release
+  pipeline now verifies the download endpoint is anonymously reachable before a release
+  completes, so a broken install can no longer ship.
 
 ---
 
