@@ -67,11 +67,25 @@ Derived data:
 - **Parser packages** — distinct `parser.GetType().Assembly.GetName().Name`, ordered
   ordinal: `Ferret.ParserPlatform`, `Ferret.Parsers.Office`, `Ferret.Parsers.Pdf`.
 - **Extension coverage / lists** — from `MimeTypeResolver.ExtensionsInCategory(...)`.
+  A derived **Known Extensions** total (Text + Parseable + Opaque = 129) gives a quick
+  sense of overall coverage without changing the categories.
 
-**Reserved extension point (not implemented now):** the per-parser verbose block is
-structured so a future **Capabilities** line (from `Descriptor.Capabilities`, e.g. Text /
-Metadata / Structured Extraction / OCR) can be added without reshaping the renderer. No
-capability rendering ships in this change.
+**Empty-parser safeguard:** if the parser set is empty (should not happen in normal use,
+but keeps the renderer robust), the Installed Parsers section renders as:
+
+```
+Installed Parsers (0)
+  No parsers are registered.
+```
+
+and Parser Packages renders `(0)` with a matching "No parser packages loaded." line. The
+health gate (`InstalledParsersCheck`) already warns in this case.
+
+**Reserved extension points (not implemented now):** the per-parser verbose block is
+structured so future lines can be added without reshaping the renderer —
+(a) a **Capabilities** line from `Descriptor.Capabilities` (Text / Metadata / Structured
+Extraction / OCR), and (b) a **Version** line from `Descriptor.Version` (helps diagnose
+mixed-version deployments). Neither ships in this change.
 
 ### 3. `DoctorCommandHandler` + `CoreCliModule` wiring
 
@@ -108,6 +122,7 @@ Extension Coverage
   Text: 76
   Parseable Binary: 3
   Opaque Binary: 50
+  Known Extensions: 129
 
 Parseable Binary (3)
   .docx  .pdf  .xlsx
@@ -155,7 +170,9 @@ Parser Packages (3)
   - default output summarizes opaque (sample + hint) and omits per-parser priority/MIME;
   - verbose output lists all 50 opaque extensions and includes `Priority:` and
     `Media Type:` lines and the `.docx → …` MIME mapping;
-  - packages listed (`Ferret.ParserPlatform`, `Ferret.Parsers.Office`, `Ferret.Parsers.Pdf`).
+  - packages listed (`Ferret.ParserPlatform`, `Ferret.Parsers.Office`, `Ferret.Parsers.Pdf`);
+  - **empty-parser safeguard** — with an empty parser list, renders "Installed Parsers (0)"
+    and "No parsers are registered." (no exception).
 - **`InstalledParsersCheckTests`** — updated for the simplified one-line `Name`.
 - **`DoctorE2ETests`** — assert the `Parser Platform` section (and a format name, e.g.
   `Excel (XLSX) Parser`) appears in `ferret doctor` output through the published binary.
