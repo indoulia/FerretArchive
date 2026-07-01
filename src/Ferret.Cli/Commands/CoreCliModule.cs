@@ -111,6 +111,16 @@ internal sealed class CoreCliModule : CliModuleBase
         yield return new WorkspaceRootCheck(workspaceRoot);
         yield return new FerretConfigDirCheck(workspaceRoot);
 
+        // Introspect the composed parser pack so `doctor` reports installed parsers + supported extensions.
+        {
+            var parserServices = new ServiceCollection();
+            Ferret.Parsers.ParserPackModule.ConfigureServices(parserServices);
+            using var parserScope = parserServices.BuildServiceProvider().CreateScope();
+            var parsers = parserScope.ServiceProvider.GetServices<Ferret.Core.Documents.IContentParser>().ToList();
+            yield return new InstalledParsersCheck(
+                parsers, parsers.Count, Ferret.ParserPlatform.MimeTypeResolver.KnownExtensionCount);
+        }
+
         var dbPath = Path.Join(
             workspaceRoot,
             Ferret.Core.Workspace.WorkspaceLayout.RootDirectoryName,

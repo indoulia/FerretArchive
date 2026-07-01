@@ -1,8 +1,14 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+
 using Ferret.E2E.Tests.Infrastructure;
 
 using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Fonts.Standard14Fonts;
 using UglyToad.PdfPig.Writer;
+
+using Word = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Ferret.E2E.Tests.Fixtures;
 
@@ -119,6 +125,87 @@ public sealed class WorkspaceFixture : IAsyncLifetime
         page.AddText(title, 14, new PdfPoint(25, 800), font);
         page.AddText(body, 11, new PdfPoint(25, 770), font);
         File.WriteAllBytes(path, builder.Build());
+    }
+
+    /// <summary>Writes a real .docx (prose) and a Jira-export-style .xlsx into the workspace.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public async Task WriteSampleOfficeFilesAsync()
+    {
+        WriteDocx(
+            Path.Join(WorkspaceDir, "design-proposal.docx"),
+            "Design Proposal: adopt a columnar cache to accelerate retrieval.",
+            "Approved");
+
+        WriteXlsx(
+            Path.Join(WorkspaceDir, "bug-export.xlsx"),
+            "Bugs",
+            [
+                ["Key", "Summary", "Severity", "Assignee"],
+                ["BUG-1", "Checkout latency regression", "High", "Dana"],
+                ["BUG-2", "Timeout on export", "Critical", "Rahul"],
+            ]);
+
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private static void WriteDocx(string path, string paragraph, string cell)
+    {
+        using var fs = File.Create(path);
+        using var doc = WordprocessingDocument.Create(fs, WordprocessingDocumentType.Document, autoSave: true);
+        var main = doc.AddMainDocumentPart();
+        var body = new Word.Body();
+        body.Append(new Word.Paragraph(new Word.Run(new Word.Text(paragraph))));
+        var table = new Word.Table(new Word.TableRow(new Word.TableCell(
+            new Word.Paragraph(new Word.Run(new Word.Text(cell))))));
+        body.Append(table);
+        main.Document = new Word.Document(body);
+    }
+
+    private static void WriteXlsx(string path, string sheetName, string[][] rows)
+    {
+        using var fs = File.Create(path);
+        using var doc = SpreadsheetDocument.Create(fs, SpreadsheetDocumentType.Workbook, autoSave: true);
+        var wbPart = doc.AddWorkbookPart();
+        wbPart.Workbook = new Workbook();
+
+        var sstPart = wbPart.AddNewPart<SharedStringTablePart>();
+        var sst = new SharedStringTable();
+        var index = new Dictionary<string, int>(StringComparer.Ordinal);
+        int Intern(string s)
+        {
+            if (index.TryGetValue(s, out var i))
+            {
+                return i;
+            }
+
+            i = index.Count;
+            index[s] = i;
+            sst.Append(new SharedStringItem(new Text(s)));
+            return i;
+        }
+
+        var wsPart = wbPart.AddNewPart<WorksheetPart>();
+        var sheetData = new SheetData();
+        foreach (var row in rows)
+        {
+            var r = new Row();
+            foreach (var cellText in row)
+            {
+                r.Append(new Cell
+                {
+                    DataType = CellValues.SharedString,
+                    CellValue = new CellValue(Intern(cellText).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                });
+            }
+
+            sheetData.Append(r);
+        }
+
+        wsPart.Worksheet = new Worksheet(sheetData);
+        sstPart.SharedStringTable = sst;
+
+        var sheets = wbPart.Workbook.AppendChild(new Sheets());
+        sheets.Append(new Sheet { Id = wbPart.GetIdOfPart(wsPart), SheetId = 1, Name = sheetName });
     }
 
     /// <summary>Runs a ferret command in the workspace directory.</summary>

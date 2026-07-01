@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="..\Ferret.ParserPlatform\Ferret.ParserPlatform.csproj" />
+    <ProjectReference Include="..\Ferret.Parsers.Office\Ferret.Parsers.Office.csproj" />
     <ProjectReference Include="..\Ferret.Parsers.Pdf\Ferret.Parsers.Pdf.csproj" />
   </ItemGroup>
 

@@ -157,6 +157,9 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
         Confidence = 0.5,
     };
 
+    /// <summary>Gets the number of mapped extensions that resolve to text or parseable-binary content.</summary>
+    public static int KnownExtensionCount => Map.Count(kv => kv.Value.Category != MediaCategory.BinaryOpaque);
+
     /// <inheritdoc/>
     public MediaTypeInfo Resolve(string fileName)
     {

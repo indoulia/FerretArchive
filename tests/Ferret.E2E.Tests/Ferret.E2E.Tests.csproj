@@ -18,8 +18,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <!-- Used only to author binary PDF test fixtures; the CLI under test is never referenced. -->
+    <!-- Used only to author binary test fixtures (PDF / DOCX / XLSX); the CLI under test is never referenced. -->
     <PackageReference Include="UglyToad.PdfPig" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
   </ItemGroup>
 
 </Project>

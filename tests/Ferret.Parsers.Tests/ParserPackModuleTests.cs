@@ -12,14 +12,14 @@ namespace Ferret.Parsers.Tests;
 public sealed class ParserPackModuleTests
 {
     [Fact]
-    public void Registers_All_Five_Parsers()
+    public void Registers_All_Seven_Parsers()
     {
         var services = new ServiceCollection();
         ParserPackModule.ConfigureServices(services);
         var provider = services.BuildServiceProvider();
 
         var parsers = provider.GetServices<IContentParser>().ToList();
-        Assert.Equal(5, parsers.Count); // PlainText, Markdown, Json, Csv, Pdf (Office added in Sprint 3)
+        Assert.Equal(7, parsers.Count); // PlainText, Markdown, Json, Csv, Pdf, Word, Excel
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using Ferret.ParserPlatform;
+using Ferret.Parsers.Office;
 using Ferret.Parsers.Pdf;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -6,9 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Ferret.Parsers;
 
 /// <summary>
-/// Single composition entry point for the parser pack: the platform (registry, dispatcher,
-/// MimeTypeResolver, built-in text/CSV parsers) plus the PDF parser package. Hosts call this once
-/// instead of wiring each parser module individually. Sprint 3 adds the Office package here.
+/// Single composition entry point for the full parser pack: the platform (registry, dispatcher,
+/// MimeTypeResolver, built-in text/CSV parsers) plus the PDF and Office parser packages.
+/// Hosts call this once instead of wiring each parser module individually.
 /// </summary>
 public static class ParserPackModule
 {
@@ -19,5 +20,6 @@ public static class ParserPackModule
         ArgumentNullException.ThrowIfNull(services);
         ParserPlatformModule.ConfigureServices(services);
         PdfParserModule.ConfigureServices(services);
+        OfficeParserModule.ConfigureServices(services);
     }
 }
