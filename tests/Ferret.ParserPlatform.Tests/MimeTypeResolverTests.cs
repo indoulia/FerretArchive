@@ -1,116 +1,148 @@
 using Ferret.Core.Documents;
+using Ferret.ParserPlatform;
 
 namespace Ferret.ParserPlatform.Tests;
 
 public sealed class MimeTypeResolverTests
 {
-    private readonly MimeTypeResolver _resolver = new();
+    private static readonly MimeTypeResolver Resolver = new();
 
-    [Theory]
-    [InlineData("README.md", "text/markdown")]
-    [InlineData("index.html", "text/html")]
-    [InlineData("app.ts", "text/typescript")]
-    [InlineData("config.yaml", "text/yaml")]
-    [InlineData("data.json", "application/json")]
-    [InlineData("main.cs", "text/x-csharp")]
-    [InlineData("script.py", "text/x-python")]
-    [InlineData("build.rs", "text/x-rust")]
-    public void Resolve_Returns_Correct_MediaType_For_Known_Extension(string fileName, string expectedMediaType)
+    [Fact]
+    public void Pdf_Resolves_To_ApplicationPdf_ParseableBinary()
     {
-        var result = _resolver.Resolve(fileName);
-
-        Assert.Equal(expectedMediaType, result.MediaType);
+        var info = Resolver.Resolve("report.pdf");
+        Assert.Equal("application/pdf", info.MediaType);
+        Assert.Equal(MediaCategory.BinaryParseable, info.Category);
+        Assert.Equal(DocumentKind.Prose, info.SuggestedKind);
     }
 
-    [Theory]
-    [InlineData("binary.dll")]
-    [InlineData("image.png")]
-    [InlineData("archive.zip")]
-    [InlineData("document.pdf")]
-    public void Resolve_Returns_Binary_For_Binary_Extensions(string fileName)
+    [Fact]
+    public void Docx_Resolves_To_Wordprocessing_ParseableBinary()
     {
-        var result = _resolver.Resolve(fileName);
+        var info = Resolver.Resolve("spec.docx");
+        Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document", info.MediaType);
+        Assert.Equal(MediaCategory.BinaryParseable, info.Category);
+    }
 
-        Assert.True(result.IsBinary);
-        Assert.False(result.IsText);
-        Assert.Equal("application/octet-stream", result.MediaType);
+    [Fact]
+    public void Xlsx_Resolves_To_Spreadsheet_ParseableBinary_Data()
+    {
+        var info = Resolver.Resolve("jira-export.xlsx");
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", info.MediaType);
+        Assert.Equal(MediaCategory.BinaryParseable, info.Category);
+        Assert.Equal(DocumentKind.Data, info.SuggestedKind);
     }
 
     [Theory]
-    [InlineData("README.md")]
-    [InlineData("main.cs")]
-    [InlineData("config.yaml")]
-    public void Resolve_Returns_Text_For_Text_Extensions(string fileName)
+    [InlineData("a.so")]
+    [InlineData("a.class")]
+    [InlineData("a.pyc")]
+    [InlineData("a.nupkg")]
+    [InlineData("a.psd")]
+    public void Opaque_Binaries_Are_BinaryOpaque(string fileName)
     {
-        var result = _resolver.Resolve(fileName);
+        Assert.Equal(MediaCategory.BinaryOpaque, Resolver.Resolve(fileName).Category);
+    }
 
-        Assert.True(result.IsText);
-        Assert.False(result.IsBinary);
+    [Theory]
+    [InlineData("a.php", "text/x-php", DocumentKind.Code)]
+    [InlineData("a.scala", "text/x-scala", DocumentKind.Code)]
+    [InlineData("a.ini", "text/x-ini", DocumentKind.Config)]
+    public void New_Text_Mappings_Have_Correct_Kind(string fileName, string mediaType, DocumentKind kind)
+    {
+        var info = Resolver.Resolve(fileName);
+        Assert.Equal(mediaType, info.MediaType);
+        Assert.Equal(MediaCategory.Text, info.Category);
+        Assert.Equal(kind, info.SuggestedKind);
+    }
+
+    [Theory]
+    [InlineData("Dockerfile")]
+    [InlineData("Makefile")]
+    public void Extensionless_Build_Files_Resolve_By_Name(string fileName)
+    {
+        var info = Resolver.Resolve(fileName);
+        Assert.Equal(MediaCategory.Text, info.Category);
+        Assert.Equal(DocumentKind.Config, info.SuggestedKind);
+        Assert.Equal(1.0, info.Confidence);
     }
 
     [Fact]
-    public void Resolve_Returns_PlainText_With_Low_Confidence_For_Unknown_Extension()
+    public void FileName_Lookup_Is_Case_Insensitive()
     {
-        var result = _resolver.Resolve("file.unknown");
-
-        Assert.Equal("text/plain", result.MediaType);
-        Assert.True(result.Confidence < 1.0);
+        Assert.Equal(MediaCategory.Text, Resolver.Resolve("dockerfile").Category);
     }
 
     [Fact]
-    public void Resolve_Is_Case_Insensitive_For_Extension()
+    public void FileName_Lookup_Uses_Base_Name_From_Path()
     {
-        var lower = _resolver.Resolve("file.md");
-        var upper = _resolver.Resolve("file.MD");
-
-        Assert.Equal(lower.MediaType, upper.MediaType);
+        var info = Resolver.Resolve("/repo/build/Makefile");
+        Assert.Equal(DocumentKind.Config, info.SuggestedKind);
     }
 
     [Fact]
-    public void Resolve_Returns_PlainText_For_Empty_FileName()
+    public void Known_Extension_Wins_Over_FileName_And_Unknown_Falls_Back_To_Text()
     {
-        var result = _resolver.Resolve(string.Empty);
+        Assert.Equal("text/markdown", Resolver.Resolve("README.md").MediaType);
+        var unknown = Resolver.Resolve("mystery.zzz");
+        Assert.Equal("text/plain", unknown.MediaType);
+        Assert.Equal(0.5, unknown.Confidence);
+    }
 
-        Assert.Equal("text/plain", result.MediaType);
+    // Regression snapshot: a representative set of mappings across every category.
+    // Guards the central resolver against accidental drift when entries are added later.
+    [Theory]
+    [InlineData("Program.cs", "text/x-csharp", MediaCategory.Text)]
+    [InlineData("README.md", "text/markdown", MediaCategory.Text)]
+    [InlineData("data.json", "application/json", MediaCategory.Text)]
+    [InlineData("config.xml", "text/xml", MediaCategory.Text)]
+    [InlineData("index.html", "text/html", MediaCategory.Text)]
+    [InlineData("report.pdf", "application/pdf", MediaCategory.BinaryParseable)]
+    [InlineData("spec.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", MediaCategory.BinaryParseable)]
+    [InlineData("export.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", MediaCategory.BinaryParseable)]
+    [InlineData("archive.zip", "application/octet-stream", MediaCategory.BinaryOpaque)]
+    [InlineData("tool.exe", "application/octet-stream", MediaCategory.BinaryOpaque)]
+    [InlineData("Dockerfile", "text/x-dockerfile", MediaCategory.Text)]
+    [InlineData("Makefile", "text/x-makefile", MediaCategory.Text)]
+    public void Representative_Mappings_Are_Stable(string fileName, string expectedMediaType, MediaCategory expectedCategory)
+    {
+        var info = Resolver.Resolve(fileName);
+        Assert.Equal(expectedMediaType, info.MediaType);
+        Assert.Equal(expectedCategory, info.Category);
     }
 
     [Fact]
-    public void Resolve_Returns_PlainText_For_No_Extension()
+    public void ExtensionsInCategory_ParseableBinary_IsExactlyTheThreeOfficeFormats()
     {
-        var result = _resolver.Resolve("Makefile");
-
-        Assert.Equal("text/plain", result.MediaType);
+        var parseable = MimeTypeResolver.ExtensionsInCategory(MediaCategory.BinaryParseable)
+            .Select(e => e.Extension).ToList();
+        Assert.Equal([".docx", ".pdf", ".xlsx"], parseable); // ordinal-sorted
     }
 
     [Fact]
-    public void Resolve_Returns_Confidence_1_For_Known_Extension()
+    public void ExtensionsInCategory_Parseable_CarriesMediaType()
     {
-        var result = _resolver.Resolve("app.cs");
-
-        Assert.Equal(1.0, result.Confidence);
+        var docx = MimeTypeResolver.ExtensionsInCategory(MediaCategory.BinaryParseable)
+            .Single(e => e.Extension == ".docx");
+        Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document", docx.MediaType);
     }
 
     [Fact]
-    public void Resolve_Returns_SuggestedKind_For_Code_Files()
+    public void ExtensionsInCategory_Opaque_ContainsKnownBinaries_AndIsOrdinalSorted()
     {
-        var result = _resolver.Resolve("main.cs");
-
-        Assert.Equal(DocumentKind.Code, result.SuggestedKind);
+        var opaque = MimeTypeResolver.ExtensionsInCategory(MediaCategory.BinaryOpaque)
+            .Select(e => e.Extension).ToList();
+        Assert.Contains(".dll", opaque);
+        Assert.Contains(".exe", opaque);
+        Assert.Contains(".zip", opaque);
+        Assert.Equal(opaque.OrderBy(x => x, StringComparer.Ordinal), opaque);
     }
 
     [Fact]
-    public void Resolve_Returns_SuggestedKind_Config_For_Yaml()
+    public void ExtensionsInCategory_Counts_SumToKnownExtensionCount()
     {
-        var result = _resolver.Resolve("config.yaml");
-
-        Assert.Equal(DocumentKind.Config, result.SuggestedKind);
-    }
-
-    [Fact]
-    public void Resolve_Returns_SuggestedKind_Prose_For_Markdown()
-    {
-        var result = _resolver.Resolve("readme.md");
-
-        Assert.Equal(DocumentKind.Prose, result.SuggestedKind);
+        var text = MimeTypeResolver.ExtensionsInCategory(MediaCategory.Text).Count;
+        var parseable = MimeTypeResolver.ExtensionsInCategory(MediaCategory.BinaryParseable).Count;
+        Assert.Equal(MimeTypeResolver.KnownExtensionCount, text + parseable);
     }
 }

@@ -9,8 +9,10 @@ namespace Ferret.Cli.Cli;
 /// </summary>
 internal static class GlobalOptions
 {
-    /// <summary>Gets the --verbose option.</summary>
-    internal static Option<bool> Verbose { get; } = Hidden(new Option<bool>("--verbose") { Description = "Verbose output." });
+    /// <summary>Gets the --verbose option. Recursive so it is accepted after a subcommand
+    /// (e.g. <c>ferret doctor --verbose</c>), not only at the root.</summary>
+    internal static Option<bool> Verbose { get; } =
+        Hidden(new Option<bool>("--verbose") { Description = "Verbose output.", Recursive = true });
 
     /// <summary>Gets the --quiet option.</summary>
     internal static Option<bool> Quiet { get; } = Hidden(new Option<bool>("--quiet") { Description = "Suppress output." });

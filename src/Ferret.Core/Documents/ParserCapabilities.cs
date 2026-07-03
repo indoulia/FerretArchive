@@ -36,6 +36,16 @@ public static class ParserCapabilities
             "1.0",
             "Extracts hyperlinks and cross-references from content.");
 
+    /// <summary>Reserved: parser produces richer structured extraction (tables, slides, mail parts).
+    /// Unused this milestone — declared so future parsers (OCR, PowerPoint, Outlook) can advertise it
+    /// without a contract change.</summary>
+    public static readonly ParserCapability StructuredExtraction =
+        new(
+            "structured-extraction",
+            "Structured Extraction",
+            "1.0",
+            "Extracts structured content (tables, slides, message parts) beyond flat text.");
+
     /// <summary>Gets all well-known capabilities in definition order.</summary>
     public static IReadOnlyList<ParserCapability> All { get; } = [
         PlainTextExtraction, SectionExtraction, MetadataExtraction, LinkExtraction,

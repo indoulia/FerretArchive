@@ -69,10 +69,70 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
             [".bmp"] = Binary(),
             [".ico"] = Binary(),
             [".svg"] = Binary(),
-            [".pdf"] = Binary(),
-            [".docx"] = Binary(),
-            [".xlsx"] = Binary(),
+            [".pdf"] = ParseableBinary("application/pdf", DocumentKind.Prose),
+            [".docx"] = ParseableBinary("application/vnd.openxmlformats-officedocument.wordprocessingml.document", DocumentKind.Prose),
+            [".xlsx"] = ParseableBinary("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", DocumentKind.Data),
             [".pptx"] = Binary(),
+            [".scss"] = Text("text/x-scss", DocumentKind.Code),
+            [".less"] = Text("text/x-less", DocumentKind.Code),
+            [".php"] = Text("text/x-php", DocumentKind.Code),
+            [".scala"] = Text("text/x-scala", DocumentKind.Code),
+            [".clj"] = Text("text/x-clojure", DocumentKind.Code),
+            [".cljs"] = Text("text/x-clojure", DocumentKind.Code),
+            [".dart"] = Text("text/x-dart", DocumentKind.Code),
+            [".lua"] = Text("text/x-lua", DocumentKind.Code),
+            [".r"] = Text("text/x-r", DocumentKind.Code),
+            [".pl"] = Text("text/x-perl", DocumentKind.Code),
+            [".groovy"] = Text("text/x-groovy", DocumentKind.Code),
+            [".gradle"] = Text("text/x-groovy", DocumentKind.Config),
+            [".bat"] = Text("text/x-bat", DocumentKind.Code),
+            [".cmd"] = Text("text/x-bat", DocumentKind.Code),
+            [".psm1"] = Text("text/x-powershell", DocumentKind.Code),
+            [".psd1"] = Text("text/x-powershell", DocumentKind.Config),
+            [".vb"] = Text("text/x-vb", DocumentKind.Code),
+            [".fs"] = Text("text/x-fsharp", DocumentKind.Code),
+            [".fsx"] = Text("text/x-fsharp", DocumentKind.Code),
+            [".ini"] = Text("text/x-ini", DocumentKind.Config),
+            [".cfg"] = Text("text/x-ini", DocumentKind.Config),
+            [".conf"] = Text("text/x-ini", DocumentKind.Config),
+            [".env"] = Text("text/x-dotenv", DocumentKind.Config),
+            [".properties"] = Text("text/x-properties", DocumentKind.Config),
+            [".csproj"] = Text("text/xml", DocumentKind.Config),
+            [".vbproj"] = Text("text/xml", DocumentKind.Config),
+            [".fsproj"] = Text("text/xml", DocumentKind.Config),
+            [".props"] = Text("text/xml", DocumentKind.Config),
+            [".targets"] = Text("text/xml", DocumentKind.Config),
+            [".resx"] = Text("text/xml", DocumentKind.Data),
+            [".xaml"] = Text("text/xml", DocumentKind.Code),
+            [".rst"] = Text("text/x-rst", DocumentKind.Prose),
+            [".adoc"] = Text("text/x-asciidoc", DocumentKind.Prose),
+            [".tex"] = Text("text/x-tex", DocumentKind.Prose),
+            [".gitignore"] = Text("text/plain", DocumentKind.Config),
+            [".editorconfig"] = Text("text/plain", DocumentKind.Config),
+            [".so"] = Binary(),
+            [".dylib"] = Binary(),
+            [".a"] = Binary(),
+            [".o"] = Binary(),
+            [".lib"] = Binary(),
+            [".class"] = Binary(),
+            [".pyc"] = Binary(),
+            [".pyo"] = Binary(),
+            [".wasm"] = Binary(),
+            [".node"] = Binary(),
+            [".nupkg"] = Binary(),
+            [".snk"] = Binary(),
+            [".pfx"] = Binary(),
+            [".jar"] = Binary(),
+            [".war"] = Binary(),
+            [".ear"] = Binary(),
+            [".db"] = Binary(),
+            [".sqlite"] = Binary(),
+            [".parquet"] = Binary(),
+            [".dat"] = Binary(),
+            [".keystore"] = Binary(),
+            [".psd"] = Binary(),
+            [".ai"] = Binary(),
+            [".otf"] = Binary(),
             [".mp3"] = Binary(),
             [".mp4"] = Binary(),
             [".avi"] = Binary(),
@@ -83,13 +143,31 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
             [".eot"] = Binary(),
         };
 
+    private static readonly Dictionary<string, MediaTypeInfo> FileNameMap =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Dockerfile"] = Text("text/x-dockerfile", DocumentKind.Config),
+            ["Makefile"] = Text("text/x-makefile", DocumentKind.Config),
+        };
+
     private static readonly MediaTypeInfo UnknownText = new()
     {
         MediaType = "text/plain",
-        IsText = true,
-        IsBinary = false,
+        Category = MediaCategory.Text,
         Confidence = 0.5,
     };
+
+    /// <summary>Gets the number of mapped extensions that resolve to text or parseable-binary content.</summary>
+    public static int KnownExtensionCount => Map.Count(kv => kv.Value.Category != MediaCategory.BinaryOpaque);
+
+    /// <summary>Gets the mapped extensions in the given category, ordered by extension (ordinal).</summary>
+    /// <param name="category">The media category to filter by.</param>
+    /// <returns>The matching extensions and their media types.</returns>
+    public static IReadOnlyList<ExtensionMediaType> ExtensionsInCategory(MediaCategory category) =>
+        Map.Where(kv => kv.Value.Category == category)
+            .Select(kv => new ExtensionMediaType(kv.Key, kv.Value.MediaType))
+            .OrderBy(e => e.Extension, StringComparer.Ordinal)
+            .ToList();
 
     /// <inheritdoc/>
     public MediaTypeInfo Resolve(string fileName)
@@ -102,19 +180,24 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
         }
 
         var ext = Path.GetExtension(fileName);
-        if (string.IsNullOrEmpty(ext) || ext == ".")
+        if (!string.IsNullOrEmpty(ext) && ext != "." && Map.TryGetValue(ext, out var byExtension))
         {
-            return UnknownText;
+            return byExtension;
         }
 
-        return Map.TryGetValue(ext, out var info) ? info : UnknownText;
+        var name = Path.GetFileName(fileName);
+        if (name.Length > 0 && FileNameMap.TryGetValue(name, out var byName))
+        {
+            return byName;
+        }
+
+        return UnknownText;
     }
 
     private static MediaTypeInfo Text(string mediaType, DocumentKind kind) => new()
     {
         MediaType = mediaType,
-        IsText = true,
-        IsBinary = false,
+        Category = MediaCategory.Text,
         SuggestedKind = kind,
         Confidence = 1.0,
     };
@@ -122,8 +205,15 @@ public sealed class MimeTypeResolver : IMimeTypeResolver
     private static MediaTypeInfo Binary() => new()
     {
         MediaType = "application/octet-stream",
-        IsText = false,
-        IsBinary = true,
+        Category = MediaCategory.BinaryOpaque,
+        Confidence = 1.0,
+    };
+
+    private static MediaTypeInfo ParseableBinary(string mediaType, DocumentKind kind) => new()
+    {
+        MediaType = mediaType,
+        Category = MediaCategory.BinaryParseable,
+        SuggestedKind = kind,
         Confidence = 1.0,
     };
 }

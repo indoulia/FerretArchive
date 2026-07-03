@@ -86,7 +86,7 @@ internal sealed class CoreCliModule : CliModuleBase
 
     /// <inheritdoc/>
     public override IEnumerable<IDiagnosticCheck> GetDiagnosticChecks() =>
-        _checks ?? BuildChecks(null, Environment.CurrentDirectory);
+        _checks ?? BuildChecks(null, Environment.CurrentDirectory, ComposeParsers());
 
     /// <inheritdoc/>
     public override void ConfigureServices(IServiceCollection services)
@@ -100,16 +100,33 @@ internal sealed class CoreCliModule : CliModuleBase
         var config = tempProvider.GetRequiredService<IConfiguration>();
         var workspaceRoot = config["Ferret:Workspace:Root"] ?? Environment.CurrentDirectory;
 
-        _checks = BuildChecks(config, workspaceRoot).ToList();
-        services.AddTransient<DoctorCommandHandler>(_ => new DoctorCommandHandler(_checks));
+        var parsers = ComposeParsers();
+        _checks = BuildChecks(config, workspaceRoot, parsers).ToList();
+        var parserReport = new ParserPlatformReport(parsers);
+        services.AddTransient<DoctorCommandHandler>(_ => new DoctorCommandHandler(_checks, parserReport));
     }
 
-    private static IEnumerable<IDiagnosticCheck> BuildChecks(IConfiguration? config, string workspaceRoot)
+    // Composes the full parser pack and returns the parser instances (plain objects that remain valid
+    // after the temporary provider is disposed). Shared by the health check and the doctor report.
+    private static List<Ferret.Core.Documents.IContentParser> ComposeParsers()
+    {
+        var parserServices = new ServiceCollection();
+        Ferret.Parsers.ParserPackModule.ConfigureServices(parserServices);
+        using var provider = parserServices.BuildServiceProvider();
+        return provider.GetServices<Ferret.Core.Documents.IContentParser>().ToList();
+    }
+
+    private static IEnumerable<IDiagnosticCheck> BuildChecks(
+        IConfiguration? config, string workspaceRoot, List<Ferret.Core.Documents.IContentParser> parsers)
     {
         yield return new ConfigurationCheck();
         yield return new RuntimeLifecycleCheck();
         yield return new WorkspaceRootCheck(workspaceRoot);
         yield return new FerretConfigDirCheck(workspaceRoot);
+
+        // Introspect the composed parser pack so `doctor` reports installed parsers + supported extensions.
+        yield return new InstalledParsersCheck(
+            parsers, parsers.Count, Ferret.ParserPlatform.MimeTypeResolver.KnownExtensionCount);
 
         var dbPath = Path.Join(
             workspaceRoot,

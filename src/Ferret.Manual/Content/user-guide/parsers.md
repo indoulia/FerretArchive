@@ -38,14 +38,34 @@ Skipped is normal. Binary files (`.dll`, `.png`, `.db`) are skipped because no p
 
 ## Checking what types are indexed
 
+Run `ferret doctor`. Its **Parser Platform** report lists the installed parsers, the
+extension coverage (how many extensions are indexable as Text or Parseable Binary vs.
+treated as Opaque Binary), the parseable and opaque extension lists, and the loaded
+parser packages:
+
 ```bash
-ferret doctor --verbose
-# Parser registry: 8 parsers registered
-#   text/plain       → PlainTextParser
-#   text/x-csharp    → CSharpParser
-#   text/markdown    → MarkdownParser
+ferret doctor
+# Parser Platform
+#
+# Installed Parsers (7)
+#   ✓ Plain Text Parser
+#   ✓ Markdown Parser
+#   ✓ JSON Parser
+#   ✓ CSV Parser
+#   ✓ PDF Parser
+#   ✓ Word (DOCX) Parser
+#   ✓ Excel (XLSX) Parser
+#
+# Extension Coverage
+#   Text: 76
+#   Parseable Binary: 3
+#   Opaque Binary: 50
+#   Known Extensions: 129
 #   ...
 ```
+
+Add `--verbose` for the complete opaque-extension list plus each parser's priority and
+media type.
 
 ## Adding support for a new file type
 

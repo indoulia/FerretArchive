@@ -150,7 +150,7 @@ ferret doctor [--verbose]
 
 | Flag | Description |
 |---|---|
-| `--verbose` | Print full diagnostic output for each check |
+| `--verbose` | Show full parser diagnostics: every opaque extension plus each parser's priority and media type |
 
 **Exit codes:** `0` all healthy · `1` one or more checks failed
 
@@ -160,19 +160,45 @@ ferret doctor [--verbose]
 |---|---|
 | WorkspaceRoot | `.ferret/workspace.json` exists and is readable |
 | FerretConfigDir | `.ferret/` directory present and writable |
+| Parser platform | Content parsers are registered; reports the supported-extension count |
 | IndexFreshness | Index exists; age relative to most recently changed source file |
 | AiProviderConfig | Configured AI provider is reachable; model IDs resolve |
+
+After the checks, `doctor` prints a **Parser Platform** report: the installed parsers,
+extension coverage (Text / Parseable Binary / Opaque Binary / Known Extensions), the
+parseable and opaque extension lists, and the loaded parser packages. This is the first
+place to look when a file is not being indexed. `--verbose` shows every opaque extension
+plus each parser's priority and media type.
 
 **Example:**
 ```bash
 ferret doctor
-# WorkspaceRoot      OK   my-project
-# FerretConfigDir    OK   .ferret/
-# IndexFreshness     OK   keyword-index.db — indexed 4 min ago
-# AiProviderConfig   OK   ollama/llama3.2 reachable
-
-ferret doctor --verbose
-# (full JSON diagnostics per check)
+# ... health checks ...
+#
+# Parser Platform
+#
+# Installed Parsers (7)
+#   ✓ Plain Text Parser
+#   ✓ Markdown Parser
+#   ✓ JSON Parser
+#   ✓ CSV Parser
+#   ✓ PDF Parser
+#   ✓ Word (DOCX) Parser
+#   ✓ Excel (XLSX) Parser
+#
+# Extension Coverage
+#   Text: 76
+#   Parseable Binary: 3
+#   Opaque Binary: 50
+#   Known Extensions: 129
+#
+# Parseable Binary (3)
+#   .docx  .pdf  .xlsx
+#
+# Parser Packages (3)
+#   Ferret.ParserPlatform
+#   Ferret.Parsers.Office
+#   Ferret.Parsers.Pdf
 ```
 
 ---

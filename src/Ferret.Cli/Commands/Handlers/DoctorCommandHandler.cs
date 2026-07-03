@@ -4,17 +4,19 @@ using Ferret.Cli.Diagnostics;
 namespace Ferret.Cli.Commands.Handlers;
 
 /// <summary>
-/// Why: Discovers all IDiagnosticCheck instances from registered modules and runs them.
-///      Adding a new module automatically extends doctor — this handler never changes.
+/// Why: Discovers all IDiagnosticCheck instances from registered modules and runs them, then prints
+///      the informational Parser Platform report. Adding a new module automatically extends doctor.
 /// Thread Safety: Single Thread Only.
 /// </summary>
 internal sealed class DoctorCommandHandler : ICommandHandler
 {
     private readonly IReadOnlyList<IDiagnosticCheck> _checks;
+    private readonly ParserPlatformReport _parserReport;
 
-    internal DoctorCommandHandler(IEnumerable<IDiagnosticCheck> checks)
+    internal DoctorCommandHandler(IEnumerable<IDiagnosticCheck> checks, ParserPlatformReport parserReport)
     {
         _checks = checks.ToList();
+        _parserReport = parserReport;
     }
 
     public async Task<CommandResult> ExecuteAsync(IFerretContext context)
@@ -23,6 +25,8 @@ internal sealed class DoctorCommandHandler : ICommandHandler
         context.Services.Output.WriteLine();
 
         bool healthy = await DiagnosticRunner.RunAsync(_checks, context).ConfigureAwait(false);
+
+        _parserReport.Render(context.Services.Output, context.Verbosity == VerbosityLevel.Verbose);
 
         context.Services.Output.WriteLine();
         context.Services.Output.WriteLine(healthy

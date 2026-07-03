@@ -20,6 +20,7 @@ async function install(opts = {}) {
     const rid = resolveRid(platform, opts.arch);
 
     console.log(`Installing Ferret ${version} (${rid})...`);
+    console.log(`Fetching release manifest: ${releaseBaseUrl(tag)}/release-manifest.json`);
     const manifest = await fetchManifest(tag);
     const asset = selectAsset(manifest, rid);
 

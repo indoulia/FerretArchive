@@ -2,6 +2,7 @@ using Ferret.Core.Documents;
 using Ferret.ParserPlatform.Parsers;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Ferret.ParserPlatform;
 
@@ -20,6 +21,8 @@ public sealed class ParserPlatformModule
         services.AddSingleton<IContentParser, PlainTextParser>();
         services.AddSingleton<IContentParser, MarkdownParser>();
         services.AddSingleton<IContentParser, JsonParser>();
+        services.TryAddSingleton(new ParserOptions()); // unlimited default; host may override before wiring
+        services.AddSingleton<IContentParser, CsvParser>();
         services.AddSingleton<IParserRegistry>(sp =>
             ParserRegistryBuilder.Build(sp.GetServices<IContentParser>()));
         services.AddSingleton<IParserDispatcher, ParserDispatcher>();
