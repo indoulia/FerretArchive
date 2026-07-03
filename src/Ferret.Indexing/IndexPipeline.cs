@@ -91,6 +91,14 @@ public sealed class IndexPipeline : IIndexPipeline
 
             await foreach (var asset in source.DiscoverAsync(AssetDiscoveryOptions.Default, ct).ConfigureAwait(false))
             {
+                // Directories are structural, not indexable documents: a directory path
+                // cannot be opened as a file stream (Windows surfaces UnauthorizedAccessException).
+                // Skip before counting so the summary reflects indexable assets only.
+                if (asset.Kind != AssetKind.File)
+                {
+                    continue;
+                }
+
                 assetsDiscovered++;
 
                 await _eventBus.PublishAsync(
