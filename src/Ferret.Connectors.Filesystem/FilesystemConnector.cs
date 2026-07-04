@@ -78,7 +78,7 @@ public sealed class FilesystemConnector : IConnector, IAssetSource, IAssetReader
         ArgumentNullException.ThrowIfNull(asset);
         ct.ThrowIfCancellationRequested();
 
-        var relativePath = asset.CanonicalUri.AbsolutePath.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar);
+        var relativePath = Uri.UnescapeDataString(asset.CanonicalUri.AbsolutePath).TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar);
         var fullPath = System.IO.Path.Join(_config.RootPath, relativePath);
         return Task.FromResult<Stream>(File.OpenRead(fullPath));
     }

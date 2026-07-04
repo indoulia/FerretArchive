@@ -44,6 +44,27 @@ public sealed class FilesystemConnectorReaderTests
     }
 
     [Fact]
+    public async Task OpenAsync_Returns_Stream_For_FileName_With_Space()
+    {
+        using var tmp = new TempDirectory();
+        var expected = "Content of a file whose name needs URI escaping.";
+        var fileName = "file with space.txt";
+        var filePath = Path.Join(tmp.Path, fileName);
+        await File.WriteAllTextAsync(filePath, expected);
+
+        var connector = MakeConnector(tmp.Path);
+
+        var assets = await connector.DiscoverAsync(AssetDiscoveryOptions.Default).ToListAsync();
+        var asset = assets.First(a => a.DisplayName == fileName);
+
+        await using var stream = await ((IAssetReader)connector).OpenAsync(asset);
+        using var reader = new StreamReader(stream);
+        var actual = await reader.ReadToEndAsync();
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public async Task OpenAsync_Throws_For_Missing_File()
     {
         using var tmp = new TempDirectory();
