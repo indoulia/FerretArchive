@@ -11,7 +11,7 @@
 
 ## Context
 
-`docs/DOGFOOD-001.md` was authorized 2026-06-30 (committed on `main`), declaring itself "the authoritative guide for the dogfooding period" and stating explicitly: *"no new implementation milestone is planned or started... Out of scope: new features, architectural changes, and new platform layers."*
+`docs/dogfooding/DOGFOOD-001.md` (originally `docs/DOGFOOD-001.md`, relocated 2026-07-04) was authorized 2026-06-30 (committed on `main`), declaring itself "the authoritative guide for the dogfooding period" and stating explicitly: *"no new implementation milestone is planned or started... Out of scope: new features, architectural changes, and new platform layers."*
 
 Between 2026-07-03 and 2026-07-04, the Ferret V2 architecture program (ARCH-023 through ARCH-037, ADR-0021 through ADR-0024, AGR-001 through AGR-004, `V2-ROADMAP-001`, and the `Ferret.Persistence`/`Ferret.VerticalSlice` implementation) was developed while DOGFOOD-001 remained the most recent committed governance decision. No recorded governance reconciliation between these initiatives was found.
 
