@@ -16,7 +16,7 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
 
 ## Phase 1 — Foundation
 
-- [ ] **WIP-010** Implement `IWorkspaceRegistry` (file-based default backend) — `13-Storage.md` §3
+- [x] **WIP-010** Implement `IWorkspaceRegistry` (file-based default backend) — `13-Storage.md` §3 — done: `src/Ferret.Workspace.Graph/`, 12 tests green
   - **Goal:** A narrow, swappable interface (`Resolve`, `List`, `Save`) over a file-based `~/.ferret/workspaces/<id>/workspace.json` store, with atomic (temp-file + rename) writes and fail-closed behavior on a corrupt manifest (ADR-0026 "Registry Storage" section).
   - **Dependencies:** WIP-001 (ADR-0026 approved).
   - **Expected outcome:** A workspace entry can be created, read back, and listed via the interface — no CLI yet.
