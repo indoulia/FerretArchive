@@ -76,6 +76,15 @@ public sealed class QueryTranslatorTests
     }
 
     [Fact]
+    public void Keyword_With_Hyphen_Is_Quoted()
+    {
+        // A bare hyphen in FTS5 MATCH syntax is the NOT operator, not a literal character —
+        // an unquoted "nem-3795" parses as "nem AND NOT 3795", not a search for the literal term.
+        var result = QueryTranslator.Translate(new KeywordExpression("nem-3795"));
+        Assert.Equal("\"nem-3795\"", result);
+    }
+
+    [Fact]
     public void Keyword_That_Matches_Fts5_Reserved_Word_Is_Quoted()
     {
         // "AND" is a reserved FTS5 operator — must be quoted to search for the literal word

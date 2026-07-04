@@ -33,8 +33,9 @@ internal static class QueryTranslator
             return $"\"{value}\"";
         }
 
-        // Keywords containing non-alphanumeric characters (other than _ and -) are also quoted.
-        return value.Any(c => !char.IsLetterOrDigit(c) && c != '_' && c != '-')
+        // Keywords containing non-alphanumeric characters (other than _) are also quoted.
+        // A bare '-' is FTS5's NOT operator, not a literal character, so it cannot be left unquoted.
+        return value.Any(c => !char.IsLetterOrDigit(c) && c != '_')
             ? $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\""
             : value;
     }
