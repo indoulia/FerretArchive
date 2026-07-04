@@ -22,7 +22,7 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
   - **Expected outcome:** A workspace entry can be created, read back, and listed via the interface — no CLI yet.
   - **Acceptance criteria:** Unit tests cover create/resolve/list/save round-trip, a simulated crash-mid-write (previous valid file survives), and a corrupt-JSON case (fails closed with a clear error, doesn't auto-repair or delete). No path-based identity anywhere in the implementation (per ADR-0026).
   - **Dogfooding scenario:** n/a — not user-facing until WIP-012.
-- [ ] **WIP-011** Implement workspace manifest schema + `schemaVersion` upgrade path — `02-Workspace-Model.md` §3
+- [x] **WIP-011** Implement workspace manifest schema + `schemaVersion` upgrade path — `02-Workspace-Model.md` §3 — done: extends `WorkspaceRegistryEntry`, 20 tests green
   - **Goal:** The JSON schema in `02-Workspace-Model.md` §3, plus the upgrade mechanism from ARCH-001 §12.4 wired to the new schema.
   - **Dependencies:** WIP-010.
   - **Expected outcome:** A manifest can be validated and upgraded across `schemaVersion` bumps using the existing upgrade mechanism, unmodified.
