@@ -17,10 +17,10 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
 ## Phase 1 — Foundation
 
 - [ ] **WIP-010** Implement `IWorkspaceRegistry` (file-based default backend) — `13-Storage.md` §3
-  - **Goal:** A narrow, swappable interface (`Resolve`, `List`, `Save`) over a file-based `~/.ferret/workspaces/<id>/workspace.json` store.
-  - **Dependencies:** WIP-001 (ADR-0026 closed).
+  - **Goal:** A narrow, swappable interface (`Resolve`, `List`, `Save`) over a file-based `~/.ferret/workspaces/<id>/workspace.json` store, with atomic (temp-file + rename) writes and fail-closed behavior on a corrupt manifest (ADR-0026 "Registry Storage" section).
+  - **Dependencies:** WIP-001 (ADR-0026 approved).
   - **Expected outcome:** A workspace entry can be created, read back, and listed via the interface — no CLI yet.
-  - **Acceptance criteria:** Unit tests cover create/resolve/list/save round-trip; no path-based identity anywhere in the implementation (per ADR-0026).
+  - **Acceptance criteria:** Unit tests cover create/resolve/list/save round-trip, a simulated crash-mid-write (previous valid file survives), and a corrupt-JSON case (fails closed with a clear error, doesn't auto-repair or delete). No path-based identity anywhere in the implementation (per ADR-0026).
   - **Dogfooding scenario:** n/a — not user-facing until WIP-012.
 - [ ] **WIP-011** Implement workspace manifest schema + `schemaVersion` upgrade path — `02-Workspace-Model.md` §3
   - **Goal:** The JSON schema in `02-Workspace-Model.md` §3, plus the upgrade mechanism from ARCH-001 §12.4 wired to the new schema.
@@ -29,10 +29,10 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
   - **Acceptance criteria:** Round-trip test for a v1.0 manifest; a synthetic future-schema-version manifest triggers the existing migration-path validation, not new code.
   - **Dogfooding scenario:** n/a — not user-facing until WIP-012.
 - [ ] **WIP-012** `Ferret workspace create` / `add-repo` / `list` CLI commands — `12-API.md` §2
-  - **Goal:** User-facing entry point to WIP-010/011.
+  - **Goal:** User-facing entry point to WIP-010/011, implementing ADR-0026's identity resolution (canonicalized `origin` remote; documented fallback for no-remote and multi-remote repos).
   - **Dependencies:** WIP-010, WIP-011.
   - **Expected outcome:** A developer can create a workspace, add repos by remote identity, and list its members from the CLI.
-  - **Acceptance criteria:** `workspace create`, `add-repo`, `list` round-trip against a real local git remote; `list` output matches the manifest state.
+  - **Acceptance criteria:** `workspace create`, `add-repo`, `list` round-trip against a real local git remote; `list` output matches the manifest state; a repo with no remote gets the `.ai/workspace-identity.json` fallback (ADR-0026); adding a repo with a differently-formatted URL for an already-added remote (`git@...` vs `https://...`) is recognized as the same identity, not a duplicate.
   - **Dogfooding scenario:** A developer with 2+ related repos groups them under one workspace and confirms `workspace list` shows both correctly. Success = accurate listing, no errors, existing `Ferret index build`/`query` on either repo unaffected. Rollback trigger: any regression in existing single-repo command behavior.
 - [ ] **WIP-013** Auto-migration wrapper for existing single-repo workspaces — `14-Migration.md` *(quick win: ships with WIP-010–012, no separate release)*
   - **Goal:** Zero-action wrapping of every existing `.ai/workspace.json` into a `kind: "personal"` registry entry.

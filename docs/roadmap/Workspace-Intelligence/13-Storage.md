@@ -1,6 +1,6 @@
 # 13 — Storage Design
 
-**Status:** Requires Founder decision on registry model (ADR-0026); everything downstream of that choice is Ready for implementation
+**Status:** Requires final Founder approval of ADR-0026 (design itself finalized 2026-07-05 — identity rules, atomicity, failure handling, sharing/topology compatibility all specified, no open questions); everything downstream is Ready for implementation
 **Extends:** ARCH-001 §19 (Storage Strategy)
 
 ## 1. The Decision (ADR-0026)

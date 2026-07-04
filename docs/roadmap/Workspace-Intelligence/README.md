@@ -27,11 +27,11 @@ Milestone: Ferret v2.0, first milestone after Dogfooding. Full context: `00-Visi
 
 ## Every Open Decision, In One Place
 
-**Updated 2026-07-05 (implementation-readiness review):** ADR-0028 downgraded from a Founder gate to an implementation detail — see that ADR for why. Two real gates remain.
+**Updated 2026-07-05 (implementation-readiness review):** ADR-0028 downgraded from a Founder gate to an implementation detail — see that ADR for why. **Updated 2026-07-05 (ADR-0026 finalization review):** ADR-0026 itself is now fully specified (identity rules, atomicity/failure handling, sharing-compatibility) — the only thing left is the Founder's sign-off, not any remaining design work.
 
 | Decision | Where | Status |
 |---|---|---|
-| Workspace registry model (identity-based local registry, recommended) | ADR-0026 | **Requires Founder decision — blocks Phase 1 start** |
+| Workspace registry model (identity-based local registry, fully specified, recommended for approval) | ADR-0026 | **Requires Founder approval — blocks Phase 1 start; no open design questions remain** |
 | v1 sharing/permission scope (4 roles, recommended) | ADR-0029 | **Requires Founder decision — blocks Phase 5 start only, not Phase 1** |
 | Usage ledger raw-event retention (90 days) | ADR-0028 | Accepted (default) — ships as configurable, no Founder sign-off needed to proceed |
 | Reference resolution strategy (live federation, not copy) | ADR-0027 | Accepted — non-negotiable requirement, not a founder choice point |

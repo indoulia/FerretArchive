@@ -1,6 +1,6 @@
 # 02 — Workspace Model
 
-**Status:** Ready for implementation, pending ADR-0026 sign-off on registry location
+**Status:** Ready for implementation, pending Founder approval of ADR-0026 (identity rules, storage, and simplifications finalized 2026-07-05; no remaining open design questions)
 **Extends:** ARCH-001 §12 (Workspace Architecture), §12.3 (Workspace Metadata)
 
 ## 1. The Core Change
@@ -30,6 +30,10 @@ Why this matters: a path-based manifest (`repos: ["../service-a", "../service-b"
 
 ## 3. Workspace Manifest Schema
 
+**Simplified 2026-07-05 (ADR-0026 finalization review):** the original draft shipped `references` and `sharing` in the v1.0 schema even though nothing reads or writes them until Phase 2 and Phase 5 respectively, and pre-committed to a 5-value `kind` enum when 3 of those values have no consumer until Enterprise/Future work. Both are unused-surface-area at Phase 1. Trimmed to what Phase 1 actually needs; `references` and `sharing` are added by later `schemaVersion` bumps exactly when Phase 2/5 need them, exercising the existing upgrade mechanism (§12.4) incrementally instead of assuming it works, untested, until much later.
+
+**v1.0 (Phase 1) schema:**
+
 ```json
 {
   "schemaVersion": "1.0",
@@ -43,17 +47,15 @@ Why this matters: a path-based manifest (`repos: ["../service-a", "../service-b"
     "documents": [
       { "path": "C:/dev/notes/auth-decisions", "type": "notes" }
     ]
-  },
-  "references": [
-    { "workspaceId": "ws_1a9c...", "mode": "read-only", "pinnedStateHash": null }
-  ],
-  "sharing": { "ownerId": "user_...", "visibility": "team" }
+  }
 }
 ```
 
-`kind` implements the enterprise workspace model (Objective 4): `personal | team | organization | shared-library | collection`. This is a closed enum in v1 — new kinds require the same ARB approval path as a new Product Domain (FD-003 §Governance), since a workspace kind has governance implications (who can create one, default sharing behavior), not just a technical one.
+`kind` is `personal | team` in v1.0 — the only two values with a Phase 1–4 consumer. `organization | shared-library | collection` are real values from the enterprise workspace model (Objective 4) but are added when Phase 5 or Future/Deferred-Scope work actually needs them, via the same ARB-gated path FD-003 §Governance already requires for a new Product Domain-adjacent value. `remote` is canonicalized per ADR-0026's Identity Rules, not stored as given.
 
-`sharing.visibility` and roles are defined in `Future/Deferred-Scope.md` / ADR-0029 — v1 ships Owner/Admin/Developer/Viewer only, not the full 5-role model in the original brief.
+**v1.1 (added at Phase 2, additive schemaVersion bump):** `references: [{ workspaceId, mode, pinnedStateHash }]` — see `03-Cross-Workspace-References.md`.
+
+**v1.2 (added at Phase 5, additive schemaVersion bump):** `sharing: { ownerId, visibility }` — roles defined in ADR-0029; v1 ships Owner/Admin/Developer/Viewer only, not the full 5-role model in the original brief.
 
 ## 4. Knowledge Graph Additions
 
@@ -72,7 +74,9 @@ New Edges:
 
 | Decision | Outcome |
 |---|---|
-| Workspace registry is identity-based, not path-based | Requires Founder decision (recommendation: identity-based) — ADR-0026 |
-| `kind` enum limited to 5 values, closed, ARB-gated for new values | Ready for implementation |
+| Workspace registry is identity-based, not path-based | Ready for implementation — ADR-0026 finalized and recommended for approval |
+| Repo identity is canonicalized `origin` remote URL, with defined fallbacks for no-remote and multi-remote repos | Ready for implementation — ADR-0026 Identity Rules |
+| `kind` enum: ship `personal \| team` in v1.0; `organization \| shared-library \| collection` added later via schemaVersion bump when a consumer exists | Ready for implementation — simplified 2026-07-05 |
+| `references` and `sharing` fields excluded from v1.0 schema, added via schemaVersion bumps at Phase 2 and Phase 5 | Ready for implementation — simplified 2026-07-05 |
 | Existing single-repo `.ai/workspace.json` format is unchanged | Ready — hard constraint, see 14-Migration.md |
 | Full sharing role model (5 roles incl. AI Agent) | Deferred — v1 ships 4 roles, see `Future/Deferred-Scope.md` |
