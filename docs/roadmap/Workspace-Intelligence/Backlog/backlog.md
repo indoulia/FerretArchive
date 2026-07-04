@@ -2,20 +2,73 @@
 
 Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed in the order they should be picked up. "Quick win" tags mark tickets shippable independently of the rest of their phase.
 
+**2026-07-05 implementation-readiness review:** Phase 0/1 tasks below now carry Goal/Dependencies/Expected outcome/Acceptance criteria/Dogfooding scenario. A recommended **Vertical Slice** (thin cut across Phase 1 + minimal Phase 2) is defined after Phase 2 — this, not full Phase 1 or full Phase 2, is the first thing to build and dogfood.
+
 ## Phase 0 — Founder Gate
 
 - [ ] **WIP-001** Close ADR-0026 (workspace registry model)
-- [ ] **WIP-002** Close ADR-0029 (v1 sharing scope)
+  - **Goal:** Founder accepts or overrides the identity-based local registry recommendation.
+  - **Dependencies:** none — this is the first thing that must happen.
+  - **Expected outcome:** ADR-0026 Status changes from Proposed to Accepted, with the chosen option recorded.
+  - **Acceptance criteria:** ADR-0026 has a Founder-attributed decision; Phase 1 work can start.
+  - **Dogfooding scenario:** n/a — decision, not code.
+- ~~**WIP-002** Close ADR-0029 (v1 sharing scope)~~ — moved off Phase 0. Confirmed in this review not to block Phase 1; still required before Phase 5 starts (tracked there).
 
 ## Phase 1 — Foundation
 
 - [ ] **WIP-010** Implement `IWorkspaceRegistry` (file-based default backend) — `13-Storage.md` §3
+  - **Goal:** A narrow, swappable interface (`Resolve`, `List`, `Save`) over a file-based `~/.ferret/workspaces/<id>/workspace.json` store.
+  - **Dependencies:** WIP-001 (ADR-0026 closed).
+  - **Expected outcome:** A workspace entry can be created, read back, and listed via the interface — no CLI yet.
+  - **Acceptance criteria:** Unit tests cover create/resolve/list/save round-trip; no path-based identity anywhere in the implementation (per ADR-0026).
+  - **Dogfooding scenario:** n/a — not user-facing until WIP-012.
 - [ ] **WIP-011** Implement workspace manifest schema + `schemaVersion` upgrade path — `02-Workspace-Model.md` §3
+  - **Goal:** The JSON schema in `02-Workspace-Model.md` §3, plus the upgrade mechanism from ARCH-001 §12.4 wired to the new schema.
+  - **Dependencies:** WIP-010.
+  - **Expected outcome:** A manifest can be validated and upgraded across `schemaVersion` bumps using the existing upgrade mechanism, unmodified.
+  - **Acceptance criteria:** Round-trip test for a v1.0 manifest; a synthetic future-schema-version manifest triggers the existing migration-path validation, not new code.
+  - **Dogfooding scenario:** n/a — not user-facing until WIP-012.
 - [ ] **WIP-012** `Ferret workspace create` / `add-repo` / `list` CLI commands — `12-API.md` §2
+  - **Goal:** User-facing entry point to WIP-010/011.
+  - **Dependencies:** WIP-010, WIP-011.
+  - **Expected outcome:** A developer can create a workspace, add repos by remote identity, and list its members from the CLI.
+  - **Acceptance criteria:** `workspace create`, `add-repo`, `list` round-trip against a real local git remote; `list` output matches the manifest state.
+  - **Dogfooding scenario:** A developer with 2+ related repos groups them under one workspace and confirms `workspace list` shows both correctly. Success = accurate listing, no errors, existing `Ferret index build`/`query` on either repo unaffected. Rollback trigger: any regression in existing single-repo command behavior.
 - [ ] **WIP-013** Auto-migration wrapper for existing single-repo workspaces — `14-Migration.md` *(quick win: ships with WIP-010–012, no separate release)*
+  - **Goal:** Zero-action wrapping of every existing `.ai/workspace.json` into a `kind: "personal"` registry entry.
+  - **Dependencies:** WIP-010, WIP-011.
+  - **Expected outcome:** Running any `Ferret workspace` command in an un-migrated checkout silently creates the wrapper entry.
+  - **Acceptance criteria:** Existing single-repo integration test suite passes unmodified after this ships (14-Migration.md §2's invariant); failure path falls back to no-registry behavior per §3, never blocks the underlying command.
+  - **Dogfooding scenario:** Run the full existing dogfooding command set against an already-migrated dogfooding-branch checkout; confirm identical behavior/output to pre-migration baseline.
 - [ ] **WIP-014** MCP `workspace_list` tool — `12-API.md` §3
+  - **Goal:** MCP parity for WIP-012's `list`.
+  - **Dependencies:** WIP-012.
+  - **Expected outcome:** An MCP client can enumerate workspace membership.
+  - **Acceptance criteria:** Tool output matches CLI `list` output for the same workspace.
+  - **Dogfooding scenario:** Exercised via whichever MCP client the team already uses for existing knowledge tools — no new client needed.
 
-## Phase 2 — Federation
+## Vertical Slice — "Two Workspaces, One Cross-Repo Answer" (recommended first dogfooding target)
+
+Cuts across Phase 1 (all of it) and a **minimal** subset of Phase 2 — just enough to prove the architecture's central bet (federated query, zero duplication) end to end. Explicitly excludes pinning (WIP-022) and all of Phase 3/4/5 — those make it fast, safe, and shared, but aren't needed to prove it *works*.
+
+- [ ] **WIP-SLICE-1** Minimal `IFederatedKnowledgeStore` — fan-out + merge + `sourceWorkspaceId` tagging only, no scope narrowing, no compression, no caching
+  - **Goal:** Prove a query against Workspace A returns correct, cited results from referenced Workspace B without copying B's index.
+  - **Dependencies:** WIP-010–013; a trimmed slice of WIP-023 (just the `Workspace`/`CONTAINS`/`IMPORTS` graph additions and result tagging — not the full ticket).
+  - **Expected outcome:** `Ferret knowledge query` against A transparently includes B's content when A references B.
+  - **Acceptance criteria:** A query answerable only by combining A+B returns a correct, cited answer (00-Vision.md §4's own success metric); inspecting B's on-disk index after the query shows zero new files written to A.
+- [ ] **WIP-SLICE-2** `Ferret workspace add-reference` + cycle detection (DAG enforcement), no pinning
+  - **Goal:** Let a developer actually create the reference the slice needs.
+  - **Dependencies:** WIP-012.
+  - **Expected outcome:** `add-reference` creates an `IMPORTS` edge; attempting a cycle is rejected outright, matching `03-Cross-Workspace-References.md` §5.
+  - **Acceptance criteria:** Cycle-creation attempt fails with a clear error in a test; non-cycle reference succeeds.
+
+**Dogfooding scenario for the slice:** Take two repos the team already uses together (e.g. a service and a shared library it depends on). Auto-migrate the service's existing single-repo workspace (WIP-013). Create a new workspace for the shared library, or reuse its auto-migrated one. Add a reference from the service's workspace to the library's. Ask a question that can only be answered by combining both (e.g. "what implements the interface the service depends on, and where is it defined") via the unchanged `Ferret knowledge query` surface.
+
+**Success looks like:** a correct answer, cited with the library's workspace as source, with no duplicated index content anywhere on disk.
+
+**What triggers rollback/redesign (not just a bug fix):** if the *architecture* is wrong — e.g., the federated fan-out fundamentally can't preserve citation accuracy, or zero-duplication turns out to be incompatible with acceptable latency even before Phase 3 optimization is applied. A wrong answer from an implementation bug is a fix, not a redesign trigger; a wrong answer that traces back to the fan-out/merge *design* in `03-Cross-Workspace-References.md` §2 is.
+
+## Phase 2 — Federation (full scope, beyond the vertical slice above)
 
 - [ ] **WIP-020** Implement `IFederatedKnowledgeStore` — `01-Architecture.md` §2, `03-Cross-Workspace-References.md` §2
 - [ ] **WIP-021** `Ferret workspace add-reference` / `remove-reference`, cycle detection (DAG enforcement) — `03-Cross-Workspace-References.md` §5
@@ -35,7 +88,7 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
 
 - [ ] **WIP-040** New metrics: `workspace.federated_query.duration`, `workspace.reference.resolve.duration`, `context.scope_narrowed.count`, `context.compression.tokens_saved`, `cache.federation.{hit,miss}` — `08-Telemetry.md` §1 *(quick win: independent of Phase 2 landing, just emits zero/no-op values until federation exists)*
 - [ ] **WIP-041** Usage Ledger sink + `IUsageLedger` — `10-Usage-Ledger.md` §2–3
-- [ ] **WIP-042** Close ADR-0028 (retention window)
+- [ ] **WIP-042** Ship ADR-0028's 90-day default retention (no Founder sign-off required; revisit only if usage data warrants a different window)
 - [ ] **WIP-043** Analytics rollup jobs (v1 aggregate set) — `09-Analytics.md` §2
 - [ ] **WIP-044** `Ferret dashboard` CLI (Developer, Workspace views) — `11-Dashboard.md` §1
 

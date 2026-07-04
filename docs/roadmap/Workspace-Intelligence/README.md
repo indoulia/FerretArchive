@@ -23,19 +23,21 @@ Milestone: Ferret v2.0, first milestone after Dogfooding. Full context: `00-Visi
 | 14 | Migration | How existing users are unaffected |
 | 15 | Execution Plan | In what order |
 
-`ADR/` — the four decisions that gate implementation. `Backlog/` — the ordered ticket list. `../Future/Deferred-Scope.md` — what's explicitly cut from v1 and why.
+`ADR/` — the four ADRs, two of which still gate implementation. `Backlog/` — the ordered ticket list, including the recommended Phase 1 vertical slice. `../Future/Deferred-Scope.md` — what's explicitly cut from v1 and why.
 
 ## Every Open Decision, In One Place
 
+**Updated 2026-07-05 (implementation-readiness review):** ADR-0028 downgraded from a Founder gate to an implementation detail — see that ADR for why. Two real gates remain.
+
 | Decision | Where | Status |
 |---|---|---|
-| Workspace registry model (identity-based local registry, recommended) | ADR-0026 | **Requires Founder decision** |
-| v1 sharing/permission scope (4 roles, recommended) | ADR-0029 | **Requires Founder decision** |
-| Usage ledger raw-event retention (90 days, recommended) | ADR-0028 | **Requires Founder decision** |
+| Workspace registry model (identity-based local registry, recommended) | ADR-0026 | **Requires Founder decision — blocks Phase 1 start** |
+| v1 sharing/permission scope (4 roles, recommended) | ADR-0029 | **Requires Founder decision — blocks Phase 5 start only, not Phase 1** |
+| Usage ledger raw-event retention (90 days) | ADR-0028 | Accepted (default) — ships as configurable, no Founder sign-off needed to proceed |
 | Reference resolution strategy (live federation, not copy) | ADR-0027 | Accepted — non-negotiable requirement, not a founder choice point |
-| Everything else in 00–15 | — | Ready for implementation once the three decisions above close |
+| Everything else in 00–15 | — | Ready for implementation |
 
-**Nothing in Phase 1 is blocked on ADR-0028 or ADR-0029 — only ADR-0026.** See `15-Execution-Plan.md` §5.
+**Nothing is blocked on ADR-0028. Only ADR-0026 blocks Phase 1 start; ADR-0029 blocks Phase 5 start, not Phase 1.** See `15-Execution-Plan.md` §5.
 
 ## What's Deliberately Not Here
 
