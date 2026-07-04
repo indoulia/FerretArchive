@@ -45,7 +45,7 @@ One issue = one branch = one PR. No batching unrelated fixes together, so each m
    - No extra cost: Ferret's own DOGFOOD-001 Phase 6 metrics — index timing, search latency, cold-start, index size on disk — measured directly via CLI timing.
    - Real cost: re-run `Run-FerretBenchmark.ps1` with reduced trials (1, not the default 2) against the real App1/App2 PDFs for fresh warm/cold/capability data; actual dollar cost reported from the output afterward, not estimated in advance.
 5. **App1/App2 PDF dogfooding** — index App1, run real search/ask queries, log quality and timing honestly; any reference to the sample PDFs' content stays generic (no work-identifying names).
-6. **Daily log** (`docs/dogfood/2026-07-04-daily-log.md`) — updated continuously.
+6. **Daily log** (`docs/dogfooding/2026-07-04-daily-log.md`) — updated continuously.
 7. **End-of-session report** — all issues filed, all PRs merged, explicit **Went Well / Didn't Go Well / Needs Improvement / Missing** breakdown, waiting when you're back rather than needing you mid-flight.
 
 ## 4. Guardrails held throughout, unattended or not
