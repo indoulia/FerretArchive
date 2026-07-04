@@ -30,6 +30,7 @@ The PKM is the single source of truth for Ferret product knowledge — Product P
 | [FD-007](decisions/FD-007-Core-Capability-Selection-Criteria.md) | Core Capability Selection Criteria |
 | [FD-008](decisions/FD-008-Initial-Capability-Catalog.md) | Initial Capability Catalog |
 | [FD-009](PKM-Governance.md) | PKM Governance & Repository Index |
+| [FD-010](decisions/FD-010-PKM-Validation.md) | PKM Validation & Release Readiness |
 
 ## Reference Documents
 
@@ -52,3 +53,4 @@ The PKM is the single source of truth for Ferret product knowledge — Product P
 ## Governance
 
 - [PKM-Governance.md](PKM-Governance.md) — PKM scope, document lifecycle, ID allocation, and repository rules (FD-009)
+- [Validation-Report.md](Validation-Report.md) — PKM v0.1 validation findings and release recommendation (FD-010)
