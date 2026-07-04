@@ -435,14 +435,12 @@ public sealed class DependencyGraphMaterializerTests : IDisposable
         Assert.Equal(GraphNodeState.Unavailable, edge.To.State);
     }
 
-    /// <summary>
-    /// Proves <see cref="ReadOnlySpyDependencyStateStore"/> is actually armed — that the five
-    /// "NeverCallsSetRecordAsync" tests above are passing because materialization never writes,
-    /// not because the spy would silently accept a write. Without this, a passing
-    /// "NeverCallsSetRecordAsync" test would be exactly as uninformative as a vacuously-passing
-    /// architecture check (the same failure mode S2-0/S3-0 guarded against by observing their red
-    /// checks fail before relying on them).
-    /// </summary>
+    // Proves ReadOnlySpyDependencyStateStore is actually armed — that the five
+    // "NeverCallsSetRecordAsync" tests above are passing because materialization never writes,
+    // not because the spy would silently accept a write. Without this, a passing
+    // "NeverCallsSetRecordAsync" test would be exactly as uninformative as a vacuously-passing
+    // architecture check (the same failure mode S2-0/S3-0 guarded against by observing their red
+    // checks fail before relying on them).
     [Fact]
     public async Task ReadOnlySpyDependencyStateStore_SetRecordAsync_AlwaysThrows()
     {
