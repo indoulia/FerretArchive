@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Ferret.VerticalSlice</RootNamespace>
+    <AssemblyName>Ferret.VerticalSlice</AssemblyName>
+    <!-- Transitively references MCP SDK via Ferret.Cli -->
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ferret.Core\Ferret.Core.csproj" />
+    <ProjectReference Include="..\Ferret.Cli\Ferret.Cli.csproj" />
+    <ProjectReference Include="..\Ferret.Connectors.Filesystem\Ferret.Connectors.Filesystem.csproj" />
+    <ProjectReference Include="..\Ferret.ParserPlatform\Ferret.ParserPlatform.csproj" />
+    <ProjectReference Include="..\Ferret.Persistence\Ferret.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>
