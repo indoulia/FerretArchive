@@ -13,7 +13,8 @@ docs/
 ├── architecture/  System design documents
 ├── api/           API reference and contracts
 ├── database/      Data model and schema documentation
-└── guides/        How-to and operational guides
+├── guides/        How-to and operational guides
+└── pkm/           PKM product principles and foundational decisions
 ```
 
 ---
@@ -28,6 +29,7 @@ docs/
 | Learn about an API endpoint | [docs/api/](api/) |
 | Understand the data model | [docs/database/](database/) |
 | Follow an operational runbook | [docs/guides/](guides/) |
+| Review PKM v0.1 product principles | [docs/pkm/principles/](pkm/principles/) |
 
 ---
 
