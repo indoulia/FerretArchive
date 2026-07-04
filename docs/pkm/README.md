@@ -2,6 +2,8 @@
 
 **Current PKM Version:** PKM v0.1
 
+**Current Status:** PKM v0.1 Released
+
 ## Purpose
 
 The PKM is the single source of truth for Ferret product knowledge — Product Principles, Product Domains, Core Entity Types, Capabilities, and Technologies. It records only ARB-approved decisions and their supporting reference material.
@@ -31,6 +33,7 @@ The PKM is the single source of truth for Ferret product knowledge — Product P
 | [FD-008](decisions/FD-008-Initial-Capability-Catalog.md) | Initial Capability Catalog |
 | [FD-009](PKM-Governance.md) | PKM Governance & Repository Index |
 | [FD-010](decisions/FD-010-PKM-Validation.md) | PKM Validation & Release Readiness |
+| [FD-011](releases/PKM-v0.1.md) | PKM v0.1 Closure |
 
 ## Reference Documents
 
@@ -54,3 +57,8 @@ The PKM is the single source of truth for Ferret product knowledge — Product P
 
 - [PKM-Governance.md](PKM-Governance.md) — PKM scope, document lifecycle, ID allocation, and repository rules (FD-009)
 - [Validation-Report.md](Validation-Report.md) — PKM v0.1 validation findings and release recommendation (FD-010)
+
+## Release
+
+- [releases/PKM-v0.1.md](releases/PKM-v0.1.md) — PKM v0.1 release summary (FD-011)
+- [backlog/PKM-vNext.md](backlog/PKM-vNext.md) — Deferred scope for future PKM evolution
