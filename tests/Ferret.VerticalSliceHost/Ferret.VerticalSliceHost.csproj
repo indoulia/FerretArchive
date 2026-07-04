@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Ferret.VerticalSliceHost</RootNamespace>
+    <AssemblyName>Ferret.VerticalSliceHost</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <!-- Transitively references Ferret.Cli (via Ferret.VerticalSlice), which pulls MCP SDK Extensions v10+. -->
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Ferret.Persistence\Ferret.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.VerticalSlice\Ferret.VerticalSlice.csproj" />
+  </ItemGroup>
+
+</Project>

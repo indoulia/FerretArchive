@@ -14,6 +14,8 @@
     <ProjectReference Include="..\..\src\Ferret.Connectors.Filesystem\Ferret.Connectors.Filesystem.csproj" />
     <ProjectReference Include="..\..\src\Ferret.ParserPlatform\Ferret.ParserPlatform.csproj" />
     <ProjectReference Include="..\..\src\Ferret.Parsers\Ferret.Parsers.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.Persistence\Ferret.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Ferret.VerticalSlice\Ferret.VerticalSlice.csproj" />
     <ProjectReference Include="..\Ferret.Benchmarks\Ferret.Benchmarks.csproj" />
   </ItemGroup>
 
