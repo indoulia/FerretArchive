@@ -120,3 +120,12 @@ See `TECH-001-Technology-Evaluation.md` for the full evaluation grid.
 | MediatR | Rejected | Sprint 3 |
 | Channels | Deferred | Sprint 3 |
 | Health Checks middleware | Deferred | Sprint 6 |
+
+---
+
+## Governance — DOGFOOD-001 / Ferret V2 Reconciliation (2026-07-04)
+
+| Decision | Category | Outcome | Notes |
+|---|---|---|---|
+| Adopt ADR-0025: uncommitted work during an active governance gate requires explicit authorization before commit | Governance | Accepted | See ADR-0025. Established after a governance audit found the Ferret V2 architecture program was developed while DOGFOOD-001 remained the most recent committed governance decision, with no recorded reconciliation between the two |
+| Application of ADR-0025 to the current Ferret V2 working tree | Process | Deferred | Ferret V2 architecture program (ARCH-023–037, ADR-0021–0024, AGR-001–004, `Ferret.Persistence`/`Ferret.VerticalSlice`) remains uncommitted pending a future decision to authorize commit (post-DOGFOOD-001 closure) or discard |
