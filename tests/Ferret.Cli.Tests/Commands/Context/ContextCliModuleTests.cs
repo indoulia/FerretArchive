@@ -40,6 +40,22 @@ public sealed class ContextCliModuleTests
     }
 
     [Fact]
+    public void ContextCliModule_ContextCommand_OptionDefaults_MatchDocumentedDefaults()
+    {
+        // --help displayed "[default: 0]" for both options because OptionDefinition had no
+        // DefaultValue set, even though the description text (and actual handler fallback)
+        // promise 8000/10. Regression test: the CLI-visible default must match the description.
+        var module = new ContextCliModule();
+        var contextCmd = module.GetCommands().First(c => c.Metadata.Name == "context");
+
+        var maxTokens = contextCmd.Options!.First(o => o.LongName == "--max-tokens");
+        var maxDocuments = contextCmd.Options!.First(o => o.LongName == "--max-documents");
+
+        Assert.Equal(8000, maxTokens.DefaultValue);
+        Assert.Equal(10, maxDocuments.DefaultValue);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_OptionsPassedThrough_UsesCorrectRequestValues()
     {
         ContextRequest? captured = null;
