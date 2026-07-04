@@ -11,9 +11,17 @@ namespace Ferret.Workspace.Graph;
 /// file). Writes use the same atomic temp-file-then-rename pattern established in this codebase by
 /// <c>Ferret.Persistence.FileDependencyStateStore</c> (ADR-0022), reused rather than reinvented.
 /// Unlike that store, a corrupt entry is never auto-evicted — see <see cref="WorkspaceRegistryCorruptException"/>.
+/// WIP-011 adds one more fail-closed gate on top of WIP-010's malformed-JSON handling: a manifest
+/// whose <c>schemaVersion</c> is not <see cref="SupportedSchemaVersion"/> is not reachable through
+/// any declared migration path (ARCH-001 §12.4) — none exists yet, since v1.0 is the only schema
+/// version that has ever shipped — so it fails the same way a malformed manifest does, rather than
+/// being silently accepted or guessed at.
 /// </summary>
 public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
 {
+    /// <summary>The only schema version this reader can process. ARCH-001 §12.4's migration-path validation has nothing to route through until a second version ships.</summary>
+    public const string SupportedSchemaVersion = "1.0";
+
     private const string ManifestFileName = "workspace.json";
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
@@ -113,6 +121,17 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
             throw new WorkspaceRegistryCorruptException(manifestPath, "manifest deserialized to an empty document");
         }
 
+        if (envelope.SchemaVersion != SupportedSchemaVersion)
+        {
+            // ARCH-001 §12.4: "Validates that the current schema version is reachable ... through
+            // the declared migration path." No migration path is declared to or from any version
+            // other than SupportedSchemaVersion yet, so nothing else is reachable — fail closed,
+            // same disposition as malformed JSON, per ADR-0026.
+            throw new WorkspaceRegistryCorruptException(
+                manifestPath,
+                $"schemaVersion '{envelope.SchemaVersion}' is not reachable — this reader only supports '{SupportedSchemaVersion}' and no migration path is declared");
+        }
+
         return ToEntry(envelope);
     }
 
@@ -121,6 +140,16 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
         WorkspaceId = envelope.WorkspaceId,
         Name = envelope.Name,
         SchemaVersion = envelope.SchemaVersion,
+        Kind = envelope.Kind,
+        Members = new WorkspaceMembers
+        {
+            Repos = envelope.Members.Repos
+                .Select(r => new RepoMember { Remote = r.Remote, LocalPath = r.LocalPath })
+                .ToList(),
+            Documents = envelope.Members.Documents
+                .Select(d => new DocumentMember { Path = d.Path, Type = d.Type })
+                .ToList(),
+        },
     };
 
     private static JsonWorkspaceRegistryEntryEnvelope ToEnvelope(WorkspaceRegistryEntry entry) => new()
@@ -128,6 +157,16 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
         SchemaVersion = entry.SchemaVersion,
         WorkspaceId = entry.WorkspaceId,
         Name = entry.Name,
+        Kind = entry.Kind,
+        Members = new JsonWorkspaceMembers
+        {
+            Repos = entry.Members.Repos
+                .Select(r => new JsonRepoMember { Remote = r.Remote, LocalPath = r.LocalPath })
+                .ToList(),
+            Documents = entry.Members.Documents
+                .Select(d => new JsonDocumentMember { Path = d.Path, Type = d.Type })
+                .ToList(),
+        },
     };
 
     private string GetManifestPath(Guid workspaceId) =>
@@ -135,19 +174,56 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
 
     /// <summary>
     /// On-disk shape of a <see cref="WorkspaceRegistryEntry"/>. Carries an explicit schema version
-    /// so a future milestone (WIP-011 onward) can introduce version-gated reads without a
-    /// wire-format redesign — the same convention <c>Ferret.Persistence.FileDependencyStateStore</c>
-    /// already establishes in this codebase.
+    /// so a future milestone can introduce version-gated reads without a wire-format redesign —
+    /// the same convention <c>Ferret.Persistence.FileDependencyStateStore</c> already establishes
+    /// in this codebase. <see cref="Members"/> defaults to an empty instance so a manifest written
+    /// before WIP-011 (with no "members" property at all) still deserializes correctly.
     /// </summary>
     private sealed class JsonWorkspaceRegistryEntryEnvelope
     {
         [JsonPropertyName("schemaVersion")]
-        public string SchemaVersion { get; set; } = "1.0";
+        public string SchemaVersion { get; set; } = FileWorkspaceRegistry.SupportedSchemaVersion;
 
         [JsonPropertyName("workspaceId")]
         public Guid WorkspaceId { get; set; }
 
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("kind")]
+        public string Kind { get; set; } = "personal";
+
+        [JsonPropertyName("members")]
+        public JsonWorkspaceMembers Members { get; set; } = new();
+    }
+
+    /// <summary>On-disk shape of the "members" object (<c>02-Workspace-Model.md</c> §3).</summary>
+    private sealed class JsonWorkspaceMembers
+    {
+        [JsonPropertyName("repos")]
+        public List<JsonRepoMember> Repos { get; set; } = [];
+
+        [JsonPropertyName("documents")]
+        public List<JsonDocumentMember> Documents { get; set; } = [];
+    }
+
+    /// <summary>On-disk shape of one <see cref="RepoMember"/>.</summary>
+    private sealed class JsonRepoMember
+    {
+        [JsonPropertyName("remote")]
+        public string Remote { get; set; } = string.Empty;
+
+        [JsonPropertyName("localPath")]
+        public string? LocalPath { get; set; }
+    }
+
+    /// <summary>On-disk shape of one <see cref="DocumentMember"/>.</summary>
+    private sealed class JsonDocumentMember
+    {
+        [JsonPropertyName("path")]
+        public string Path { get; set; } = string.Empty;
+
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
     }
 }

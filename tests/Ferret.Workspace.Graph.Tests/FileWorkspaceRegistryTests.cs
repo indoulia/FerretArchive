@@ -176,6 +176,160 @@ public sealed class FileWorkspaceRegistryTests : IDisposable
         await Assert.ThrowsAsync<WorkspaceRegistryCorruptException>(() => registry.ListAsync());
     }
 
+    [Fact]
+    public async Task SaveThenResolve_WithKindAndMembers_RoundTrips()
+    {
+        var entry = new WorkspaceRegistryEntry
+        {
+            WorkspaceId = Guid.NewGuid(),
+            Name = "customer-platform",
+            Kind = "team",
+            Members = new WorkspaceMembers
+            {
+                Repos = [new RepoMember { Remote = "git@github.com:acme/service-a.git", LocalPath = "C:/dev/service-a" }],
+                Documents = [new DocumentMember { Path = "C:/dev/notes/auth-decisions", Type = "notes" }],
+            },
+        };
+        var writer = new FileWorkspaceRegistry(_rootDirectory);
+        await writer.SaveAsync(entry);
+
+        var reader = new FileWorkspaceRegistry(_rootDirectory);
+        var result = await reader.ResolveAsync(entry.WorkspaceId);
+
+        Assert.Equal(entry, result);
+    }
+
+    [Fact]
+    public async Task SaveThenResolve_WithoutExplicitKindOrMembers_DefaultsToPersonalWithEmptyMembers()
+    {
+        // "Missing optional fields": a caller that only supplies WorkspaceId/Name (as every
+        // WIP-010 test in this file already does) must keep working unmodified — Kind and
+        // Members are additive, not required, per ADR-0026's additive-schema-upgrade philosophy.
+        var entry = new WorkspaceRegistryEntry { WorkspaceId = Guid.NewGuid(), Name = "customer-platform" };
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        await registry.SaveAsync(entry);
+
+        var result = await registry.ResolveAsync(entry.WorkspaceId);
+
+        Assert.Equal("personal", result?.Kind);
+        Assert.Empty(result!.Members.Repos);
+        Assert.Empty(result.Members.Documents);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WhenManifestJsonOmitsMembersEntirely_ReturnsEntryWithEmptyMembers()
+    {
+        // Proves the "missing optional field" behavior against a hand-written manifest, not just
+        // a manifest this same code wrote — the pre-WIP-011 on-disk shape (no "members" property
+        // at all, since it did not exist before this change) must still be readable.
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        var workspaceId = Guid.NewGuid();
+        await registry.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = workspaceId, Name = "customer-platform" });
+        var manifestPath = Directory.GetFiles(_rootDirectory, "workspace.json", SearchOption.AllDirectories).Single();
+        var idString = workspaceId.ToString();
+        await File.WriteAllTextAsync(
+            manifestPath,
+            "{\"schemaVersion\":\"1.0\",\"workspaceId\":\"" + idString + "\",\"name\":\"customer-platform\"}");
+
+        var result = await registry.ResolveAsync(workspaceId);
+
+        Assert.NotNull(result);
+        Assert.Empty(result!.Members.Repos);
+        Assert.Empty(result.Members.Documents);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WhenManifestContainsAnUnknownFutureField_IgnoresItAndReadsSuccessfully()
+    {
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        var workspaceId = Guid.NewGuid();
+        await registry.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = workspaceId, Name = "customer-platform" });
+        var manifestPath = Directory.GetFiles(_rootDirectory, "workspace.json", SearchOption.AllDirectories).Single();
+        var idString = workspaceId.ToString();
+        var json = "{\"schemaVersion\":\"1.0\",\"workspaceId\":\"" + idString + "\",\"name\":\"customer-platform\","
+            + "\"sharing\":{\"ownerId\":\"user_1\",\"visibility\":\"team\"}}";
+        await File.WriteAllTextAsync(manifestPath, json);
+
+        var result = await registry.ResolveAsync(workspaceId);
+
+        Assert.NotNull(result);
+        Assert.Equal("customer-platform", result!.Name);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WhenSchemaVersionIsNotOneThisReaderRecognizes_ThrowsWorkspaceRegistryCorruptException()
+    {
+        // The "synthetic future-schema-version manifest" acceptance criterion (WIP-011 backlog):
+        // proves ARCH-001 S12.4's fail-closed-when-unreachable behavior without any real v1.1/v1.2
+        // migration code existing yet — there is no declared migration path to "9.9", so it is not
+        // reachable, and the manifest is reported unresolvable per ADR-0026, not silently accepted.
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        var workspaceId = Guid.NewGuid();
+        await registry.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = workspaceId, Name = "customer-platform" });
+        var manifestPath = Directory.GetFiles(_rootDirectory, "workspace.json", SearchOption.AllDirectories).Single();
+        var idString = workspaceId.ToString();
+        await File.WriteAllTextAsync(
+            manifestPath,
+            "{\"schemaVersion\":\"9.9\",\"workspaceId\":\"" + idString + "\",\"name\":\"customer-platform\"}");
+
+        await Assert.ThrowsAsync<WorkspaceRegistryCorruptException>(() => registry.ResolveAsync(workspaceId));
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WhenSchemaVersionIsNotRecognized_DoesNotDeleteTheFile()
+    {
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        var workspaceId = Guid.NewGuid();
+        await registry.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = workspaceId, Name = "customer-platform" });
+        var manifestPath = Directory.GetFiles(_rootDirectory, "workspace.json", SearchOption.AllDirectories).Single();
+        var idString = workspaceId.ToString();
+        await File.WriteAllTextAsync(
+            manifestPath,
+            "{\"schemaVersion\":\"9.9\",\"workspaceId\":\"" + idString + "\",\"name\":\"customer-platform\"}");
+
+        await Assert.ThrowsAsync<WorkspaceRegistryCorruptException>(() => registry.ResolveAsync(workspaceId));
+
+        Assert.True(File.Exists(manifestPath), "An unreachable schemaVersion is reported unresolvable, never deleted (ADR-0026).");
+    }
+
+    [Fact]
+    public async Task SaveAsync_EmbedsCurrentSchemaVersion()
+    {
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        await registry.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = Guid.NewGuid(), Name = "customer-platform" });
+
+        var manifestPath = Directory.GetFiles(_rootDirectory, "workspace.json", SearchOption.AllDirectories).Single();
+        var json = await File.ReadAllTextAsync(manifestPath);
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.Equal("1.0", document.RootElement.GetProperty("schemaVersion").GetString());
+    }
+
+    [Fact]
+    public async Task SaveAsync_ProducesByteIdenticalOutput_ForEquivalentInput()
+    {
+        var entry = new WorkspaceRegistryEntry
+        {
+            WorkspaceId = Guid.NewGuid(),
+            Name = "customer-platform",
+            Kind = "team",
+            Members = new WorkspaceMembers
+            {
+                Repos = [new RepoMember { Remote = "git@github.com:acme/service-a.git", LocalPath = "C:/dev/service-a" }],
+            },
+        };
+        var firstRoot = Path.Join(_rootDirectory, "first");
+        var secondRoot = Path.Join(_rootDirectory, "second");
+
+        await new FileWorkspaceRegistry(firstRoot).SaveAsync(entry);
+        await new FileWorkspaceRegistry(secondRoot).SaveAsync(entry with { });
+
+        var firstBytes = await File.ReadAllBytesAsync(Directory.GetFiles(firstRoot, "workspace.json", SearchOption.AllDirectories).Single());
+        var secondBytes = await File.ReadAllBytesAsync(Directory.GetFiles(secondRoot, "workspace.json", SearchOption.AllDirectories).Single());
+
+        Assert.Equal(firstBytes, secondBytes);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_rootDirectory))
