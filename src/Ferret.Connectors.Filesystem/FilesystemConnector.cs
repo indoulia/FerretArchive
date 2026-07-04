@@ -12,7 +12,7 @@ public sealed class FilesystemConnector : IConnector, IAssetSource, IAssetReader
     private static readonly HashSet<string> HardcodedSkipDirs = new(StringComparer.OrdinalIgnoreCase)
     {
         ".git", ".ferret", ".svn", ".hg",
-        "node_modules", "bin", "obj",
+        "node_modules", "bin", "obj", "packages",
     };
 
     private readonly FilesystemConnectorConfiguration _config;
