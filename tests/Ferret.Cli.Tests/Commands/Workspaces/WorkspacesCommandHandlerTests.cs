@@ -317,6 +317,32 @@ public sealed class WorkspacesCommandHandlerTests : IDisposable
         Assert.Contains(_output.Lines, l => l.Contains("is not a member", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task Remove_DeletesTheWorkspaceEntirely()
+    {
+        var workspace = new WorkspaceRegistryEntry { WorkspaceId = Guid.NewGuid(), Name = "throwaway" };
+        await _registry.SaveAsync(workspace);
+        var handler = new WorkspacesRemoveCommandHandler(_registry);
+        _context.With("workspace", "throwaway");
+
+        var result = await handler.ExecuteAsync(_context);
+
+        Assert.Equal(CommandResult.Success, result);
+        Assert.Null(await _registry.ResolveAsync(workspace.WorkspaceId));
+    }
+
+    [Fact]
+    public async Task Remove_ThatDoesNotExist_FailsWithActionableMessage()
+    {
+        var handler = new WorkspacesRemoveCommandHandler(_registry);
+        _context.With("workspace", "does-not-exist");
+
+        var result = await handler.ExecuteAsync(_context);
+
+        Assert.Equal(CommandResult.Failure, result);
+        Assert.Contains(_output.Lines, l => l.Contains("not found", StringComparison.OrdinalIgnoreCase));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_registryRoot))

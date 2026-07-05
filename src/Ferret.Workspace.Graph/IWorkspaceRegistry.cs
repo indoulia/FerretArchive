@@ -30,4 +30,12 @@ public interface IWorkspaceRegistry
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A task that completes when the entry has been durably stored.</returns>
     Task SaveAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default);
+
+    /// <summary>Removes the entry for the given workspace ID, if one exists (WIP-037). A no-op if none does.
+    /// Default no-op implementation so existing implementers (test doubles) compile unmodified; a real
+    /// backend overrides this to actually delete the entry.</summary>
+    /// <param name="workspaceId">The workspace's durable identity.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task that completes when removal has been attempted.</returns>
+    Task RemoveAsync(Guid workspaceId, CancellationToken ct = default) => Task.CompletedTask;
 }
