@@ -28,22 +28,31 @@ Milestone: Ferret v2.0, first milestone after Dogfooding. Full context: `00-Visi
 | 19 | Stabilization Sprint 1 | Implementation, real failure-injection evidence, reliability verdict |
 | 20 | Phase 3 Priority Assessment | What order (Phase 3 is analysis-only so far — no implementation) |
 | 21 | P3-001: Fingerprint Optimization | First Phase 3 implementation — the fingerprint re-hash cost fix, with benchmark evidence |
+| 22 | WIP-032: Registry Read-Through Cache | Phase 3 implementation — registry resolve cache, with benchmark evidence |
+| 23 | WIP-030/031: Federated Query Cache | Phase 3 implementation — federated query cache, with benchmark evidence |
+| 24 | WIP-033: Scope Classifier Discovery | Feasibility investigation only — not yet implemented |
+| 25 | Multi-Workspace Dogfooding Sprint | Real-scale (R=26) evidence for WIP-033 and WIP-030/031 |
+| 26 | P3-002: Query Cache Regression | Root-cause and fix for a regression `25` found in WIP-030/031 |
+| 27 | Phase 3+ Roadmap Revision | Evidence-based re-prioritization of everything from WIP-033 onward |
+| 28 | Phase 3+ Roadmap Adversarial Review | Ground-truth check of `27` against live `git`/`gh` state — two corrections |
+| 29 | Ferret v2 Release Master Plan | The executable plan from today to the v2.0 release tag |
+| 30 | Epic 5 — Ferret v2 Release Execution | `29` restated as implementation stories with acceptance criteria, gates, and exit criteria — the canonical execution document from here to the release tag |
 
-`ADR/` — the four ADRs, two of which still gate implementation. `Backlog/` — the ordered ticket list, including the recommended Phase 1 vertical slice. `../Future/Deferred-Scope.md` — what's explicitly cut from v1 and why.
+`ADR/` — the four ADRs; only ADR-0029 (Phase 5, optional for v2.0) still gates anything. `Backlog/` — the ordered ticket list, including the recommended Phase 1 vertical slice. `../Future/Deferred-Scope.md` — what's explicitly cut from v1 and why.
 
 ## Every Open Decision, In One Place
 
-**Updated 2026-07-05 (implementation-readiness review):** ADR-0028 downgraded from a Founder gate to an implementation detail — see that ADR for why. **Updated 2026-07-05 (ADR-0026 finalization review):** ADR-0026 itself is now fully specified (identity rules, atomicity/failure handling, sharing-compatibility) — the only thing left is the Founder's sign-off, not any remaining design work.
+**Updated 2026-07-05 (implementation-readiness review):** ADR-0028 downgraded from a Founder gate to an implementation detail — see that ADR for why. **Updated 2026-07-05 (ADR-0026 finalization review):** ADR-0026 itself is now fully specified (identity rules, atomicity/failure handling, sharing-compatibility) — the only thing left is the Founder's sign-off, not any remaining design work. **Updated 2026-07-06 (T10, `30-Epic-5-Ferret-v2-Release-Execution.md`):** ADR-0026 accepted by the Founder as specified — Phase 0 gate closed.
 
 | Decision | Where | Status |
 |---|---|---|
-| Workspace registry model (identity-based local registry, fully specified, recommended for approval) | ADR-0026 | **Requires Founder approval — blocks Phase 1 start; no open design questions remain** |
-| v1 sharing/permission scope (4 roles, recommended) | ADR-0029 | **Requires Founder decision — blocks Phase 5 start only, not Phase 1** |
+| Workspace registry model (identity-based local registry) | ADR-0026 | **Accepted** (Founder, 2026-07-06) — as specified, no override |
+| v1 sharing/permission scope (4 roles, recommended) | ADR-0029 | **Requires Founder decision — optional for v2.0, deliberately left open for v2.1; blocks Phase 5 start only** |
 | Usage ledger raw-event retention (90 days) | ADR-0028 | Accepted (default) — ships as configurable, no Founder sign-off needed to proceed |
 | Reference resolution strategy (live federation, not copy) | ADR-0027 | Accepted — non-negotiable requirement, not a founder choice point |
 | Everything else in 00–15 | — | Ready for implementation |
 
-**Nothing is blocked on ADR-0028. Only ADR-0026 blocks Phase 1 start; ADR-0029 blocks Phase 5 start, not Phase 1.** See `15-Execution-Plan.md` §5.
+**ADR-0026 is closed — nothing is blocked on Phase 0 anymore. ADR-0029 remains open by choice, blocking Phase 5 start only, not Phase 1 or v2.0.** See `15-Execution-Plan.md` §5.
 
 ## What's Deliberately Not Here
 
