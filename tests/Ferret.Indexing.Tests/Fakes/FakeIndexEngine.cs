@@ -8,9 +8,13 @@ namespace Ferret.Indexing.Tests.Fakes;
 internal sealed class FakeIndexEngine : IIndexEngine
 {
     private readonly List<Document> _written = [];
+    private readonly List<DocumentId> _deleted = [];
 
     /// <summary>Gets all documents written via WriteAsync.</summary>
     internal IReadOnlyList<Document> WrittenDocuments => _written;
+
+    /// <summary>Gets all document IDs passed to DeleteAsync.</summary>
+    internal IReadOnlyList<DocumentId> DeletedDocumentIds => _deleted;
 
     /// <summary>Gets the number of times ClearAsync was called.</summary>
     internal int ClearCount { get; private set; }
@@ -43,6 +47,7 @@ internal sealed class FakeIndexEngine : IIndexEngine
     /// <inheritdoc/>
     public Task DeleteAsync(DocumentId documentId, CancellationToken ct = default)
     {
+        _deleted.Add(documentId);
         _written.RemoveAll(d => d.Id.Equals(documentId));
         return Task.CompletedTask;
     }

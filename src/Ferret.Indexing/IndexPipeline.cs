@@ -224,10 +224,13 @@ public sealed class IndexPipeline : IIndexPipeline
             }
         }
 
-        // Remove state entries for assets no longer discovered (deleted files).
+        // Remove stale assets (no longer discovered -- deleted or renamed) from both the
+        // search index and the incremental state store, so a removed file's document
+        // doesn't linger as a permanent phantom search result.
         var allKnown = await _stateStore.GetAllKeysAsync(ct).ConfigureAwait(false);
         foreach (var staleId in allKnown.Except(seenAssets))
         {
+            await _engine.DeleteAsync(DocumentId.From(staleId), ct).ConfigureAwait(false);
             await _stateStore.RemoveAsync(staleId, ct).ConfigureAwait(false);
         }
 
