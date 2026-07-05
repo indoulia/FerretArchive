@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisMode>All</AnalysisMode>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Ferret.Knowledge.Federation</RootNamespace>
+    <AssemblyName>Ferret.Knowledge.Federation</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ferret.Core\Ferret.Core.csproj" />
+    <ProjectReference Include="..\Ferret.Workspace.Graph\Ferret.Workspace.Graph.csproj" />
+  </ItemGroup>
+
+</Project>

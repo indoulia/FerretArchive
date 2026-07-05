@@ -9,6 +9,7 @@ using Ferret.Cli.Commands.Prompt;
 using Ferret.Cli.Commands.Serve;
 using Ferret.Cli.Commands.Watch;
 using Ferret.Cli.Commands.Workspace;
+using Ferret.Cli.Commands.Workspaces;
 using Ferret.Cli.Search;
 using Ferret.Connectors.Filesystem;
 using Ferret.Core.Primitives;
@@ -28,6 +29,7 @@ return await RootCommandFactory.Build([
     new CoreCliModule(),
     new ConfigCliModule(),
     new WorkspaceCliModule(),
+    new WorkspacesCliModule(),
     new ConnectorCliModule([filesystemFactory]),
     new IndexCliModule(workspaceContext),
     new WatchCliModule(workspaceContext),
