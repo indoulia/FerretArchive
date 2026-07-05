@@ -122,6 +122,7 @@ internal sealed class WorkspacesCliModule : CliModuleBase
         services.AddSingleton<Ferret.Core.Search.IQueryParser, Ferret.Search.QueryParser>();
         services.AddSingleton<Ferret.Knowledge.Federation.IRepoSearchServiceFactory, RepoSearchServiceFactory>();
         services.AddSingleton<Ferret.Knowledge.Federation.IWorkspaceStateFingerprintProvider, WorkspaceStateFingerprintProvider>();
+        services.AddSingleton<Ferret.Knowledge.Federation.FederatedQueryCache>();
         services.AddTransient<WorkspacesQueryCommandHandler>();
         services.AddTransient<WorkspacesPinReferenceCommandHandler>();
         services.AddTransient<WorkspacesUnpinReferenceCommandHandler>();
