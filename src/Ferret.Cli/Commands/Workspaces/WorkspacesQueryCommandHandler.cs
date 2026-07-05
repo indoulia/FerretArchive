@@ -12,14 +12,20 @@ internal sealed class WorkspacesQueryCommandHandler : ICommandHandler
 {
     private readonly IWorkspaceRegistry _registry;
     private readonly IRepoSearchServiceFactory _repoSearchServiceFactory;
+    private readonly IWorkspaceStateFingerprintProvider _fingerprintProvider;
 
     /// <summary>Initializes a new instance of the <see cref="WorkspacesQueryCommandHandler"/> class.</summary>
     /// <param name="registry">The workspace registry.</param>
     /// <param name="repoSearchServiceFactory">Builds a per-repo search service for the federated fan-out.</param>
-    public WorkspacesQueryCommandHandler(IWorkspaceRegistry registry, IRepoSearchServiceFactory repoSearchServiceFactory)
+    /// <param name="fingerprintProvider">Computes the Workspace State Fingerprint used to verify a pinned reference.</param>
+    public WorkspacesQueryCommandHandler(
+        IWorkspaceRegistry registry,
+        IRepoSearchServiceFactory repoSearchServiceFactory,
+        IWorkspaceStateFingerprintProvider fingerprintProvider)
     {
         _registry = registry;
         _repoSearchServiceFactory = repoSearchServiceFactory;
+        _fingerprintProvider = fingerprintProvider;
     }
 
     /// <inheritdoc/>
@@ -53,7 +59,7 @@ internal sealed class WorkspacesQueryCommandHandler : ICommandHandler
         var limitOption = context.GetOption<int>("limit");
         var limit = limitOption > 0 ? limitOption : 20;
         var options = new SearchOptions { MaxResults = limit, Mode = SearchExecutionMode.Auto };
-        var store = new FederatedKnowledgeStore(_registry, _repoSearchServiceFactory, entry.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, _repoSearchServiceFactory, entry.WorkspaceId, _fingerprintProvider);
         var result = await store.SearchAsync(queryText, options).ConfigureAwait(false);
 
         if (!result.IsSuccess)

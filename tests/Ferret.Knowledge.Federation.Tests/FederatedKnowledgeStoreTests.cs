@@ -9,6 +9,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
 {
     private readonly string _registryRoot;
     private readonly FileWorkspaceRegistry _registry;
+    private readonly FakeWorkspaceStateFingerprintProvider _fingerprintProvider = new();
 
     public FederatedKnowledgeStoreTests()
     {
@@ -22,7 +23,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var workspace = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"]);
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
-        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -40,7 +41,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
         factory.Register("C:/repo-b", FakeHit("b-hit", score: 2.0f));
-        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -61,7 +62,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
         factory.RegisterFailure("C:/repo-b-missing", SearchServiceStatus.IndexNotFound);
-        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -79,7 +80,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
         factory.RegisterFailure("C:/repo-b-missing", SearchServiceStatus.IndexNotFound);
-        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -96,7 +97,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
         factory.RegisterThrows("C:/repo-b-denied", new UnauthorizedAccessException("Access to the path is denied."));
-        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -113,7 +114,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
         factory.RegisterThrows("C:/repo-b-denied", new UnauthorizedAccessException("Access to the path is denied."));
-        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -128,7 +129,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var workspace = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"]);
         var factory = new FakeRepoSearchServiceFactory();
         factory.RegisterThrows("C:/repo-a", new UnauthorizedAccessException("Access to the path is denied."));
-        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -142,7 +143,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var workspace = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"]);
         var factory = new FakeRepoSearchServiceFactory();
         factory.RegisterFailure("C:/repo-a", SearchServiceStatus.IndexNotFound);
-        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -153,7 +154,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
     public async Task SearchAsync_WhenWorkspaceDoesNotExist_ReturnsWorkspaceNotFound()
     {
         var factory = new FakeRepoSearchServiceFactory();
-        var store = new FederatedKnowledgeStore(_registry, factory, Guid.NewGuid());
+        var store = new FederatedKnowledgeStore(_registry, factory, Guid.NewGuid(), _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -168,7 +169,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var a = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"], references: [danglingReferenceId]);
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
-        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, _fingerprintProvider);
 
         var result = await store.SearchAsync("anything", SearchOptions.Default);
 
@@ -185,11 +186,89 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         var workspace = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"]);
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
-        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId);
+        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId, _fingerprintProvider);
 
         await store.SearchAsync("anything", SearchOptions.Default);
 
         Assert.DoesNotContain("C:/repo-unrelated", factory.RequestedRepoPaths);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithAPinnedReferenceMatchingItsCurrentFingerprint_MergesHitsNormally()
+    {
+        var b = await SaveWorkspaceAsync("shared-lib", repoPaths: ["C:/repo-b"]);
+        var a = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"], references: [(b.WorkspaceId, "current-fingerprint")]);
+        var factory = new FakeRepoSearchServiceFactory();
+        factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
+        factory.Register("C:/repo-b", FakeHit("b-hit", score: 2.0f));
+        var fingerprints = new FakeWorkspaceStateFingerprintProvider();
+        fingerprints.Register(b.WorkspaceId, "current-fingerprint");
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, fingerprints);
+
+        var result = await store.SearchAsync("anything", SearchOptions.Default);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Hits.Count);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithAPinnedReferenceWhoseCurrentFingerprintHasChanged_ExcludesItAndRecordsAnErrorDiagnostic()
+    {
+        var b = await SaveWorkspaceAsync("shared-lib", repoPaths: ["C:/repo-b"]);
+        var a = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"], references: [(b.WorkspaceId, "pinned-fingerprint")]);
+        var factory = new FakeRepoSearchServiceFactory();
+        factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
+        factory.Register("C:/repo-b", FakeHit("b-hit", score: 2.0f));
+        var fingerprints = new FakeWorkspaceStateFingerprintProvider();
+        fingerprints.Register(b.WorkspaceId, "different-current-fingerprint");
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, fingerprints);
+
+        var result = await store.SearchAsync("anything", SearchOptions.Default);
+
+        Assert.True(result.IsSuccess);
+        var hit = Assert.Single(result.Hits);
+        Assert.Equal("a-hit", hit.DisplayName);
+        Assert.Contains(result.Diagnostics, d =>
+            d.Severity == SearchDiagnosticSeverity.Error
+            && d.Message.Contains(b.WorkspaceId.ToString(), StringComparison.Ordinal)
+            && d.Message.Contains("out of date", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithAPinnedReferenceThatCannotBeVerified_FailsClosed_ExcludingItWithAnErrorDiagnostic()
+    {
+        var b = await SaveWorkspaceAsync("shared-lib", repoPaths: ["C:/repo-b"]);
+        var a = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"], references: [(b.WorkspaceId, "pinned-fingerprint")]);
+        var factory = new FakeRepoSearchServiceFactory();
+        factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
+        factory.Register("C:/repo-b", FakeHit("b-hit", score: 2.0f));
+        var fingerprints = new FakeWorkspaceStateFingerprintProvider();
+        fingerprints.Register(b.WorkspaceId, fingerprint: null); // cannot be computed (unreachable)
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, fingerprints);
+
+        var result = await store.SearchAsync("anything", SearchOptions.Default);
+
+        Assert.True(result.IsSuccess);
+        var hit = Assert.Single(result.Hits);
+        Assert.Equal("a-hit", hit.DisplayName);
+        Assert.Contains(result.Diagnostics, d => d.Severity == SearchDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithAFloatingReference_NeverCallsTheFingerprintProvider()
+    {
+        // Performance: only a pinned reference pays the cost of computing a fingerprint (ADR-0027 Consequences).
+        var b = await SaveWorkspaceAsync("shared-lib", repoPaths: ["C:/repo-b"]);
+        var a = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"], references: [(b.WorkspaceId, null)]);
+        var factory = new FakeRepoSearchServiceFactory();
+        factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
+        factory.Register("C:/repo-b", FakeHit("b-hit", score: 2.0f));
+        var fingerprints = new FakeWorkspaceStateFingerprintProvider();
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, fingerprints);
+
+        await store.SearchAsync("anything", SearchOptions.Default);
+
+        Assert.False(fingerprints.WasCalledFor(b.WorkspaceId));
     }
 
     private static FileSearchHit FakeHit(string displayName, float score) => new()
@@ -203,7 +282,11 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         Snippet = HighlightedText.Empty,
     };
 
-    private async Task<WorkspaceRegistryEntry> SaveWorkspaceAsync(string name, string[] repoPaths, Guid[]? references = null)
+    private Task<WorkspaceRegistryEntry> SaveWorkspaceAsync(string name, string[] repoPaths, Guid[]? references = null) =>
+        SaveWorkspaceAsync(name, repoPaths, (references ?? []).Select(id => (id, (string?)null)).ToArray());
+
+    private async Task<WorkspaceRegistryEntry> SaveWorkspaceAsync(
+        string name, string[] repoPaths, (Guid WorkspaceId, string? PinnedStateHash)[] references)
     {
         var entry = new WorkspaceRegistryEntry
         {
@@ -213,7 +296,9 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
             {
                 Repos = repoPaths.Select(p => new RepoMember { Remote = p, LocalPath = p }).ToList(),
             },
-            References = (references ?? []).Select(id => new WorkspaceReference { WorkspaceId = id }).ToList(),
+            References = references
+                .Select(r => new WorkspaceReference { WorkspaceId = r.WorkspaceId, PinnedStateHash = r.PinnedStateHash })
+                .ToList(),
         };
         await _registry.SaveAsync(entry);
         return entry;
@@ -283,6 +368,22 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
 
             public Task<SearchServiceResult> SearchAsync(SearchQuery query, SearchOptions options) =>
                 _exception is not null ? Task.FromException<SearchServiceResult>(_exception) : Task.FromResult(_result!);
+        }
+    }
+
+    private sealed class FakeWorkspaceStateFingerprintProvider : IWorkspaceStateFingerprintProvider
+    {
+        private readonly Dictionary<Guid, string?> _fingerprintsByWorkspaceId = [];
+        private readonly HashSet<Guid> _calledFor = [];
+
+        public void Register(Guid workspaceId, string? fingerprint) => _fingerprintsByWorkspaceId[workspaceId] = fingerprint;
+
+        public bool WasCalledFor(Guid workspaceId) => _calledFor.Contains(workspaceId);
+
+        public Task<string?> ComputeFingerprintAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default)
+        {
+            _calledFor.Add(entry.WorkspaceId);
+            return Task.FromResult(_fingerprintsByWorkspaceId.GetValueOrDefault(entry.WorkspaceId));
         }
     }
 }

@@ -14,6 +14,7 @@ public sealed class WorkspacesQueryCommandHandlerTests : IDisposable
     private readonly FileWorkspaceRegistry _registry;
     private readonly FakeOutput _output;
     private readonly FakeContext _context;
+    private readonly FakeWorkspaceStateFingerprintProvider _fingerprintProvider = new();
 
     public WorkspacesQueryCommandHandlerTests()
     {
@@ -44,7 +45,7 @@ public sealed class WorkspacesQueryCommandHandlerTests : IDisposable
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", "a-hit");
         factory.Register("C:/repo-b", "b-hit");
-        var handler = new WorkspacesQueryCommandHandler(_registry, factory);
+        var handler = new WorkspacesQueryCommandHandler(_registry, factory, _fingerprintProvider);
         _context.With("workspace", "service-a").With("query", "anything");
 
         var result = await handler.ExecuteAsync(_context);
@@ -57,7 +58,7 @@ public sealed class WorkspacesQueryCommandHandlerTests : IDisposable
     [Fact]
     public async Task Query_WhenWorkspaceMissing_FailsWithActionableMessage()
     {
-        var handler = new WorkspacesQueryCommandHandler(_registry, new FakeRepoSearchServiceFactory());
+        var handler = new WorkspacesQueryCommandHandler(_registry, new FakeRepoSearchServiceFactory(), _fingerprintProvider);
         _context.With("workspace", "does-not-exist").With("query", "anything");
 
         var result = await handler.ExecuteAsync(_context);
@@ -89,7 +90,7 @@ public sealed class WorkspacesQueryCommandHandlerTests : IDisposable
         var factory = new FakeRepoSearchServiceFactory();
         factory.Register("C:/repo-a", "a-hit");
         factory.RegisterFailure("C:/repo-b-denied", SearchServiceStatus.IndexNotFound);
-        var handler = new WorkspacesQueryCommandHandler(_registry, factory);
+        var handler = new WorkspacesQueryCommandHandler(_registry, factory, _fingerprintProvider);
         _context.With("workspace", "service-a").With("query", "anything");
 
         var result = await handler.ExecuteAsync(_context);
@@ -111,7 +112,7 @@ public sealed class WorkspacesQueryCommandHandlerTests : IDisposable
         await _registry.SaveAsync(a);
         var factory = new FakeRepoSearchServiceFactory();
         factory.RegisterFailure("C:/repo-a", SearchServiceStatus.IndexNotFound);
-        var handler = new WorkspacesQueryCommandHandler(_registry, factory);
+        var handler = new WorkspacesQueryCommandHandler(_registry, factory, _fingerprintProvider);
         _context.With("workspace", "service-a").With("query", "anything");
 
         var result = await handler.ExecuteAsync(_context);
@@ -177,5 +178,11 @@ public sealed class WorkspacesQueryCommandHandlerTests : IDisposable
 
             public Task<SearchServiceResult> SearchAsync(SearchQuery query, SearchOptions options) => Task.FromResult(_result);
         }
+    }
+
+    private sealed class FakeWorkspaceStateFingerprintProvider : IWorkspaceStateFingerprintProvider
+    {
+        public Task<string?> ComputeFingerprintAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default) =>
+            Task.FromResult<string?>(null);
     }
 }
