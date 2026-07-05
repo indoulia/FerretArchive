@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Ferret.AI\Ferret.AI.csproj" />
     <ProjectReference Include="..\Ferret.Core\Ferret.Core.csproj" />
     <ProjectReference Include="..\Ferret.Runtime\Ferret.Runtime.csproj" />
+    <ProjectReference Include="..\Ferret.Workspace.Graph\Ferret.Workspace.Graph.csproj" />
   </ItemGroup>
 
 </Project>
