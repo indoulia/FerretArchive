@@ -1,5 +1,10 @@
+using System.Diagnostics;
+
 using Ferret.Core.Search;
 using Ferret.Workspace.Graph;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ferret.Knowledge.Federation;
 
@@ -13,28 +18,32 @@ namespace Ferret.Knowledge.Federation;
 /// every skipped source is recorded in the merged result's <see cref="SearchServiceResult.Diagnostics"/>
 /// so a caller can tell a complete answer from a partial one (Stabilization Sprint 1).
 /// </summary>
-public sealed class FederatedKnowledgeStore : IFederatedKnowledgeStore
+public sealed partial class FederatedKnowledgeStore : IFederatedKnowledgeStore
 {
     private readonly IWorkspaceRegistry _registry;
     private readonly IRepoSearchServiceFactory _repoSearchServiceFactory;
     private readonly Guid _workspaceId;
     private readonly IWorkspaceStateFingerprintProvider _fingerprintProvider;
+    private readonly ILogger<FederatedKnowledgeStore> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="FederatedKnowledgeStore"/> class.</summary>
     /// <param name="registry">The workspace registry, used to resolve member repos and references.</param>
     /// <param name="repoSearchServiceFactory">Builds a per-repo search service.</param>
     /// <param name="workspaceId">The workspace being queried.</param>
     /// <param name="fingerprintProvider">Computes the Workspace State Fingerprint used to verify a pinned reference (ADR-0027 Amendment).</param>
+    /// <param name="logger">Structured logger for per-query duration and per-source skip events (WIP-040). Defaults to a no-op logger.</param>
     public FederatedKnowledgeStore(
         IWorkspaceRegistry registry,
         IRepoSearchServiceFactory repoSearchServiceFactory,
         Guid workspaceId,
-        IWorkspaceStateFingerprintProvider fingerprintProvider)
+        IWorkspaceStateFingerprintProvider fingerprintProvider,
+        ILogger<FederatedKnowledgeStore>? logger = null)
     {
         _registry = registry;
         _repoSearchServiceFactory = repoSearchServiceFactory;
         _workspaceId = workspaceId;
         _fingerprintProvider = fingerprintProvider;
+        _logger = logger ?? NullLogger<FederatedKnowledgeStore>.Instance;
     }
 
     /// <inheritdoc/>
@@ -90,8 +99,18 @@ public sealed class FederatedKnowledgeStore : IFederatedKnowledgeStore
             return SearchServiceResult.Failure(EmptyQuery(), status, diagnostics);
         }
 
-        var taggedHits = successful
-            .SelectMany(p => p.Result.Hits.Select(hit => hit with { SourceWorkspaceId = p.WorkspaceId }))
+        // WIP-036: raw per-source BM25 magnitudes aren't comparable across independently-indexed
+        // sources -- each source's own statistics (document count, term frequency distribution) skew
+        // its score scale, so a flat cross-source sort systematically favors large corpora over a
+        // smaller one's genuinely most relevant hit. Min-max normalization rescales each source's hits
+        // into [0,1] using only that source's own range, which preserves each source's internal
+        // ranking exactly (a monotonic transform) while making magnitudes comparable across sources.
+        // Skipped entirely for a single source: normalizing would rescale magnitudes for no
+        // cross-source benefit and would change the numbers a single-source query has always reported.
+        var taggedHits = (successful.Count > 1
+                ? successful.Select(p => (p.WorkspaceId, Hits: NormalizeScores(p.Result.Hits)))
+                : successful.Select(p => (p.WorkspaceId, Hits: p.Result.Hits)))
+            .SelectMany(p => p.Hits.Select(hit => hit with { SourceWorkspaceId = p.WorkspaceId }))
             .OrderByDescending(hit => hit.Score)
             .Take(options.MaxResults)
             .ToList();
@@ -118,10 +137,49 @@ public sealed class FederatedKnowledgeStore : IFederatedKnowledgeStore
         };
     }
 
+    /// <summary>Rescales <paramref name="hits"/>' scores into [0,1] using only their own min/max, preserving relative order.</summary>
+    private static IReadOnlyList<SearchHit> NormalizeScores(IReadOnlyList<SearchHit> hits)
+    {
+        if (hits.Count == 0)
+        {
+            return hits;
+        }
+
+        var min = hits.Min(h => h.Score);
+        var max = hits.Max(h => h.Score);
+        if (max == min)
+        {
+            return hits.Select(h => h with { Score = 1f }).ToList();
+        }
+
+        return hits.Select(h => h with { Score = (h.Score - min) / (max - min) }).ToList();
+    }
+
     private static SearchQuery EmptyQuery() =>
         new() { OriginalText = string.Empty, Root = new KeywordExpression(string.Empty) };
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Federated query on workspace {WorkspaceId} completed in {DurationMs:F1}ms with {HitCount} hits")]
+    private static partial void LogQueryCompleted(ILogger logger, Guid workspaceId, double durationMs, int hitCount);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Federated query on workspace {WorkspaceId} skipped a source: {Reason}")]
+    private static partial void LogSourceSkipped(ILogger logger, Guid workspaceId, string reason);
+
     private async Task<SearchServiceResult> RunAsync(SearchOptions options, Func<ISearchService, Task<SearchServiceResult>> run)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var result = await RunCoreAsync(options, run).ConfigureAwait(false);
+        stopwatch.Stop();
+
+        LogQueryCompleted(_logger, _workspaceId, stopwatch.Elapsed.TotalMilliseconds, result.Hits.Count);
+        foreach (var diagnostic in result.Diagnostics)
+        {
+            LogSourceSkipped(_logger, _workspaceId, diagnostic.Message);
+        }
+
+        return result;
+    }
+
+    private async Task<SearchServiceResult> RunCoreAsync(SearchOptions options, Func<ISearchService, Task<SearchServiceResult>> run)
     {
         var entry = await _registry.ResolveAsync(_workspaceId, options.Token).ConfigureAwait(false);
         if (entry is null)

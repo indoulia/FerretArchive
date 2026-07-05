@@ -2,6 +2,7 @@ using Ferret.Cli.Cli;
 using Ferret.Workspace.Graph;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Ferret.Cli.Commands.Workspaces;
 
@@ -54,6 +55,12 @@ internal sealed class WorkspacesCliModule : CliModuleBase
             .WithArgument("path", "Local path to the repo to add.");
 
         yield return new CommandDefinition(
+            new CommandMetadata("remove", "Delete a workspace's own registry entry entirely (not just a member repo)."),
+            typeof(WorkspacesRemoveCommandHandler),
+            Group: "workspaces")
+            .WithArgument("workspace", "Workspace ID or name to delete.");
+
+        yield return new CommandDefinition(
             new CommandMetadata("remove-repo", "Remove a member repo from a workspace."),
             typeof(WorkspacesRemoveRepoCommandHandler),
             Group: "workspaces")
@@ -103,7 +110,7 @@ internal sealed class WorkspacesCliModule : CliModuleBase
     /// <inheritdoc/>
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddSingleton<IWorkspaceRegistry>(_ =>
+        services.TryAddSingleton<IWorkspaceRegistry>(_ =>
         {
             var root = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ferret", "workspaces");
             return new CachingWorkspaceRegistry(new FileWorkspaceRegistry(root));
@@ -116,6 +123,7 @@ internal sealed class WorkspacesCliModule : CliModuleBase
         services.AddTransient<WorkspacesShowCommandHandler>();
         services.AddTransient<WorkspacesAddRepoCommandHandler>();
         services.AddTransient<WorkspacesRemoveRepoCommandHandler>();
+        services.AddTransient<WorkspacesRemoveCommandHandler>();
         services.AddTransient<WorkspacesAddReferenceCommandHandler>();
         services.AddTransient<WorkspacesRemoveReferenceCommandHandler>();
 

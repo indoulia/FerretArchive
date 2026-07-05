@@ -76,6 +76,42 @@ public sealed class FileWorkspaceRegistryTests : IDisposable
     }
 
     [Fact]
+    public async Task RemoveAsync_WhenEntryExists_ResolveAsyncThenReturnsNull()
+    {
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        var entry = new WorkspaceRegistryEntry { WorkspaceId = Guid.NewGuid(), Name = "throwaway" };
+        await registry.SaveAsync(entry);
+
+        await registry.RemoveAsync(entry.WorkspaceId);
+
+        Assert.Null(await registry.ResolveAsync(entry.WorkspaceId));
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenEntryExists_ExcludesItFromListAsync()
+    {
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        var entry = new WorkspaceRegistryEntry { WorkspaceId = Guid.NewGuid(), Name = "throwaway" };
+        var kept = new WorkspaceRegistryEntry { WorkspaceId = Guid.NewGuid(), Name = "kept" };
+        await registry.SaveAsync(entry);
+        await registry.SaveAsync(kept);
+
+        await registry.RemoveAsync(entry.WorkspaceId);
+
+        var remaining = await registry.ListAsync();
+        Assert.Single(remaining);
+        Assert.Equal("kept", remaining[0].Name);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenNoEntryStoredForId_DoesNotThrow()
+    {
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+
+        await registry.RemoveAsync(Guid.NewGuid());
+    }
+
+    [Fact]
     public async Task SaveAsync_WritesAtomically_LeavingNoTemporaryFilesBehind()
     {
         var registry = new FileWorkspaceRegistry(_rootDirectory);
