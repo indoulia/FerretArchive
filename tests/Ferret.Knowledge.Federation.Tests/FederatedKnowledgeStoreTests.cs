@@ -36,6 +36,10 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
     [Fact]
     public async Task SearchAsync_WithAReference_MergesHitsFromBothWorkspaces_WithCorrectSourceTagging()
     {
+        // WIP-036: each source contributes exactly one hit here, so per-source min-max normalization
+        // (correctly) can't distinguish "how good" either one is relative to its own corpus -- both
+        // normalize to the top of their own range and tie. Cross-source ranking of distinguishable
+        // hits is covered separately; this test's purpose is correct merging and source tagging.
         var b = await SaveWorkspaceAsync("shared-lib", repoPaths: ["C:/repo-b"]);
         var a = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"], references: [b.WorkspaceId]);
         var factory = new FakeRepoSearchServiceFactory();
@@ -47,10 +51,8 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Equal(2, result.Hits.Count);
-        Assert.Equal("b-hit", result.Hits[0].DisplayName); // higher score first
-        Assert.Equal(b.WorkspaceId, result.Hits[0].SourceWorkspaceId);
-        Assert.Equal("a-hit", result.Hits[1].DisplayName);
-        Assert.Equal(a.WorkspaceId, result.Hits[1].SourceWorkspaceId);
+        Assert.Contains(result.Hits, h => h.DisplayName == "a-hit" && h.SourceWorkspaceId == a.WorkspaceId);
+        Assert.Contains(result.Hits, h => h.DisplayName == "b-hit" && h.SourceWorkspaceId == b.WorkspaceId);
     }
 
     [Fact]
@@ -271,6 +273,51 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         Assert.False(fingerprints.WasCalledFor(b.WorkspaceId));
     }
 
+    [Fact]
+    public async Task SearchAsync_WithMultipleSources_NormalizesScoresSoASmallCorpussTopHitCanOutrankALargeCorpussLesserHits()
+    {
+        // 27/28: raw BM25 magnitudes aren't comparable across independently-indexed sources -- a large
+        // corpus's mid-tier hits must not systematically drown out a small corpus's own best match.
+        var big = await SaveWorkspaceAsync("big-corpus", repoPaths: ["C:/repo-big"]);
+        var small = await SaveWorkspaceAsync("small-corpus", repoPaths: ["C:/repo-small"], references: [big.WorkspaceId]);
+        var factory = new FakeRepoSearchServiceFactory();
+        factory.RegisterMany(
+            "C:/repo-big",
+            FakeHit("big-1", score: 100f),
+            FakeHit("big-2", score: 60f),
+            FakeHit("big-3", score: 50f),
+            FakeHit("big-4", score: 40f),
+            FakeHit("big-5", score: 10f));
+        factory.RegisterMany(
+            "C:/repo-small",
+            FakeHit("small-best", score: 5f),
+            FakeHit("small-worst", score: 4f));
+        var store = new FederatedKnowledgeStore(_registry, factory, small.WorkspaceId, _fingerprintProvider);
+
+        var result = await store.SearchAsync("anything", new SearchOptions { MaxResults = 3 });
+
+        Assert.True(result.IsSuccess);
+        Assert.Contains(result.Hits, h => h.DisplayName == "small-best");
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithASingleSource_ScoresAreUnchanged()
+    {
+        var workspace = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"]);
+        var factory = new FakeRepoSearchServiceFactory();
+        factory.RegisterMany(
+            "C:/repo-a",
+            FakeHit("hit-1", score: 100f),
+            FakeHit("hit-2", score: 60f),
+            FakeHit("hit-3", score: 50f));
+        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId, _fingerprintProvider);
+
+        var result = await store.SearchAsync("anything", new SearchOptions { MaxResults = 10 });
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal([100f, 60f, 50f], result.Hits.Select(h => h.Score));
+    }
+
     private static FileSearchHit FakeHit(string displayName, float score) => new()
     {
         DocumentId = DocumentId.Create(displayName),
@@ -320,11 +367,13 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
 
         public IReadOnlyList<string> RequestedRepoPaths => _requestedRepoPaths;
 
-        public void Register(string repoPath, FileSearchHit hit) =>
+        public void Register(string repoPath, FileSearchHit hit) => RegisterMany(repoPath, hit);
+
+        public void RegisterMany(string repoPath, params FileSearchHit[] hits) =>
             _resultsByRepoPath[repoPath] = SearchServiceResult.Success(
                 new SearchQuery { OriginalText = string.Empty, Root = new KeywordExpression(string.Empty) },
-                new SearchResult { Hits = [hit], TotalHits = 1, ReturnedHits = 1 },
-                new SearchExecutionInfo { SessionId = Guid.NewGuid(), ProviderName = "fake", Duration = TimeSpan.Zero, DocumentsScanned = 1, IndexVersion = "fake" });
+                new SearchResult { Hits = hits, TotalHits = hits.Length, ReturnedHits = hits.Length },
+                new SearchExecutionInfo { SessionId = Guid.NewGuid(), ProviderName = "fake", Duration = TimeSpan.Zero, DocumentsScanned = hits.Length, IndexVersion = "fake" });
 
         public void RegisterFailure(string repoPath, SearchServiceStatus status) =>
             _resultsByRepoPath[repoPath] = SearchServiceResult.Failure(
