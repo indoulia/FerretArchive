@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Proposed — finalized for Founder approval (2026-07-05 finalization review closed identity/failure-mode/sharing-compatibility gaps found in the original draft) |
+| **Status** | **Accepted** (2026-07-06, Founder decision — accepted as specified, no override) |
 | **Date** | 2026-07-05 |
 | **Deciders** | Founder |
 | **Milestone** | Workspace Intelligence Platform, Phase 0 |

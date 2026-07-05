@@ -6,7 +6,7 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
 
 ## Phase 0 — Founder Gate
 
-- [ ] **WIP-001** Close ADR-0026 (workspace registry model)
+- [x] **WIP-001** Close ADR-0026 (workspace registry model) — done: Founder accepted as specified, 2026-07-06 (T10, `30-Epic-5-Ferret-v2-Release-Execution.md`)
   - **Goal:** Founder accepts or overrides the identity-based local registry recommendation.
   - **Dependencies:** none — this is the first thing that must happen.
   - **Expected outcome:** ADR-0026 Status changes from Proposed to Accepted, with the chosen option recorded.
