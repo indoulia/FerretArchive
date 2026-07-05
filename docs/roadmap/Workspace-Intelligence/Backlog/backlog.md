@@ -77,9 +77,9 @@ Cuts across Phase 1 (all of it) and a **minimal** subset of Phase 2 — just eno
 
 ## Phase 3 — Performance
 
-- [ ] **WIP-030** Cross-workspace pull-based invalidation (state-hash mismatch at query time) — `06-Incremental-Indexing.md` §2
-- [ ] **WIP-031** Federated query cache — `07-Caching.md` §1
-- [ ] **WIP-032** Workspace reference topology cache — `07-Caching.md` §2
+- [x] **WIP-030** Cross-workspace pull-based invalidation (state-hash mismatch at query time) — `06-Incremental-Indexing.md` §2 — done: shipped merged with WIP-031 per `20-Phase-3-Priority-Assessment.md` §1; on `main` via PR #34 (T1, `30-Epic-5-Ferret-v2-Release-Execution.md`)
+- [x] **WIP-031** Federated query cache — `07-Caching.md` §1 — done: `src/Ferret.Knowledge.Federation/FederatedQueryCache.cs` + `CachingFederatedKnowledgeStore.cs`, including the P3-002 regression fix; on `main` via PR #34
+- [x] **WIP-032** Workspace reference topology cache — `07-Caching.md` §2 — done: `src/Ferret.Workspace.Graph/CachingWorkspaceRegistry.cs`; on `main` via PR #32
 - [ ] **WIP-033** Scope Classifier (pre-Planner narrowing) — `05-Context-Optimization.md` §2 — **Deferred to v2.1** (Gate E, `30-Epic-5-Ferret-v2-Release-Execution.md` T6, 2026-07-06): `24` proved the naive shape isn't a net win at scale; `25` validated a pooled-connection shape only via Python simulation. Zero real C# implementation and zero connection-pooling infrastructure exist anywhere in the repo to build from — the plan's only High-risk item (`28` §7), and its Definition of Done requires re-validating at R=26 scale against a real `dogfood-hub`-sized multi-workspace corpus, which this environment does not have. Gate E accepts explicit deferral as a fully valid outcome; not left ambiguous.
 - [ ] **WIP-034** Compressor (post-Scorer, federated results only) — `05-Context-Optimization.md` §3 — **Deferred to v2.1**, consequent on WIP-033's deferral (hard dependency, `29`/`30` §5)
 - [ ] **WIP-035** Context assembly cache — `07-Caching.md` §1 — **Deferred to v2.1**, consequent on WIP-033's deferral (hard dependency, `29`/`30` §5)
