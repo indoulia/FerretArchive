@@ -18,12 +18,17 @@ namespace Ferret.Knowledge.Federation;
 /// <remarks>
 /// <para>
 /// <b>Cache key:</b> the query identity (raw text or parsed <see cref="SearchQuery.OriginalText"/>),
-/// the parts of <see cref="SearchOptions"/> that can affect output, the queried workspace's ID, and —
-/// for the queried workspace and every one of its <see cref="WorkspaceRegistryEntry.References"/> —
-/// that workspace's current Workspace State Fingerprint (<see cref="IWorkspaceStateFingerprintProvider"/>,
-/// ADR-0027 Amendment) plus the reference's mode and pinned-state hash. No new metadata is introduced;
-/// every input already exists for another reason (the registry, the fingerprint provider, the
-/// reference record itself).
+/// the parts of <see cref="SearchOptions"/> that can affect output, the queried workspace's ID, that
+/// workspace's own current Workspace State Fingerprint (<see cref="IWorkspaceStateFingerprintProvider"/>,
+/// ADR-0027 Amendment), and — for every one of its <see cref="WorkspaceRegistryEntry.References"/> —
+/// the reference's mode, pinned-state hash, and a per-reference change signal: a <i>pinned</i>
+/// reference's current Workspace State Fingerprint (same drift-check the real, uncached pipeline
+/// already performs), or a <i>floating</i> reference's cheap
+/// <see cref="IWorkspaceStateFingerprintProvider.ComputeIndexChangeSignalAsync"/> signal (P3-002 —
+/// see that method's remarks for why this is correct for a floating reference specifically, and
+/// <c>26-P3-002-Query-Cache-Regression.md</c> for the measurement that motivated it). No new metadata
+/// is introduced; every input already exists for another reason (the registry, the fingerprint
+/// provider, the on-disk keyword index, the reference record itself).
 /// </para>
 /// <para>
 /// <b>Cache value:</b> the derived <see cref="SearchServiceResult"/> exactly as the inner store
@@ -37,8 +42,9 @@ namespace Ferret.Knowledge.Federation;
 /// current state and a state change (content, reference added/removed, pin drift) naturally produces
 /// a different key, so the old entry is simply never looked up again. If the key cannot be built at
 /// all — the queried workspace isn't found, a reference's registry entry is corrupt, a reference no
-/// longer resolves, or any participant's fingerprint can't be computed (unreachable local checkout)
-/// — the cache is bypassed entirely for that call, in both directions: no lookup, no write. This is
+/// longer resolves, or any participant's fingerprint or change signal can't be computed (unreachable
+/// local checkout, no index built yet) — the cache is bypassed entirely for that call, in both
+/// directions: no lookup, no write. This is
 /// what guarantees the cache can never mask corruption or an unreachable workspace: those cases are
 /// simply never cached, so every call runs the real pipeline and reports the real diagnostic.
 /// </para>
@@ -184,10 +190,18 @@ public sealed class CachingFederatedKnowledgeStore : IFederatedKnowledgeStore
                 return null;
             }
 
-            string? referencedFingerprint;
+            // P3-002: floating-reference cache keys track the state of the search index, because a
+            // cached query result is derived exclusively from indexed content -- ComputeIndexChangeSignalAsync
+            // is correct and cheap here. Pinned-reference validation keeps using the Workspace State
+            // Fingerprint (ADR-0027), because it must detect content drift independently of indexing --
+            // that is the whole point of pinning. These two branches must NOT be collapsed into one
+            // mechanism; see IWorkspaceStateFingerprintProvider's remarks for why each exists.
+            string? changeSignal;
             try
             {
-                referencedFingerprint = await _fingerprintProvider.ComputeFingerprintAsync(referenced, ct).ConfigureAwait(false);
+                changeSignal = reference.PinnedStateHash is not null
+                    ? await _fingerprintProvider.ComputeFingerprintAsync(referenced, ct).ConfigureAwait(false)
+                    : await _fingerprintProvider.ComputeIndexChangeSignalAsync(referenced, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -198,12 +212,12 @@ public sealed class CachingFederatedKnowledgeStore : IFederatedKnowledgeStore
                 return null;
             }
 
-            if (referencedFingerprint is null)
+            if (changeSignal is null)
             {
                 return null;
             }
 
-            participants.Add($"{reference.WorkspaceId}:{reference.Mode}:{reference.PinnedStateHash}:{referencedFingerprint}");
+            participants.Add($"{reference.WorkspaceId}:{reference.Mode}:{reference.PinnedStateHash}:{changeSignal}");
         }
 #pragma warning restore CA1031
 

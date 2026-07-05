@@ -385,5 +385,11 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
             _calledFor.Add(entry.WorkspaceId);
             return Task.FromResult(_fingerprintsByWorkspaceId.GetValueOrDefault(entry.WorkspaceId));
         }
+
+        // FederatedKnowledgeStore (the uncached, real pipeline under test in this file) never calls this
+        // -- only CachingFederatedKnowledgeStore's cache-key construction does (P3-002) -- but the
+        // interface requires an implementation.
+        public Task<string?> ComputeIndexChangeSignalAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default) =>
+            throw new NotSupportedException("FederatedKnowledgeStore never calls ComputeIndexChangeSignalAsync.");
     }
 }

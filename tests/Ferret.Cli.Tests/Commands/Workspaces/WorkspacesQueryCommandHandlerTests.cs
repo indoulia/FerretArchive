@@ -185,5 +185,8 @@ public sealed class WorkspacesQueryCommandHandlerTests : IDisposable
     {
         public Task<string?> ComputeFingerprintAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default) =>
             Task.FromResult<string?>(null);
+
+        public Task<string?> ComputeIndexChangeSignalAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default) =>
+            Task.FromResult<string?>(null);
     }
 }
