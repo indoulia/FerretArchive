@@ -50,12 +50,12 @@ Expect:
 ## 4. Rename/delete hygiene (issue #28)
 
 ```
-echo test > .tmp-regression-marker.md
-ferret index
-ferret search "regression-marker"             # should find it
-mv .tmp-regression-marker.md .tmp-regression-marker-renamed.md
-ferret index
-ferret search "regression-marker" --format json   # should show ONLY the new path
+echo "content-marker-<random>" > .tmp-regression-marker.md   # marker MUST be in the file
+ferret index                                                  # CONTENT, not just the filename --
+ferret search "<random>"                       # a filename-only marker won't be found by
+mv .tmp-regression-marker.md .tmp-regression-marker-renamed.md   # full-text search and gives a
+ferret index                                                  # false "0 results" that looks like
+ferret search "<random>" --format json         # a bug but isn't (learned the hard way, 2026-07-05)
 rm .tmp-regression-marker-renamed.md
 ferret index                                  # clean up the index entry too
 ```
