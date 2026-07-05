@@ -3,6 +3,8 @@ using Ferret.Core.Search;
 using Ferret.Knowledge.Federation;
 using Ferret.Workspace.Graph;
 
+using Microsoft.Extensions.Logging;
+
 namespace Ferret.Cli.Commands.Workspaces;
 
 /// <summary>Handles 'ferret workspaces query' (WIP-SLICE-1) — the vertical slice's single query
@@ -14,22 +16,30 @@ internal sealed class WorkspacesQueryCommandHandler : ICommandHandler
     private readonly IRepoSearchServiceFactory _repoSearchServiceFactory;
     private readonly IWorkspaceStateFingerprintProvider _fingerprintProvider;
     private readonly FederatedQueryCache _queryCache;
+    private readonly ILogger<FederatedKnowledgeStore>? _federationLogger;
+    private readonly ILogger<CachingFederatedKnowledgeStore>? _cacheLogger;
 
     /// <summary>Initializes a new instance of the <see cref="WorkspacesQueryCommandHandler"/> class.</summary>
     /// <param name="registry">The workspace registry.</param>
     /// <param name="repoSearchServiceFactory">Builds a per-repo search service for the federated fan-out.</param>
     /// <param name="fingerprintProvider">Computes the Workspace State Fingerprint used to verify a pinned reference.</param>
     /// <param name="queryCache">The process-local federated query cache (WIP-030/031).</param>
+    /// <param name="federationLogger">Structured logger for the federated fan-out (WIP-040). Defaults to a no-op logger.</param>
+    /// <param name="cacheLogger">Structured logger for the query cache (WIP-040). Defaults to a no-op logger.</param>
     public WorkspacesQueryCommandHandler(
         IWorkspaceRegistry registry,
         IRepoSearchServiceFactory repoSearchServiceFactory,
         IWorkspaceStateFingerprintProvider fingerprintProvider,
-        FederatedQueryCache queryCache)
+        FederatedQueryCache queryCache,
+        ILogger<FederatedKnowledgeStore>? federationLogger = null,
+        ILogger<CachingFederatedKnowledgeStore>? cacheLogger = null)
     {
         _registry = registry;
         _repoSearchServiceFactory = repoSearchServiceFactory;
         _fingerprintProvider = fingerprintProvider;
         _queryCache = queryCache;
+        _federationLogger = federationLogger;
+        _cacheLogger = cacheLogger;
     }
 
     /// <inheritdoc/>
@@ -63,8 +73,8 @@ internal sealed class WorkspacesQueryCommandHandler : ICommandHandler
         var limitOption = context.GetOption<int>("limit");
         var limit = limitOption > 0 ? limitOption : 20;
         var options = new SearchOptions { MaxResults = limit, Mode = SearchExecutionMode.Auto };
-        var innerStore = new FederatedKnowledgeStore(_registry, _repoSearchServiceFactory, entry.WorkspaceId, _fingerprintProvider);
-        var store = new CachingFederatedKnowledgeStore(innerStore, _registry, _fingerprintProvider, entry.WorkspaceId, _queryCache);
+        var innerStore = new FederatedKnowledgeStore(_registry, _repoSearchServiceFactory, entry.WorkspaceId, _fingerprintProvider, _federationLogger);
+        var store = new CachingFederatedKnowledgeStore(innerStore, _registry, _fingerprintProvider, entry.WorkspaceId, _queryCache, _cacheLogger);
         var result = await store.SearchAsync(queryText, options).ConfigureAwait(false);
 
         if (!result.IsSuccess)
