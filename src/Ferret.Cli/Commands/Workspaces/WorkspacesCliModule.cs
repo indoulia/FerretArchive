@@ -2,6 +2,7 @@ using Ferret.Cli.Cli;
 using Ferret.Workspace.Graph;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Ferret.Cli.Commands.Workspaces;
 
@@ -103,7 +104,7 @@ internal sealed class WorkspacesCliModule : CliModuleBase
     /// <inheritdoc/>
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddSingleton<IWorkspaceRegistry>(_ =>
+        services.TryAddSingleton<IWorkspaceRegistry>(_ =>
         {
             var root = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ferret", "workspaces");
             return new CachingWorkspaceRegistry(new FileWorkspaceRegistry(root));
