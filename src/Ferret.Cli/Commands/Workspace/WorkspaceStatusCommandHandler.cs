@@ -9,16 +9,19 @@ internal sealed class WorkspaceStatusCommandHandler : ICommandHandler
     private readonly IWorkspaceLocator _locator;
     private readonly IWorkspaceEngine _engine;
     private readonly IWorkspaceStatusFormatter _formatter;
+    private readonly IWorkspaceRegistryAutoMigrator _autoMigrator;
 
     /// <summary>Initializes a new instance of the <see cref="WorkspaceStatusCommandHandler"/> class.</summary>
     public WorkspaceStatusCommandHandler(
         IWorkspaceLocator locator,
         IWorkspaceEngine engine,
-        IWorkspaceStatusFormatter formatter)
+        IWorkspaceStatusFormatter formatter,
+        IWorkspaceRegistryAutoMigrator autoMigrator)
     {
         _locator = locator;
         _engine = engine;
         _formatter = formatter;
+        _autoMigrator = autoMigrator;
     }
 
     /// <inheritdoc/>
@@ -32,6 +35,8 @@ internal sealed class WorkspaceStatusCommandHandler : ICommandHandler
             _formatter.Format(new WorkspaceStatusView(IsInWorkspace: false), context.Services.Output);
             return CommandResult.Success;
         }
+
+        await _autoMigrator.EnsureMigratedAsync(root.FullPath, context.CancellationToken).ConfigureAwait(false);
 
         WorkspaceStatusView view;
         try

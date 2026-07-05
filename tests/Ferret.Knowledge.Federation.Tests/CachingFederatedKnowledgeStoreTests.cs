@@ -3,6 +3,8 @@ using Ferret.Core.Primitives;
 using Ferret.Core.Search;
 using Ferret.Workspace.Graph;
 
+using Microsoft.Extensions.Logging;
+
 namespace Ferret.Knowledge.Federation.Tests;
 
 public sealed class CachingFederatedKnowledgeStoreTests
@@ -22,6 +24,40 @@ public sealed class CachingFederatedKnowledgeStoreTests
         await cache.SearchAsync("term", SearchOptions.Default);
 
         Assert.Equal(1, inner.CallCount);
+    }
+
+    [Fact]
+    public async Task SearchAsync_FirstCall_LogsCacheMiss()
+    {
+        var workspaceId = Guid.NewGuid();
+        var registry = new FakeWorkspaceRegistry();
+        registry.Register(SimpleEntry(workspaceId, "service-a"));
+        var fingerprints = new FakeWorkspaceStateFingerprintProvider();
+        fingerprints.Register(workspaceId, "fp-a");
+        var logger = new RecordingLogger<CachingFederatedKnowledgeStore>();
+        var cache = new CachingFederatedKnowledgeStore(new CountingInnerStore(), registry, fingerprints, workspaceId, new FederatedQueryCache(), logger);
+
+        await cache.SearchAsync("term", SearchOptions.Default);
+
+        Assert.Contains(logger.Entries, e => e.Message.Contains("miss", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task SearchAsync_RepeatedCall_LogsCacheHit()
+    {
+        var workspaceId = Guid.NewGuid();
+        var registry = new FakeWorkspaceRegistry();
+        registry.Register(SimpleEntry(workspaceId, "service-a"));
+        var fingerprints = new FakeWorkspaceStateFingerprintProvider();
+        fingerprints.Register(workspaceId, "fp-a");
+        var logger = new RecordingLogger<CachingFederatedKnowledgeStore>();
+        var cache = new CachingFederatedKnowledgeStore(new CountingInnerStore(), registry, fingerprints, workspaceId, new FederatedQueryCache(), logger);
+
+        await cache.SearchAsync("term", SearchOptions.Default);
+        logger.Entries.Clear();
+        await cache.SearchAsync("term", SearchOptions.Default);
+
+        Assert.Contains(logger.Entries, e => e.Message.Contains("hit", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

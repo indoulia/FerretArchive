@@ -3,6 +3,8 @@ using Ferret.Core.Primitives;
 using Ferret.Core.Search;
 using Ferret.Workspace.Graph;
 
+using Microsoft.Extensions.Logging;
+
 namespace Ferret.Knowledge.Federation.Tests;
 
 public sealed class FederatedKnowledgeStoreTests : IDisposable
@@ -316,6 +318,40 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Equal([100f, 60f, 50f], result.Hits.Select(h => h.Score));
+    }
+
+    [Fact]
+    public async Task SearchAsync_OnSuccess_LogsQueryCompletionWithDuration()
+    {
+        var workspace = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"]);
+        var factory = new FakeRepoSearchServiceFactory();
+        factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
+        var logger = new RecordingLogger<FederatedKnowledgeStore>();
+        var store = new FederatedKnowledgeStore(_registry, factory, workspace.WorkspaceId, _fingerprintProvider, logger);
+
+        await store.SearchAsync("anything", SearchOptions.Default);
+
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Information
+            && e.Message.Contains(workspace.WorkspaceId.ToString(), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhenASourceIsSkipped_LogsAWarning()
+    {
+        var b = await SaveWorkspaceAsync("shared-lib", repoPaths: ["C:/repo-b-missing"]);
+        var a = await SaveWorkspaceAsync("service-a", repoPaths: ["C:/repo-a"], references: [b.WorkspaceId]);
+        var factory = new FakeRepoSearchServiceFactory();
+        factory.Register("C:/repo-a", FakeHit("a-hit", score: 1.0f));
+        factory.RegisterFailure("C:/repo-b-missing", SearchServiceStatus.IndexNotFound);
+        var logger = new RecordingLogger<FederatedKnowledgeStore>();
+        var store = new FederatedKnowledgeStore(_registry, factory, a.WorkspaceId, _fingerprintProvider, logger);
+
+        await store.SearchAsync("anything", SearchOptions.Default);
+
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Warning
+            && e.Message.Contains(b.WorkspaceId.ToString(), StringComparison.Ordinal));
     }
 
     private static FileSearchHit FakeHit(string displayName, float score) => new()

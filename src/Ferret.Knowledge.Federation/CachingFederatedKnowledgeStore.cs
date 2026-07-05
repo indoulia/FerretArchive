@@ -5,6 +5,9 @@ using System.Text;
 using Ferret.Core.Search;
 using Ferret.Workspace.Graph;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace Ferret.Knowledge.Federation;
 
 /// <summary>
@@ -49,13 +52,14 @@ namespace Ferret.Knowledge.Federation;
 /// simply never cached, so every call runs the real pipeline and reports the real diagnostic.
 /// </para>
 /// </remarks>
-public sealed class CachingFederatedKnowledgeStore : IFederatedKnowledgeStore
+public sealed partial class CachingFederatedKnowledgeStore : IFederatedKnowledgeStore
 {
     private readonly IFederatedKnowledgeStore _inner;
     private readonly IWorkspaceRegistry _registry;
     private readonly IWorkspaceStateFingerprintProvider _fingerprintProvider;
     private readonly Guid _workspaceId;
     private readonly FederatedQueryCache _cache;
+    private readonly ILogger<CachingFederatedKnowledgeStore> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="CachingFederatedKnowledgeStore"/> class.</summary>
     /// <param name="inner">The real federated store this decorates. Always authoritative on a cache miss.</param>
@@ -63,12 +67,14 @@ public sealed class CachingFederatedKnowledgeStore : IFederatedKnowledgeStore
     /// <param name="fingerprintProvider">Computes the Workspace State Fingerprint used to detect content changes for the cache key.</param>
     /// <param name="workspaceId">The workspace being queried.</param>
     /// <param name="cache">The shared, process-local cache store. Must be a singleton to be effective across queries.</param>
+    /// <param name="logger">Structured logger for cache hit/miss events (WIP-040). Defaults to a no-op logger.</param>
     public CachingFederatedKnowledgeStore(
         IFederatedKnowledgeStore inner,
         IWorkspaceRegistry registry,
         IWorkspaceStateFingerprintProvider fingerprintProvider,
         Guid workspaceId,
-        FederatedQueryCache cache)
+        FederatedQueryCache cache,
+        ILogger<CachingFederatedKnowledgeStore>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(inner);
         ArgumentNullException.ThrowIfNull(registry);
@@ -79,6 +85,7 @@ public sealed class CachingFederatedKnowledgeStore : IFederatedKnowledgeStore
         _fingerprintProvider = fingerprintProvider;
         _workspaceId = workspaceId;
         _cache = cache;
+        _logger = logger ?? NullLogger<CachingFederatedKnowledgeStore>.Instance;
     }
 
     /// <inheritdoc/>
@@ -99,14 +106,22 @@ public sealed class CachingFederatedKnowledgeStore : IFederatedKnowledgeStore
     private static string Sha256Hex(string input) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(input)));
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Federated query cache hit for workspace {WorkspaceId}")]
+    private static partial void LogCacheHit(ILogger logger, Guid workspaceId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Federated query cache miss for workspace {WorkspaceId}")]
+    private static partial void LogCacheMiss(ILogger logger, Guid workspaceId);
+
     private async Task<SearchServiceResult> ExecuteAsync(string queryIdentity, Func<Task<SearchServiceResult>> run, SearchOptions options)
     {
         var key = await TryBuildCacheKeyAsync(queryIdentity, options, options.Token).ConfigureAwait(false);
         if (key is not null && _cache.TryGet(key, out var cached))
         {
+            LogCacheHit(_logger, _workspaceId);
             return cached;
         }
 
+        LogCacheMiss(_logger, _workspaceId);
         var result = await run().ConfigureAwait(false);
 
         if (key is not null)

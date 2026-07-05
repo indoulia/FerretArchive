@@ -1,5 +1,10 @@
+using System.Diagnostics;
+
 using Ferret.Core.Search;
 using Ferret.Workspace.Graph;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ferret.Knowledge.Federation;
 
@@ -13,28 +18,32 @@ namespace Ferret.Knowledge.Federation;
 /// every skipped source is recorded in the merged result's <see cref="SearchServiceResult.Diagnostics"/>
 /// so a caller can tell a complete answer from a partial one (Stabilization Sprint 1).
 /// </summary>
-public sealed class FederatedKnowledgeStore : IFederatedKnowledgeStore
+public sealed partial class FederatedKnowledgeStore : IFederatedKnowledgeStore
 {
     private readonly IWorkspaceRegistry _registry;
     private readonly IRepoSearchServiceFactory _repoSearchServiceFactory;
     private readonly Guid _workspaceId;
     private readonly IWorkspaceStateFingerprintProvider _fingerprintProvider;
+    private readonly ILogger<FederatedKnowledgeStore> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="FederatedKnowledgeStore"/> class.</summary>
     /// <param name="registry">The workspace registry, used to resolve member repos and references.</param>
     /// <param name="repoSearchServiceFactory">Builds a per-repo search service.</param>
     /// <param name="workspaceId">The workspace being queried.</param>
     /// <param name="fingerprintProvider">Computes the Workspace State Fingerprint used to verify a pinned reference (ADR-0027 Amendment).</param>
+    /// <param name="logger">Structured logger for per-query duration and per-source skip events (WIP-040). Defaults to a no-op logger.</param>
     public FederatedKnowledgeStore(
         IWorkspaceRegistry registry,
         IRepoSearchServiceFactory repoSearchServiceFactory,
         Guid workspaceId,
-        IWorkspaceStateFingerprintProvider fingerprintProvider)
+        IWorkspaceStateFingerprintProvider fingerprintProvider,
+        ILogger<FederatedKnowledgeStore>? logger = null)
     {
         _registry = registry;
         _repoSearchServiceFactory = repoSearchServiceFactory;
         _workspaceId = workspaceId;
         _fingerprintProvider = fingerprintProvider;
+        _logger = logger ?? NullLogger<FederatedKnowledgeStore>.Instance;
     }
 
     /// <inheritdoc/>
@@ -149,7 +158,28 @@ public sealed class FederatedKnowledgeStore : IFederatedKnowledgeStore
     private static SearchQuery EmptyQuery() =>
         new() { OriginalText = string.Empty, Root = new KeywordExpression(string.Empty) };
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Federated query on workspace {WorkspaceId} completed in {DurationMs:F1}ms with {HitCount} hits")]
+    private static partial void LogQueryCompleted(ILogger logger, Guid workspaceId, double durationMs, int hitCount);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Federated query on workspace {WorkspaceId} skipped a source: {Reason}")]
+    private static partial void LogSourceSkipped(ILogger logger, Guid workspaceId, string reason);
+
     private async Task<SearchServiceResult> RunAsync(SearchOptions options, Func<ISearchService, Task<SearchServiceResult>> run)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var result = await RunCoreAsync(options, run).ConfigureAwait(false);
+        stopwatch.Stop();
+
+        LogQueryCompleted(_logger, _workspaceId, stopwatch.Elapsed.TotalMilliseconds, result.Hits.Count);
+        foreach (var diagnostic in result.Diagnostics)
+        {
+            LogSourceSkipped(_logger, _workspaceId, diagnostic.Message);
+        }
+
+        return result;
+    }
+
+    private async Task<SearchServiceResult> RunCoreAsync(SearchOptions options, Func<ISearchService, Task<SearchServiceResult>> run)
     {
         var entry = await _registry.ResolveAsync(_workspaceId, options.Token).ConfigureAwait(false);
         if (entry is null)

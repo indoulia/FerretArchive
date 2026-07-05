@@ -103,6 +103,17 @@ internal sealed class FakeStatusFormatter : IWorkspaceStatusFormatter
     public void Format(WorkspaceStatusView view, IOutputFormatter output) => LastView = view;
 }
 
+internal sealed class FakeAutoMigrator : IWorkspaceRegistryAutoMigrator
+{
+    internal List<string> MigratedRepoPaths { get; } = [];
+
+    public Task EnsureMigratedAsync(string repoPath, CancellationToken ct = default)
+    {
+        MigratedRepoPaths.Add(repoPath);
+        return Task.CompletedTask;
+    }
+}
+
 public sealed class WorkspaceInitCommandHandlerTests
 {
     private static (FakeOutput Output, FakeContext Ctx) MakeCtx(string workingDir = @"C:\fake\cwd")
@@ -115,7 +126,7 @@ public sealed class WorkspaceInitCommandHandlerTests
     public async Task ExecuteAsync_WhenInitSucceeds_ReturnsSuccess()
     {
         var (_, ctx) = MakeCtx();
-        var result = await new WorkspaceInitCommandHandler(new FakeWorkspaceEngine(), new FakeInitFormatter())
+        var result = await new WorkspaceInitCommandHandler(new FakeWorkspaceEngine(), new FakeInitFormatter(), new FakeAutoMigrator())
             .ExecuteAsync(ctx);
         Assert.Equal(CommandResult.Success, result);
     }
@@ -125,7 +136,7 @@ public sealed class WorkspaceInitCommandHandlerTests
     {
         var (_, ctx) = MakeCtx(@"C:\myproject");
         var formatter = new FakeInitFormatter();
-        await new WorkspaceInitCommandHandler(new FakeWorkspaceEngine(), formatter).ExecuteAsync(ctx);
+        await new WorkspaceInitCommandHandler(new FakeWorkspaceEngine(), formatter, new FakeAutoMigrator()).ExecuteAsync(ctx);
         Assert.True(formatter.LastView!.Succeeded);
         Assert.Equal(@"C:\myproject", formatter.LastView.RootPath);
     }
@@ -135,7 +146,7 @@ public sealed class WorkspaceInitCommandHandlerTests
     {
         var engine = new FakeWorkspaceEngine { InitResult = WorkspaceInitResult.Failure("already exists") };
         var (_, ctx) = MakeCtx();
-        var result = await new WorkspaceInitCommandHandler(engine, new FakeInitFormatter()).ExecuteAsync(ctx);
+        var result = await new WorkspaceInitCommandHandler(engine, new FakeInitFormatter(), new FakeAutoMigrator()).ExecuteAsync(ctx);
         Assert.Equal(CommandResult.Failure, result);
     }
 
@@ -145,7 +156,7 @@ public sealed class WorkspaceInitCommandHandlerTests
         var engine = new FakeWorkspaceEngine { InitResult = WorkspaceInitResult.Failure("already exists") };
         var (_, ctx) = MakeCtx();
         var formatter = new FakeInitFormatter();
-        await new WorkspaceInitCommandHandler(engine, formatter).ExecuteAsync(ctx);
+        await new WorkspaceInitCommandHandler(engine, formatter, new FakeAutoMigrator()).ExecuteAsync(ctx);
         Assert.False(formatter.LastView!.Succeeded);
         Assert.Contains("already exists", formatter.LastView.ErrorMessage, StringComparison.Ordinal);
     }
@@ -155,8 +166,27 @@ public sealed class WorkspaceInitCommandHandlerTests
     {
         var (_, ctx) = MakeCtx(@"C:\custom\dir");
         var formatter = new FakeInitFormatter();
-        await new WorkspaceInitCommandHandler(new FakeWorkspaceEngine(), formatter).ExecuteAsync(ctx);
+        await new WorkspaceInitCommandHandler(new FakeWorkspaceEngine(), formatter, new FakeAutoMigrator()).ExecuteAsync(ctx);
         Assert.Equal(@"C:\custom\dir", formatter.LastView!.RootPath);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenInitSucceeds_InvokesAutoMigratorWithRootPath()
+    {
+        var (_, ctx) = MakeCtx(@"C:\myproject");
+        var migrator = new FakeAutoMigrator();
+        await new WorkspaceInitCommandHandler(new FakeWorkspaceEngine(), new FakeInitFormatter(), migrator).ExecuteAsync(ctx);
+        Assert.Equal([@"C:\myproject"], migrator.MigratedRepoPaths);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenInitFails_DoesNotInvokeAutoMigrator()
+    {
+        var engine = new FakeWorkspaceEngine { InitResult = WorkspaceInitResult.Failure("already exists") };
+        var (_, ctx) = MakeCtx();
+        var migrator = new FakeAutoMigrator();
+        await new WorkspaceInitCommandHandler(engine, new FakeInitFormatter(), migrator).ExecuteAsync(ctx);
+        Assert.Empty(migrator.MigratedRepoPaths);
     }
 }
 
@@ -173,7 +203,7 @@ public sealed class WorkspaceStatusCommandHandlerTests
     {
         var locator = new FakeLocator { LocateResult = null };
         var (_, ctx) = MakeCtx();
-        var result = await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), new FakeStatusFormatter())
+        var result = await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), new FakeStatusFormatter(), new FakeAutoMigrator())
             .ExecuteAsync(ctx);
         Assert.Equal(CommandResult.Success, result);
     }
@@ -184,9 +214,19 @@ public sealed class WorkspaceStatusCommandHandlerTests
         var locator = new FakeLocator { LocateResult = null };
         var (_, ctx) = MakeCtx();
         var formatter = new FakeStatusFormatter();
-        await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), formatter).ExecuteAsync(ctx);
+        await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), formatter, new FakeAutoMigrator()).ExecuteAsync(ctx);
         Assert.False(formatter.LastView!.IsInWorkspace);
         Assert.Null(formatter.LastView.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_NotInWorkspace_DoesNotInvokeAutoMigrator()
+    {
+        var locator = new FakeLocator { LocateResult = null };
+        var (_, ctx) = MakeCtx();
+        var migrator = new FakeAutoMigrator();
+        await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), new FakeStatusFormatter(), migrator).ExecuteAsync(ctx);
+        Assert.Empty(migrator.MigratedRepoPaths);
     }
 
     [Fact]
@@ -194,7 +234,7 @@ public sealed class WorkspaceStatusCommandHandlerTests
     {
         var locator = new FakeLocator { LocateResult = WorkspacePath.Create(@"C:\fake") };
         var (_, ctx) = MakeCtx();
-        var result = await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), new FakeStatusFormatter())
+        var result = await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), new FakeStatusFormatter(), new FakeAutoMigrator())
             .ExecuteAsync(ctx);
         Assert.Equal(CommandResult.Success, result);
     }
@@ -205,9 +245,19 @@ public sealed class WorkspaceStatusCommandHandlerTests
         var locator = new FakeLocator { LocateResult = WorkspacePath.Create(@"C:\fake") };
         var (_, ctx) = MakeCtx();
         var formatter = new FakeStatusFormatter();
-        await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), formatter).ExecuteAsync(ctx);
+        await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), formatter, new FakeAutoMigrator()).ExecuteAsync(ctx);
         Assert.True(formatter.LastView!.IsInWorkspace);
         Assert.Equal("fake", formatter.LastView.Name);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_InWorkspace_InvokesAutoMigratorWithRootPath()
+    {
+        var locator = new FakeLocator { LocateResult = WorkspacePath.Create(@"C:\fake") };
+        var (_, ctx) = MakeCtx();
+        var migrator = new FakeAutoMigrator();
+        await new WorkspaceStatusCommandHandler(locator, new FakeWorkspaceEngine(), new FakeStatusFormatter(), migrator).ExecuteAsync(ctx);
+        Assert.Equal([@"C:\fake"], migrator.MigratedRepoPaths);
     }
 
     [Fact]
@@ -216,7 +266,7 @@ public sealed class WorkspaceStatusCommandHandlerTests
         var locator = new FakeLocator { LocateResult = WorkspacePath.Create(@"C:\fake") };
         var engine = new FakeWorkspaceEngine { LoadException = new InvalidOperationException("corrupt JSON") };
         var (_, ctx) = MakeCtx();
-        var result = await new WorkspaceStatusCommandHandler(locator, engine, new FakeStatusFormatter())
+        var result = await new WorkspaceStatusCommandHandler(locator, engine, new FakeStatusFormatter(), new FakeAutoMigrator())
             .ExecuteAsync(ctx);
         Assert.Equal(CommandResult.Failure, result);
     }
@@ -228,7 +278,7 @@ public sealed class WorkspaceStatusCommandHandlerTests
         var engine = new FakeWorkspaceEngine { LoadException = new InvalidOperationException("corrupt JSON") };
         var (_, ctx) = MakeCtx();
         var formatter = new FakeStatusFormatter();
-        await new WorkspaceStatusCommandHandler(locator, engine, formatter).ExecuteAsync(ctx);
+        await new WorkspaceStatusCommandHandler(locator, engine, formatter, new FakeAutoMigrator()).ExecuteAsync(ctx);
         Assert.NotNull(formatter.LastView!.ErrorMessage);
         Assert.Contains("corrupt", formatter.LastView.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
