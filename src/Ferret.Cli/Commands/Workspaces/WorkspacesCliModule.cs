@@ -106,7 +106,7 @@ internal sealed class WorkspacesCliModule : CliModuleBase
         services.AddSingleton<IWorkspaceRegistry>(_ =>
         {
             var root = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ferret", "workspaces");
-            return new FileWorkspaceRegistry(root);
+            return new CachingWorkspaceRegistry(new FileWorkspaceRegistry(root));
         });
 
         services.AddSingleton<IWorkspacesListFormatter, TextWorkspacesListFormatter>();
