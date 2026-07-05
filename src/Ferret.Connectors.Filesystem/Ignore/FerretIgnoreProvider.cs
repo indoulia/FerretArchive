@@ -31,7 +31,7 @@ public sealed class FerretIgnoreProvider : IIgnoreProvider
             return false;
         }
 
-        var path = asset.CanonicalUri.AbsolutePath.TrimStart('/');
+        var path = Uri.UnescapeDataString(asset.CanonicalUri.AbsolutePath).TrimStart('/');
         var name = Path.GetFileName(path);
 
         return _patterns.Any(pattern =>

@@ -45,10 +45,12 @@ internal sealed class ConnectorManager : IConnectorManager, IDisposable
     {
         var instances = await _store.LoadAllAsync(_rootPath, ct).ConfigureAwait(false);
 
-        // Zero-config default: a brand-new workspace (empty store) indexes its own root
-        // via the filesystem connector. Once the user configures any connector, the store
-        // is no longer empty and this synthetic default no longer applies.
-        if (instances.Count == 0 && _factories.ContainsKey(DefaultConnectorType))
+        // Zero-config default: a workspace with no *enabled* connector instance indexes its
+        // own root via the filesystem connector. Keyed on "no enabled instance" rather than
+        // "store is empty" so that disabling every configured instance (e.g. after trying
+        // one out) falls back to zero-config again, instead of permanently disabling all
+        // indexing with no active connector and no warning.
+        if (instances.All(i => !i.IsEnabled) && _factories.ContainsKey(DefaultConnectorType))
         {
             instances = [BuildDefaultFilesystemInstance(_rootPath)];
         }

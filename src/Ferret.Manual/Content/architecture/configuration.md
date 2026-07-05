@@ -8,7 +8,7 @@ Ferret uses a three-layer configuration system. Each layer overrides the one bef
 ┌───────────────────────────────┐  Highest priority
 │  Environment Variables        │  FERRET_AI_DEFAULT_CHAT_MODEL=...
 ├───────────────────────────────┤
-│  ferret.config.json           │  Project-level config
+│  ferret.json           │  Project-level config
 │  (workspace root)             │
 ├───────────────────────────────┤
 │  Compiled Defaults            │  Lowest priority
@@ -16,9 +16,9 @@ Ferret uses a three-layer configuration system. Each layer overrides the one bef
 └───────────────────────────────┘
 ```
 
-## ferret.config.json
+## ferret.json
 
-Place `ferret.config.json` at the workspace root (same level as `.ferret/`):
+Place `ferret.json` at the workspace root (same level as `.ferret/`):
 
 ```json
 {
@@ -63,7 +63,7 @@ All config values can be overridden via environment variables using double-under
 | `FERRET_SEARCH__DEFAULTMAXRESULTS` | `search.defaultMaxResults` | `20` |
 | `FERRET_INDEXING__BATCHSIZE` | `indexing.batchSize` | `100` |
 
-> **Note:** Environment variables are the recommended way to pass secrets like API keys. Never store API keys in `ferret.config.json`.
+> **Note:** Environment variables are the recommended way to pass secrets like API keys. Never store API keys in `ferret.json`.
 
 ## IConfiguration Binding
 

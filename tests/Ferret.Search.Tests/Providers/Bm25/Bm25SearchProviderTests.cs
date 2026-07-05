@@ -91,6 +91,18 @@ public sealed class Bm25SearchProviderTests : IDisposable
         Assert.All(result.Hits, h => Assert.IsType<FileSearchHit>(h));
     }
 
+    [Fact]
+    public async Task SearchAsync_CanonicalUri_Not_DoubleWrapped_For_FilesystemScheme_Id()
+    {
+        // Real production document IDs use the "filesystem://" connector scheme (not "file://"),
+        // which the old BuildHit prefix check ("id.StartsWith(\"file://\")") never matched,
+        // so every hit's CanonicalUri came out as "file:///filesystem:///...".
+        var query = MakeQuery(new KeywordExpression("scanner"));
+        var result = await _provider.SearchAsync(query, DefaultOptions());
+        var hit = Assert.Single(result.Hits);
+        Assert.Equal("filesystem:///src/connector/scanner.cs", hit.CanonicalUri.ToString());
+    }
+
     // ── SearchAsync: missing index ─────────────────────────────────────────────
 
     [Fact]
@@ -145,7 +157,8 @@ public sealed class Bm25SearchProviderTests : IDisposable
             VALUES
                 ('file:///src/auth/token.cs',   'filesystem', 'fs-1', 'text/plain', 1, 'Token-based authentication content here', 'AuthenticationToken', 0),
                 ('file:///src/auth/session.cs',  'filesystem', 'fs-1', 'text/plain', 1, 'Session management for authenticated users', 'SessionManager', 0),
-                ('file:///src/runtime/builder.cs','filesystem', 'fs-1', 'text/plain', 1, 'Builder content for runtime initialization', 'RuntimeBuilder', 0);
+                ('file:///src/runtime/builder.cs','filesystem', 'fs-1', 'text/plain', 1, 'Builder content for runtime initialization', 'RuntimeBuilder', 0),
+                ('filesystem:///src/connector/scanner.cs','filesystem', 'fs-1', 'text/plain', 1, 'Scanner content for connector discovery', 'ConnectorScanner', 0);
             INSERT INTO documents_fts (id, plain_text, title)
             SELECT id, plain_text, title FROM documents;
             """;

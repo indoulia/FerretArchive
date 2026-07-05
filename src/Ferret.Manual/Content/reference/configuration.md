@@ -1,8 +1,8 @@
 # Configuration Reference
 
-Full schema for `ferret.config.json` and all supported environment variable overrides.
+Full schema for `ferret.json` and all supported environment variable overrides.
 
-## ferret.config.json
+## ferret.json
 
 Place this file at the workspace root (next to `.ferret/`). All fields are optional; Ferret uses compiled defaults if not specified.
 
@@ -86,9 +86,9 @@ These single-purpose variables are easier to use in CI and Docker than the full 
 | `FERRET_INDEXING__BATCHSIZE` | `indexing.batchSize` |
 | `FERRET_CONTEXT__DEFAULTTOKENBUDGET` | `context.defaultTokenBudget` |
 
-> **Priority:** shorthand variables are applied after `ferret.config.json` and after full `FERRET__` variables, so they always win. Use them for secrets and CI overrides.
+> **Priority:** shorthand variables are applied after `ferret.json` and after full `FERRET__` variables, so they always win. Use them for secrets and CI overrides.
 
-## Example ferret.config.json
+## Example ferret.json
 
 ```json
 {

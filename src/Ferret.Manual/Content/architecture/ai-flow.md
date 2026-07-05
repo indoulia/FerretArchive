@@ -75,7 +75,7 @@ ferret models info ollama/llama3.2
 
 ## Provider Selection
 
-Configure the default chat model in `ferret.config.json`:
+Configure the default chat model in `ferret.json`:
 
 ```json
 {

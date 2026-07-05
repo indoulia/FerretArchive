@@ -19,7 +19,7 @@ Brief description of this command group.
 
 | Option | Short | Type | Default | Description |
 |---|---|---|---|---|
-| `--config` | `-c` | `file` | `~/.ferret/config.json` | Config file path |
+| `--config` | `-c` | `file` | `ferret.json` | Config file path |
 | `--output` | `-o` | `json\|table\|plain` | `table` | Output format |
 | `--verbose` | `-v` | flag | false | Verbose logging |
 | `--quiet` | `-q` | flag | false | Suppress all output except errors |

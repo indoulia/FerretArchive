@@ -12,7 +12,7 @@ public sealed class FilesystemConnector : IConnector, IAssetSource, IAssetReader
     private static readonly HashSet<string> HardcodedSkipDirs = new(StringComparer.OrdinalIgnoreCase)
     {
         ".git", ".ferret", ".svn", ".hg",
-        "node_modules", "bin", "obj",
+        "node_modules", "bin", "obj", "packages",
     };
 
     private readonly FilesystemConnectorConfiguration _config;
@@ -78,7 +78,7 @@ public sealed class FilesystemConnector : IConnector, IAssetSource, IAssetReader
         ArgumentNullException.ThrowIfNull(asset);
         ct.ThrowIfCancellationRequested();
 
-        var relativePath = asset.CanonicalUri.AbsolutePath.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar);
+        var relativePath = Uri.UnescapeDataString(asset.CanonicalUri.AbsolutePath).TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar);
         var fullPath = System.IO.Path.Join(_config.RootPath, relativePath);
         return Task.FromResult<Stream>(File.OpenRead(fullPath));
     }

@@ -4,7 +4,7 @@
 |---|---|
 | **Document ID** | DOGFOOD-001 |
 | **Version** | 1.0 |
-| **Status** | Active |
+| **Status** | Closed (2026-07-05) — see Closure Note below |
 | **Owner** | Ferret Project |
 | **Date** | 2026-06-30 |
 | **Period** | 4–8 weeks from v0.15.0 publication |
@@ -228,3 +228,19 @@ Copy one block per active-use day into a running log (e.g., append to this file 
 - File bugs in the project tracker with the `dogfood` label and the severity.
 - Critical/High bugs link back to the daily-log date that found them.
 - This document is the source of truth for the period; update the status header to `Closed` with the GA decision when Phase 7 concludes.
+
+---
+
+## Closure Note (2026-07-05)
+
+**This document is closed on a different, narrower basis than the Phase 1–7 GA Readiness plan above — recorded here plainly so the distinction isn't lost.**
+
+What was **not** done: the phased plan's own exit criteria (≥20 logged active-use days, ≥50 Phase-1 tasks, ≥30 Phase-2 AI tasks, 2 AI hosts validated at ≥95% tool-call success, the full Phase 6 benchmark table, a GA go/no-go decision) were never pursued. No entries exist under a `## Daily Logs` section in this file in the format this document itself specifies. Phase 7 was not reached.
+
+What **was** done (2026-07-04 to 2026-07-05, see `docs/dogfooding/2026-07-04-daily-log.md` and `2026-07-05-daily-log.md`): direct, hands-on CLI/MCP dogfooding of Ferret against itself and a real external repository, structured as an evolving series of sessions (bug-hunting → trust validation → reliability validation → confidence confirmation). This surfaced and fixed 10 real defects (see below), then ran a defined regression checklist (`docs/dogfooding/REGRESSION-CHECKLIST.md`) across 3 consecutive ordinary-engineering-work sessions with no new findings, no new implementation fixes required, and no tool other than Ferret used — the closing bar this exercise's later sessions explicitly defined for itself, distinct from the original Phase 7 criteria above.
+
+**Issues found and fixed** (committed to branch `dogfooding`, TDD, full solution suite green throughout): #14, #15, #16, #19, #20, #22, #24, #26, #27, #28.
+
+**Issues found and filed, not fixed** (genuine design decisions or unconfirmed root causes — deliberately not guessed at): #17 (`ferret watch` visibility latency), #18 (`ferret doctor` freshness has no git-branch awareness), #21 (`ContextAssembler` swallows search failures silently), #23 (`--passages` flag is a non-functional no-op), #25 (`ferret status` is a hardcoded stub). #9/#13 (directory-open failures) were already fixed on `main` prior to this exercise, pending an npm release.
+
+**Disposition:** closed as "sufficient evidence gathered to proceed," not as "GA readiness confirmed." If GA readiness against the original Phase 1–7 criteria is still wanted, that remains a separate, not-yet-started body of work.

@@ -56,7 +56,7 @@ Only re-indexes the `docs` connector instance. Other connectors are unchanged.
 
 ## Performance Tuning
 
-Adjust in `ferret.config.json`:
+Adjust in `ferret.json`:
 
 ```json
 {

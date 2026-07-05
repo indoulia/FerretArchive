@@ -38,6 +38,20 @@ public sealed class SearchTool : IMcpTool
         var options = new SearchOptions { MaxResults = maxResults, HighlightEnabled = true };
         var result = await _searchService.SearchAsync(query, options).ConfigureAwait(false);
 
+        if (!result.IsSuccess)
+        {
+            var message = result.Status switch
+            {
+                SearchServiceStatus.InvalidQuery =>
+                    $"Invalid query: {(result.Diagnostics.Count > 0 ? result.Diagnostics[0].Message : "empty or whitespace")}",
+                SearchServiceStatus.IndexNotFound => "No search index found. Run 'ferret index' first.",
+                SearchServiceStatus.WorkspaceNotFound => "No workspace found. Run 'ferret workspace init' first.",
+                SearchServiceStatus.ProviderUnavailable => "No search provider is available for this query.",
+                _ => $"Search failed: {result.Status}",
+            };
+            return McpToolResult.Error(message);
+        }
+
         if (result.Hits.Count == 0)
         {
             return McpToolResult.Success($"No results found for: {query}");

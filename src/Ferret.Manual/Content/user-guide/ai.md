@@ -32,7 +32,7 @@ Status:      reachable
 
 ## Configure the Default Model
 
-Set the default chat model in `ferret.config.json`:
+Set the default chat model in `ferret.json`:
 
 ```json
 {

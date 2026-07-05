@@ -36,6 +36,23 @@ public sealed class SearchToolTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_InvalidQuery_ReturnsError_NotFalseNoResults()
+    {
+        // A failed SearchServiceResult exposes Hits as an empty list (by design, for
+        // successful-but-empty callers), but SearchTool must distinguish "ran fine, found
+        // nothing" from "didn't run at all" -- otherwise a rejected query (e.g. the FTS5
+        // hyphen bug) is misreported as "No results found", hiding the real failure from
+        // an AI caller that has no other way to know the query never actually executed.
+        var service = new FailingSearchService(SearchServiceStatus.InvalidQuery);
+        var sut = new SearchTool(service);
+
+        var result = await sut.ExecuteAsync(McpArguments.From(("query", "nem-3795")), CancellationToken.None);
+
+        Assert.True(result.IsError);
+        Assert.DoesNotContain("No results", result.Content[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_MissingQueryArgument_Throws()
     {
         var sut = new SearchTool(new FakeSearchService([]));
@@ -75,6 +92,18 @@ public sealed class SearchToolTests
                     DocumentsScanned = 0,
                     IndexVersion = "0",
                 }));
+
+        public Task<SearchServiceResult> SearchAsync(SearchQuery query, SearchOptions options) =>
+            SearchAsync(query.OriginalText, options);
+    }
+
+    private sealed class FailingSearchService(SearchServiceStatus status) : ISearchService
+    {
+        public Task<SearchServiceResult> SearchAsync(string rawQuery, SearchOptions options) =>
+            Task.FromResult(SearchServiceResult.Failure(
+                new SearchQuery { OriginalText = rawQuery, Root = new KeywordExpression(string.Empty) },
+                status,
+                []));
 
         public Task<SearchServiceResult> SearchAsync(SearchQuery query, SearchOptions options) =>
             SearchAsync(query.OriginalText, options);
