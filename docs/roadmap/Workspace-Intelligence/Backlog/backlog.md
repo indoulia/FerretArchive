@@ -28,7 +28,7 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
   - **Expected outcome:** A manifest can be validated and upgraded across `schemaVersion` bumps using the existing upgrade mechanism, unmodified.
   - **Acceptance criteria:** Round-trip test for a v1.0 manifest; a synthetic future-schema-version manifest triggers the existing migration-path validation, not new code.
   - **Dogfooding scenario:** n/a — not user-facing until WIP-012.
-- [ ] **WIP-012** `Ferret workspaces create` / `list` / `show` / `add-repo` / `remove-repo` CLI commands — `12-API.md` §2
+- [x] **WIP-012** `Ferret workspaces create` / `list` / `show` / `add-repo` / `remove-repo` CLI commands — `12-API.md` §2 — done: 55 new tests, dogfooded end-to-end against this repo's own remote
   - **Goal:** User-facing entry point to WIP-010/011, implementing ADR-0026's identity resolution (canonicalized `origin` remote; documented fallback for no-remote and multi-remote repos). Renamed from `workspace` to `workspaces` during implementation — see `12-API.md` §2's correction note.
   - **Dependencies:** WIP-010, WIP-011.
   - **Expected outcome:** A developer can create a workspace, add/remove repos by remote identity, list all workspaces, and inspect one workspace's full manifest — all from the CLI, none of it colliding with the existing `ferret workspace init`/`status` commands.
