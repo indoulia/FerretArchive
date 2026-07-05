@@ -5,7 +5,7 @@ using Ferret.Core.Results;
 
 namespace Ferret.Cli.Commands.Config;
 
-/// <summary>Handles 'ferret config validate' — validates ferret.config.json and reports field errors.</summary>
+/// <summary>Handles 'ferret config validate' — validates ferret.json and reports field errors.</summary>
 internal sealed class ConfigValidateCommandHandler : ICommandHandler
 {
     /// <inheritdoc/>
@@ -13,7 +13,7 @@ internal sealed class ConfigValidateCommandHandler : ICommandHandler
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var configPath = context.GetOption<string>("--config") ?? "ferret.config.json";
+        var configPath = context.GetOption<string>("--config") ?? "ferret.json";
 
         if (!File.Exists(configPath))
         {
@@ -34,11 +34,11 @@ internal sealed class ConfigValidateCommandHandler : ICommandHandler
 
         if (failures.Count == 0)
         {
-            context.Services.Output.WriteSuccess("ferret.config.json is valid.");
+            context.Services.Output.WriteSuccess("ferret.json is valid.");
             return Task.FromResult(CommandResult.Success);
         }
 
-        context.Services.Output.WriteError($"ferret.config.json has {failures.Count} error(s):");
+        context.Services.Output.WriteError($"ferret.json has {failures.Count} error(s):");
         foreach (var f in failures)
         {
             context.Services.Output.WriteLine($"  [{f.Field}] {f.Constraint} — {f.Guidance}");
@@ -58,7 +58,7 @@ internal sealed class ConfigValidateCommandHandler : ICommandHandler
             failures.Add(new ValidationFailure(
                 "Ferret:Workspace:Name",
                 "required",
-                "Set a non-empty workspace name in ferret.config.json under Ferret.Workspace.Name.",
+                "Set a non-empty workspace name in ferret.json under Ferret.Workspace.Name.",
                 ValidationSeverity.Error));
         }
 
@@ -68,7 +68,7 @@ internal sealed class ConfigValidateCommandHandler : ICommandHandler
             failures.Add(new ValidationFailure(
                 "Ferret:Workspace:Root",
                 "required",
-                "Set the workspace root directory in ferret.config.json under Ferret.Workspace.Root.",
+                "Set the workspace root directory in ferret.json under Ferret.Workspace.Root.",
                 ValidationSeverity.Error));
         }
         else if (!Directory.Exists(workspaceRoot) && !workspaceRoot.Equals(".", StringComparison.OrdinalIgnoreCase))

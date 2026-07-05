@@ -26,8 +26,8 @@ internal sealed class ContextCliModule : CliModuleBase
             typeof(ContextAssembleCommandHandler),
             Options:
             [
-                new OptionDefinition("--max-tokens", "Token budget for assembled context (default: 8000).", typeof(int)),
-                new OptionDefinition("--max-documents", "Maximum documents to include (default: 10).", typeof(int)),
+                new OptionDefinition("--max-tokens", "Token budget for assembled context (default: 8000).", typeof(int), DefaultValue: 8000),
+                new OptionDefinition("--max-documents", "Maximum documents to include (default: 10).", typeof(int), DefaultValue: 10),
             ])
             .WithArgument("query", "Search query to assemble context for");
     }

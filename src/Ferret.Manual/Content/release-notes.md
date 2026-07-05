@@ -18,7 +18,7 @@ For earlier sprint history (Sprints 0-7), see `docs/adr/` and the git tag histor
 - **Incremental Indexing** — subsequent `ferret index` runs only process changed files
 - **Performance** — batch writer, parallel parser, SQLite WAL mode; 1,000-document workspace indexes in under 5 seconds
 - **Diagnostics** — `ferret doctor` extended with index health, provider health, and workspace integrity checks
-- **Configuration** — three-layer config: `ferret.config.json` → environment variables → defaults
+- **Configuration** — three-layer config: `ferret.json` → environment variables → defaults
 - **Installer** — self-contained binaries for `win-x64`, `osx-arm64`, `osx-x64`, `linux-x64`
 - **E2E Tests** — end-to-end test suite covering init → index → search → serve → watch lifecycle
 

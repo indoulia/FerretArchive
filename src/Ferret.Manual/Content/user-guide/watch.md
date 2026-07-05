@@ -38,7 +38,7 @@ The debounce prevents thrashing during bulk saves (e.g. `git checkout`, IDE refo
 ferret watch --debounce 1000
 ```
 
-Or configure permanently in `ferret.config.json`:
+Or configure permanently in `ferret.json`:
 
 ```json
 {

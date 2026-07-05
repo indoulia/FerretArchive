@@ -225,11 +225,11 @@ ferret config set search.defaultMaxResults 20
 
 ### ferret config validate
 
-Reads `ferret.config.json` and reports any missing required fields or schema violations. Useful in CI pipelines before running `ferret index`.
+Reads `ferret.json` and reports any missing required fields or schema violations. Useful in CI pipelines before running `ferret index`.
 
 ```bash
 ferret config validate
-# ferret.config.json OK
+# ferret.json OK
 
 ferret config validate
 # ERROR: workspace.name is required
@@ -303,6 +303,6 @@ ferret prompt run summarise-file --var filename=README.md --var content="$(cat R
 
 ## Related
 
-- [Configuration Reference](configuration) — `ferret.config.json` schema
+- [Configuration Reference](configuration) — `ferret.json` schema
 - [MCP Reference](mcp) — MCP tools called by AI assistants
 - [Troubleshooting](../troubleshooting) — common errors and fixes

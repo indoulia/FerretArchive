@@ -152,6 +152,33 @@ public sealed class ConnectorManagerTests : IDisposable
         Assert.Equal(_root.FullPath, runtimes[0].Instance.Configuration.GetValue("rootPath"));
     }
 
+    /// <summary>Store with only a disabled instance → synthesized default still applies.
+    /// Regression: the original condition keyed synthesis on "store is empty," so a user who
+    /// enabled then disabled any instance permanently lost the zero-config default -- even
+    /// though the intent (per the source's own comment) was "nothing usable is configured".</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Fact]
+    public async Task GetActiveConnectorsAsync_Synthesizes_Default_When_Only_Disabled_Instances_Exist()
+    {
+        var disabled = new ConnectorInstance
+        {
+            Id = new ConnectorInstanceId("test-instance"),
+            ConnectorType = new ConnectorId("filesystem"),
+            DisplayName = "test-instance",
+            IsEnabled = false,
+        };
+        await _store.SaveAsync(_root, [disabled]);
+
+        var factory = new FakeConnectorManagerFactory("filesystem");
+        using var manager = new ConnectorManager(_store, [factory], _root);
+
+        var runtimes = await manager.GetActiveConnectorsAsync();
+
+        Assert.Single(runtimes);
+        Assert.Equal("default", runtimes[0].Instance.Id.Value);
+        Assert.Equal("filesystem", runtimes[0].Instance.ConnectorType.Value);
+    }
+
     /// <summary>Empty store with no filesystem factory registered → no synthesized default.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]

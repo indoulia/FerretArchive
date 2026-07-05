@@ -26,7 +26,7 @@ internal sealed class ModelsListCommandHandler : ICommandHandler
 
         if (models.Count == 0)
         {
-            context.Services.Output.WriteLine("No models are registered. Configure providers in .ferret/config.json.");
+            context.Services.Output.WriteLine("No models are registered. Configure providers in ferret.json.");
             return Task.FromResult(CommandResult.Success);
         }
 

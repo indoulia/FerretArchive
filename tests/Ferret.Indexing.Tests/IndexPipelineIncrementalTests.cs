@@ -160,6 +160,48 @@ public sealed class IndexPipelineIncrementalTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_StaleAsset_DeletedFromIndexEngine()
+    {
+        // Regression: the pipeline removed a stale asset's fingerprint from the state
+        // store (RunAsync_StaleAsset_RemovedFromStateStore, above) but never called
+        // IIndexEngine.DeleteAsync -- so a renamed or deleted file's document stayed in
+        // the actual search index forever, as a permanent stale/phantom search result.
+        var staleAssetId = new AssetId("file:///workspace/deleted.cs");
+        var staleDocumentId = DocumentId.From(staleAssetId);
+        var fingerprint = AssetFingerprint.CreateLightweight(DateTimeOffset.UtcNow, 50L);
+
+        var tempPath = Path.Join(Path.GetTempPath(), $"ferret-stale-delete-test-{Guid.NewGuid():N}.json");
+        try
+        {
+            var seedStore = new JsonIndexStateStore(tempPath);
+            await seedStore.SetFingerprintAsync(staleAssetId, fingerprint);
+            await seedStore.SaveAsync();
+
+            var store = new JsonIndexStateStore(tempPath);
+            var engine = new FakeIndexEngine();
+
+            // Pipeline discovers no assets -- the previously-indexed document is now stale.
+            var pipeline = new IndexPipeline(
+                new FakeConnectorManager([]),
+                new FakeParserDispatcher(),
+                engine,
+                new FakeEventBus(),
+                store);
+
+            await pipeline.RunAsync(WorkspaceId.Create("test"), IndexPipelineOptions.Default);
+
+            Assert.Contains(staleDocumentId, engine.DeletedDocumentIds);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+    }
+
     // -- Helpers --
 
     private static ConnectorRuntime MakeRuntime(IConnector connector) =>

@@ -127,7 +127,7 @@ public sealed class Bm25SearchProvider : ISearchProvider
         {
             DocumentId = DocumentId.Create(id),
             ConnectorInstanceId = new ConnectorInstanceId(instanceId),
-            CanonicalUri = new Uri(id.StartsWith("file://", StringComparison.Ordinal) ? id : $"file:///{id}"),
+            CanonicalUri = Uri.TryCreate(id, UriKind.Absolute, out var parsedUri) ? parsedUri : new Uri($"file:///{id}"),
             DisplayName = string.IsNullOrEmpty(title) ? id : title,
             Kind = SearchHitKind.File,
             Score = (float)-rank,

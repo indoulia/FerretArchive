@@ -99,6 +99,24 @@ public sealed class ModelsListCommandHandlerTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_NoModels_MessageReferencesRealDefaultConfigFilename()
+    {
+        // Regression: this message previously said ".ferret/config.json" -- a different
+        // filename than what the app actually loads by default (ferret.json, per
+        // FerretConfigLoader.Load(null) / RootCommandFactory.cs).
+        var registry = new FakeModelRegistry([]);
+        var output = new FakeModelsOutput();
+        var sut = new ModelsListCommandHandler(registry);
+        var context = new FakeModelsContext(new FakeModelsServices(output));
+
+        await sut.ExecuteAsync(context);
+
+        Assert.Contains("ferret.json", output.AllText, StringComparison.Ordinal);
+        Assert.DoesNotContain(".ferret/config.json", output.AllText, StringComparison.Ordinal);
+        Assert.DoesNotContain("ferret.config.json", output.AllText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithModels_WritesTabularOutput()
     {
         var descriptor = new ModelDescriptor
