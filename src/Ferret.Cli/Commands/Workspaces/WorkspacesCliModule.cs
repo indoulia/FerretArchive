@@ -75,6 +75,20 @@ internal sealed class WorkspacesCliModule : CliModuleBase
             .WithArgument("target", "Workspace ID or name currently being referenced.");
 
         yield return new CommandDefinition(
+            new CommandMetadata("pin-reference", "Pin a reference to the referenced workspace's current state."),
+            typeof(WorkspacesPinReferenceCommandHandler),
+            Group: "workspaces")
+            .WithArgument("workspace", "Workspace ID or name that owns the reference.")
+            .WithArgument("target", "Workspace ID or name currently being referenced.");
+
+        yield return new CommandDefinition(
+            new CommandMetadata("unpin-reference", "Unpin a reference so it floats to the referenced workspace's current state again."),
+            typeof(WorkspacesUnpinReferenceCommandHandler),
+            Group: "workspaces")
+            .WithArgument("workspace", "Workspace ID or name that owns the reference.")
+            .WithArgument("target", "Workspace ID or name currently being referenced.");
+
+        yield return new CommandDefinition(
             new CommandMetadata("query", "Query a workspace and every workspace it references, merging results."),
             typeof(WorkspacesQueryCommandHandler),
             Group: "workspaces",
@@ -107,6 +121,9 @@ internal sealed class WorkspacesCliModule : CliModuleBase
 
         services.AddSingleton<Ferret.Core.Search.IQueryParser, Ferret.Search.QueryParser>();
         services.AddSingleton<Ferret.Knowledge.Federation.IRepoSearchServiceFactory, RepoSearchServiceFactory>();
+        services.AddSingleton<Ferret.Knowledge.Federation.IWorkspaceStateFingerprintProvider, WorkspaceStateFingerprintProvider>();
         services.AddTransient<WorkspacesQueryCommandHandler>();
+        services.AddTransient<WorkspacesPinReferenceCommandHandler>();
+        services.AddTransient<WorkspacesUnpinReferenceCommandHandler>();
     }
 }

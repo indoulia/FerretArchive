@@ -18,16 +18,23 @@ public sealed class FederatedKnowledgeStore : IFederatedKnowledgeStore
     private readonly IWorkspaceRegistry _registry;
     private readonly IRepoSearchServiceFactory _repoSearchServiceFactory;
     private readonly Guid _workspaceId;
+    private readonly IWorkspaceStateFingerprintProvider _fingerprintProvider;
 
     /// <summary>Initializes a new instance of the <see cref="FederatedKnowledgeStore"/> class.</summary>
     /// <param name="registry">The workspace registry, used to resolve member repos and references.</param>
     /// <param name="repoSearchServiceFactory">Builds a per-repo search service.</param>
     /// <param name="workspaceId">The workspace being queried.</param>
-    public FederatedKnowledgeStore(IWorkspaceRegistry registry, IRepoSearchServiceFactory repoSearchServiceFactory, Guid workspaceId)
+    /// <param name="fingerprintProvider">Computes the Workspace State Fingerprint used to verify a pinned reference (ADR-0027 Amendment).</param>
+    public FederatedKnowledgeStore(
+        IWorkspaceRegistry registry,
+        IRepoSearchServiceFactory repoSearchServiceFactory,
+        Guid workspaceId,
+        IWorkspaceStateFingerprintProvider fingerprintProvider)
     {
         _registry = registry;
         _repoSearchServiceFactory = repoSearchServiceFactory;
         _workspaceId = workspaceId;
+        _fingerprintProvider = fingerprintProvider;
     }
 
     /// <inheritdoc/>
@@ -191,6 +198,22 @@ public sealed class FederatedKnowledgeStore : IFederatedKnowledgeStore
                     SearchDiagnosticSeverity.Warning,
                     $"Referenced workspace '{reference.WorkspaceId}' not found"));
                 continue;
+            }
+
+            if (reference.PinnedStateHash is not null)
+            {
+                var currentFingerprint = await _fingerprintProvider.ComputeFingerprintAsync(referenced, ct).ConfigureAwait(false);
+                if (!string.Equals(currentFingerprint, reference.PinnedStateHash, StringComparison.Ordinal))
+                {
+                    // Fail closed (ADR-0027 Amendment): never serve stale or unverifiable content from
+                    // a pinned reference. This degrades only this one reference, same as the other
+                    // per-source failure modes above — it never fails the whole federated query.
+                    var message = currentFingerprint is null
+                        ? $"Referenced workspace '{reference.WorkspaceId}' is pinned but its current state could not be verified — treated as out of date"
+                        : $"Referenced workspace '{reference.WorkspaceId}' is pinned but out of date (fingerprint mismatch)";
+                    diagnostics.Add(new SearchDiagnostic(SearchDiagnosticSeverity.Error, message));
+                    continue;
+                }
             }
 
             AddRepos(sources, referenced);

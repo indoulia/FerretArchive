@@ -65,7 +65,7 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
 
         var registry = new FileWorkspaceRegistry(_registryRoot);
         var (a, b) = await CreateReferencingWorkspacesAsync(registry);
-        var store = new FederatedKnowledgeStore(registry, new RepoSearchServiceFactory(new Ferret.Search.QueryParser()), a.WorkspaceId);
+        var store = new FederatedKnowledgeStore(registry, new RepoSearchServiceFactory(new Ferret.Search.QueryParser()), a.WorkspaceId, new WorkspaceStateFingerprintProvider());
 
         var result = await store.SearchAsync("TokenValidator", SearchOptions.Default);
 
@@ -92,7 +92,7 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
 
         var registry = new FileWorkspaceRegistry(_registryRoot);
         var (a, _) = await CreateReferencingWorkspacesAsync(registry);
-        var store = new FederatedKnowledgeStore(registry, new RepoSearchServiceFactory(new Ferret.Search.QueryParser()), a.WorkspaceId);
+        var store = new FederatedKnowledgeStore(registry, new RepoSearchServiceFactory(new Ferret.Search.QueryParser()), a.WorkspaceId, new WorkspaceStateFingerprintProvider());
 
         var result = await store.SearchAsync("AuthGateway", SearchOptions.Default);
 
@@ -120,7 +120,7 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
         DenyAccess(repoBIndexPath);
         try
         {
-            var store = new FederatedKnowledgeStore(registry, new RepoSearchServiceFactory(new Ferret.Search.QueryParser()), a.WorkspaceId);
+            var store = new FederatedKnowledgeStore(registry, new RepoSearchServiceFactory(new Ferret.Search.QueryParser()), a.WorkspaceId, new WorkspaceStateFingerprintProvider());
 
             var result = await store.SearchAsync("AuthGateway", SearchOptions.Default);
 
@@ -150,12 +150,58 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
             Name = "service-a",
             Members = new WorkspaceMembers { Repos = [new RepoMember { Remote = "service-a-remote", LocalPath = _repoA }] },
         });
-        var store = new FederatedKnowledgeStore(registry, new RepoSearchServiceFactory(new Ferret.Search.QueryParser()), workspaceId);
+        var store = new FederatedKnowledgeStore(registry, new RepoSearchServiceFactory(new Ferret.Search.QueryParser()), workspaceId, new WorkspaceStateFingerprintProvider());
 
         var result = await store.SearchAsync("AuthGateway", SearchOptions.Default);
 
         Assert.True(result.IsSuccess);
         Assert.Single(result.Hits);
+    }
+
+    [Fact]
+    public async Task PinnedReference_FullLifecycle_FailsClosedOnContentChange_ThenFloatsAgainAfterUnpin()
+    {
+        // WIP-022 end-to-end: pin → query succeeds → referenced content changes → query fails closed
+        // (excludes the stale source, never serves it) → unpin → query succeeds again.
+        await File.WriteAllTextAsync(Path.Join(_repoA, "auth-gateway.txt"), "AuthGateway.Authorize calls TokenValidator.Validate.");
+        await File.WriteAllTextAsync(Path.Join(_repoB, "token-validator.txt"), "TokenValidator.Validate checks the JWT signature and expiry.");
+        await IndexRepoAsync(_repoA);
+        await IndexRepoAsync(_repoB);
+
+        var registry = new FileWorkspaceRegistry(_registryRoot);
+        var (a, b) = await CreateReferencingWorkspacesAsync(registry);
+        var fingerprintProvider = new WorkspaceStateFingerprintProvider();
+        var factory = new RepoSearchServiceFactory(new Ferret.Search.QueryParser());
+
+        // Pin: capture B's current state on the existing reference (what 'ferret workspaces pin-reference' does).
+        var pinnedFingerprint = await fingerprintProvider.ComputeFingerprintAsync(b);
+        Assert.NotNull(pinnedFingerprint);
+        await registry.SaveAsync(a with { References = [new WorkspaceReference { WorkspaceId = b.WorkspaceId, PinnedStateHash = pinnedFingerprint }] });
+
+        var storeAfterPin = new FederatedKnowledgeStore(registry, factory, a.WorkspaceId, fingerprintProvider);
+        var resultAfterPin = await storeAfterPin.SearchAsync("TokenValidator", SearchOptions.Default);
+        Assert.True(resultAfterPin.IsSuccess);
+        Assert.Equal(2, resultAfterPin.Hits.Count);
+
+        // Modify B's indexed content and re-index — its Workspace State Fingerprint must now differ.
+        await File.WriteAllTextAsync(Path.Join(_repoB, "token-validator.txt"), "TokenValidator.Validate now also checks token revocation status.");
+        await IndexRepoAsync(_repoB);
+
+        var storeAfterChange = new FederatedKnowledgeStore(registry, factory, a.WorkspaceId, fingerprintProvider);
+        var resultAfterChange = await storeAfterChange.SearchAsync("TokenValidator", SearchOptions.Default);
+        Assert.True(resultAfterChange.IsSuccess);
+        var onlyHit = Assert.Single(resultAfterChange.Hits);
+        Assert.Equal(a.WorkspaceId, onlyHit.SourceWorkspaceId);
+        Assert.Contains(resultAfterChange.Diagnostics, d =>
+            d.Severity == SearchDiagnosticSeverity.Error && d.Message.Contains("out of date", StringComparison.OrdinalIgnoreCase));
+
+        // Unpin: the reference floats again and immediately sees B's current (changed) content.
+        await registry.SaveAsync(a with { References = [new WorkspaceReference { WorkspaceId = b.WorkspaceId, PinnedStateHash = null }] });
+
+        var storeAfterUnpin = new FederatedKnowledgeStore(registry, factory, a.WorkspaceId, fingerprintProvider);
+        var resultAfterUnpin = await storeAfterUnpin.SearchAsync("TokenValidator", SearchOptions.Default);
+        Assert.True(resultAfterUnpin.IsSuccess);
+        Assert.Equal(2, resultAfterUnpin.Hits.Count);
     }
 
     private static void DenyAccess(string filePath)
