@@ -70,10 +70,10 @@ Cuts across Phase 1 (all of it) and a **minimal** subset of Phase 2 — just eno
 
 ## Phase 2 — Federation (full scope, beyond the vertical slice above)
 
-- [ ] **WIP-020** Implement `IFederatedKnowledgeStore` — `01-Architecture.md` §2, `03-Cross-Workspace-References.md` §2
+- [x] **WIP-020** Implement `IFederatedKnowledgeStore` — `01-Architecture.md` §2, `03-Cross-Workspace-References.md` §2 — done: satisfied by `src/Ferret.Knowledge.Federation/FederatedKnowledgeStore.cs` (WIP-SLICE-1) plus its Stabilization Sprint 1 hardening (per-source exception boundary, diagnostics). No further work identified beyond what WIP-SLICE-1 + hardening already delivered.
 - [x] **WIP-021** `Ferret workspace add-reference` / `remove-reference`, cycle detection (DAG enforcement) — `03-Cross-Workspace-References.md` §5 — done: `add-reference`/cycle detection shipped in WIP-SLICE-2; `remove-reference` added here (`WorkspacesRemoveReferenceCommandHandler`), 7 new tests, dogfooded live including the moved-repo repair workflow (remove stale reference, re-add at corrected path)
-- [ ] **WIP-022** Pinning (`pinnedStateHash`) resolution and fail-closed behavior — `03-Cross-Workspace-References.md` §3 — sequenced after WIP-021, see above.
-- [ ] **WIP-023** Knowledge graph additions: `Workspace` node, `CONTAINS`/`IMPORTS` edges, `sourceWorkspaceId` tagging on results — `04-Knowledge-Graph.md`
+- [ ] **WIP-022** Pinning (`pinnedStateHash`) resolution and fail-closed behavior — `03-Cross-Workspace-References.md` §3 — **BLOCKED:** no existing "knowledge state hash" to reuse (§13.4 doesn't exist in code; the only per-asset signal, `AssetFingerprint`'s mtime+size, isn't deterministic or portable). Genuine architectural omission, not a naming gap. Awaiting an ADR-0027 amendment defining the fingerprint before implementation resumes.
+- [x] **WIP-023** Knowledge graph additions: `Workspace` node, `CONTAINS`/`IMPORTS` edges, `sourceWorkspaceId` tagging on results — `04-Knowledge-Graph.md` — done: per `04-Knowledge-Graph.md` §3, these are explicitly logical/query-time constructs, not a separate persisted graph store — `CONTAINS` = `WorkspaceMembers.Repos`, `IMPORTS` = `WorkspaceReference` (WIP-SLICE-2), `sourceWorkspaceId` tagging = `SearchHit.SourceWorkspaceId` (WIP-SLICE-1). No separate `IKnowledgeGraph`/graph-store code exists anywhere in the codebase to build against; nothing further identified.
 
 ## Phase 3 — Performance
 

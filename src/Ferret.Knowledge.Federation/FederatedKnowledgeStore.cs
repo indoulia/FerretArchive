@@ -147,9 +147,10 @@ public sealed class FederatedKnowledgeStore : IFederatedKnowledgeStore
         {
             throw;
         }
-#pragma warning disable CA1031 // Do not catch general exception types -- fan-out boundary: one source's I/O
-                               // failure (e.g. permission denied) must degrade only that source, never the
-                               // whole federated query (ADR-0027 Consequences; Stabilization Sprint 1).
+
+        // Fan-out boundary: one source's I/O failure (e.g. permission denied) must degrade only that
+        // source, never the whole federated query (ADR-0027 Consequences; Stabilization Sprint 1).
+#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
         {
             return (source.WorkspaceId, SearchServiceResult.Failure(
