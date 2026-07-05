@@ -31,10 +31,24 @@ Per-repo storage areas (§19.2 existing table: Knowledge Index, Session Memory, 
 
 `IWorkspaceRegistry` (`Resolve(id)`, `List()`, `Save(entry)`) is a new, narrow interface following §19.3's design rule exactly: any compliant backend — local file, or later a hosted service — can serve it. This is the abstraction that keeps option C available without committing to it now (§1).
 
-## 4. Decision Log
+## 4. Workspace State Fingerprint
+
+**Amended by ADR-0027 (2026-07-05).** A workspace's "knowledge state hash," referenced throughout this milestone's docs (05, 06, 07, 08, 10) as `§13.4`, is defined here as it was always intended to be, corrected against implementation evidence (WIP-022): no such primitive previously existed in code.
+
+The **Workspace State Fingerprint** is a *derived* value, not a stored one:
+
+- Computed on demand from a workspace's current `IKnowledgeStore` state — no new storage area, no persisted record, no migration.
+- Deterministic: identical workspace state always yields the identical fingerprint; any different state yields a different one.
+- Portable: comparable across machines/checkouts, so it must not depend on local filesystem metadata (mtime, absolute paths) — this rules out reusing `AssetFingerprint`'s lightweight mtime+size mode as-is.
+- Scoped to the workspace's own member repos only — not transitively inclusive of any workspace it references.
+
+Used by pinning (`03-Cross-Workspace-References.md` §3) for fail-closed comparison. The computation algorithm is an implementation concern, not specified here.
+
+## 5. Decision Log
 
 | Decision | Outcome |
 |---|---|
 | Workspace registry model (A/B/C) | **Requires Founder decision — ADR-0026.** Recommendation: B (identity-based local registry) |
 | New storage areas follow existing §19.2 table format and `.ai/` conventions where repo-scoped, `~/.ferret/` where machine-scoped | Ready for implementation once ADR-0026 is decided |
 | `IWorkspaceRegistry` mirrors `IKnowledgeStore`'s pluggable-backend pattern | Ready for implementation |
+| Workspace State Fingerprint (§4) | Defined via ADR-0027 amendment (2026-07-05) — derived, not persisted; ready for implementation (WIP-022) |

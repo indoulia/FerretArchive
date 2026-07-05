@@ -52,5 +52,5 @@ Per ARCH-001 §27.2: "The Domain Layer and Plugin Architecture are already compa
 |---|---|
 | References are live/federated, never materialized copies | Ready for implementation — hard requirement |
 | Reference graph must be a DAG; cycles rejected at creation | Ready for implementation |
-| Pinning reuses existing knowledge state hash, no new scheme | **Incorrect as stated** — no such primitive exists (WIP-022 investigation); ADR-0027 amendment needed to define the fingerprint before implementation |
+| Pinning reuses existing knowledge state hash, no new scheme | **Corrected** by ADR-0027 amendment (2026-07-05) — pinning uses the Workspace State Fingerprint, a derived value defined in `13-Storage.md` §4 (§13.4), not a pre-existing primitive |
 | Cross-reference conflict resolution policy | Deferred to future milestone |
