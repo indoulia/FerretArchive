@@ -99,9 +99,9 @@ Run three times to rule out a JIT/warm-up artifact:
 
 | Run | Baseline (uncached) avg/call | Cold miss (1st call, ferret-platform) | Cold miss (1st call, indoulia-foundation) | Warm (cached) avg/call | Speedup (avg/call) |
 |---|---|---|---|---|---|
-| 1 | 0.27923 ms | 3.387 ms | 0.449 ms | 0.00029 ms | 955.6x |
-| 2 | 0.31120 ms | 3.034 ms | 0.447 ms | 0.00031 ms | 1013.7x |
-| 3 | 0.26460 ms | 3.299 ms | 0.583 ms | 0.00031 ms | 841.3x |
+| 1 | 0.27923 ms | 3.387 ms | 0.449 ms | 0.00029 ms | 962.9x |
+| 2 | 0.31120 ms | 3.034 ms | 0.447 ms | 0.00031 ms | 1003.9x |
+| 3 | 0.26460 ms | 3.299 ms | 0.583 ms | 0.00031 ms | 853.5x |
 
 A single isolated warm call (post-population) measured `0.000`–`0.001 ms` — a dictionary lookup, no
 I/O, no allocation beyond the lookup itself.
