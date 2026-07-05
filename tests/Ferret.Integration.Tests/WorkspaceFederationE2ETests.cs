@@ -158,16 +158,36 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
         Assert.Single(result.Hits);
     }
 
-    private static void DenyAccess(string filePath) => RunIcacls(filePath, $"/deny {Environment.UserName}:(R,W)");
+    private static void DenyAccess(string filePath)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            RunProcess("icacls", $"\"{filePath}\" /deny {Environment.UserName}:(R,W)");
+        }
+        else
+        {
+            RunProcess("chmod", $"000 \"{filePath}\"");
+        }
+    }
 
-    private static void RestoreAccess(string filePath) => RunIcacls(filePath, $"/remove:d {Environment.UserName}");
+    private static void RestoreAccess(string filePath)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            RunProcess("icacls", $"\"{filePath}\" /remove:d {Environment.UserName}");
+        }
+        else
+        {
+            RunProcess("chmod", $"644 \"{filePath}\"");
+        }
+    }
 
-    private static void RunIcacls(string filePath, string arguments)
+    private static void RunProcess(string fileName, string arguments)
     {
         using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            FileName = "icacls",
-            Arguments = $"\"{filePath}\" {arguments}",
+            FileName = fileName,
+            Arguments = arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
