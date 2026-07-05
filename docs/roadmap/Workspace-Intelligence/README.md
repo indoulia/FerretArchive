@@ -26,6 +26,8 @@ Milestone: Ferret v2.0, first milestone after Dogfooding. Full context: `00-Visi
 | 17 | Founder Dogfooding Sprint 1 | Real-repo dogfooding findings, friction log, stabilization recommendation |
 | 18 | Engineering Analysis: Sprint 1 | Classified findings, architecture verdicts, ranked stabilization plan |
 | 19 | Stabilization Sprint 1 | Implementation, real failure-injection evidence, reliability verdict |
+| 20 | Phase 3 Priority Assessment | What order (Phase 3 is analysis-only so far — no implementation) |
+| 21 | P3-001: Fingerprint Optimization | First Phase 3 implementation — the fingerprint re-hash cost fix, with benchmark evidence |
 
 `ADR/` — the four ADRs, two of which still gate implementation. `Backlog/` — the ordered ticket list, including the recommended Phase 1 vertical slice. `../Future/Deferred-Scope.md` — what's explicitly cut from v1 and why.
 

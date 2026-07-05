@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -16,8 +17,24 @@ namespace Ferret.Cli.Commands.Workspaces;
 /// then hashes actual file content (never mtime or absolute paths, per the ADR-0027 Amendment's
 /// portability invariant) with SHA-256.
 /// </summary>
+/// <remarks>
+/// Registered as a singleton (<c>WorkspacesCliModule</c>), so <see cref="_cache"/> lives for the
+/// process lifetime. Every call still re-derives the fingerprint on demand (ADR-0027 Amendment
+/// invariant #1) — the cache only skips the expensive per-file content read+hash when a cheap,
+/// I/O-free metadata scan (path + size + mtime, mirroring the same heuristic already used by
+/// <c>IndexPipeline</c>'s incremental fingerprint) proves the repo's directory listing hasn't moved
+/// since the last computation. Metadata is never itself the fingerprint — it only gates reuse of a
+/// previously-computed, content-based digest for the *same local path*, so it can't affect
+/// cross-checkout portability (a different checkout path is always a cache miss and gets a fresh
+/// content hash).
+/// </remarks>
 internal sealed class WorkspaceStateFingerprintProvider : IWorkspaceStateFingerprintProvider
 {
+    private readonly ConcurrentDictionary<string, (string MetadataSignature, string ContentDigest)> _cache = new(StringComparer.Ordinal);
+
+    /// <summary>Gets the number of times a full per-file content hash was actually performed. Test-only observability for the metadata-gated cache.</summary>
+    internal int ContentDigestComputationCount { get; private set; }
+
     /// <inheritdoc/>
     public async Task<string?> ComputeFingerprintAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default)
     {
@@ -38,18 +55,21 @@ internal sealed class WorkspaceStateFingerprintProvider : IWorkspaceStateFingerp
         return Sha256Hex(string.Join('\n', repoDigests));
     }
 
-    private static async Task<string> ComputeRepoDigestAsync(string repoPath, CancellationToken ct)
+    private static string ComputeMetadataSignature(List<AssetDescriptor> descriptors)
     {
-        var connector = new FilesystemConnector(new FilesystemConnectorConfiguration { RootPath = repoPath }, new MimeTypeResolver());
+        var combined = string.Join('\n', descriptors
+            .OrderBy(d => d.CanonicalUri.ToString(), StringComparer.Ordinal)
+            .Select(d => $"{d.CanonicalUri}:{d.SizeBytes ?? -1}:{d.LastModified.ToUnixTimeMilliseconds()}"));
+        return Sha256Hex(combined);
+    }
+
+    private static async Task<string> ComputeContentDigestAsync(
+        FilesystemConnector connector, List<AssetDescriptor> descriptors, CancellationToken ct)
+    {
         var fileDigests = new List<(string Uri, string Hash)>();
 
-        await foreach (var descriptor in connector.DiscoverAsync(new AssetDiscoveryOptions(), ct).ConfigureAwait(false))
+        foreach (var descriptor in descriptors)
         {
-            if (descriptor.Kind != AssetKind.File)
-            {
-                continue;
-            }
-
             var stream = await connector.OpenAsync(descriptor, ct).ConfigureAwait(false);
             await using (stream.ConfigureAwait(false))
             {
@@ -66,4 +86,32 @@ internal sealed class WorkspaceStateFingerprintProvider : IWorkspaceStateFingerp
 
     private static string Sha256Hex(string input) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(input)));
+
+    private async Task<string> ComputeRepoDigestAsync(string repoPath, CancellationToken ct)
+    {
+        var connector = new FilesystemConnector(new FilesystemConnectorConfiguration { RootPath = repoPath }, new MimeTypeResolver());
+        var descriptors = new List<AssetDescriptor>();
+
+        await foreach (var descriptor in connector.DiscoverAsync(new AssetDiscoveryOptions(), ct).ConfigureAwait(false))
+        {
+            if (descriptor.Kind == AssetKind.File)
+            {
+                descriptors.Add(descriptor);
+            }
+        }
+
+        // Optimization gate only, never the fingerprint itself (not portable across clones) -- any
+        // detected change forces recomputation of the content-based fingerprint ADR-0027 requires.
+        var metadataSignature = ComputeMetadataSignature(descriptors);
+        var cacheKey = Path.GetFullPath(repoPath);
+        if (_cache.TryGetValue(cacheKey, out var cached) && cached.MetadataSignature == metadataSignature)
+        {
+            return cached.ContentDigest;
+        }
+
+        var contentDigest = await ComputeContentDigestAsync(connector, descriptors, ct).ConfigureAwait(false);
+        ContentDigestComputationCount++;
+        _cache[cacheKey] = (metadataSignature, contentDigest);
+        return contentDigest;
+    }
 }

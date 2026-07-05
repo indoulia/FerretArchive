@@ -57,6 +57,31 @@ public sealed class WorkspaceStateFingerprintProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task ComputeFingerprintAsync_CalledTwiceOnUnchangedContent_SkipsRecomputingContentHash()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        var entry = WorkspaceWithRepo(repoPath);
+
+        await _provider.ComputeFingerprintAsync(entry);
+        await _provider.ComputeFingerprintAsync(entry);
+
+        Assert.Equal(1, _provider.ContentDigestComputationCount);
+    }
+
+    [Fact]
+    public async Task ComputeFingerprintAsync_WhenFileContentChanges_RecomputesContentHash()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        var entry = WorkspaceWithRepo(repoPath);
+        await _provider.ComputeFingerprintAsync(entry);
+
+        await File.WriteAllTextAsync(Path.Join(repoPath, "file.txt"), "goodbye");
+        await _provider.ComputeFingerprintAsync(entry);
+
+        Assert.Equal(2, _provider.ContentDigestComputationCount);
+    }
+
+    [Fact]
     public async Task ComputeFingerprintAsync_WhenRepoLocalPathIsUnreachable_ReturnsNull()
     {
         var entry = WorkspaceWithRepo(Path.Join(_root, "does-not-exist"));
