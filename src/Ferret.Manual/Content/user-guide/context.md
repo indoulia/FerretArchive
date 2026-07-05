@@ -34,7 +34,7 @@ Claude calls `ferret_context("how does search flow work")` and receives a token-
 
 ## Token Budget
 
-The default token budget is 8,000 tokens. Configure in `ferret.config.json`:
+The default token budget is 8,000 tokens. Configure in `ferret.json`:
 
 ```json
 {

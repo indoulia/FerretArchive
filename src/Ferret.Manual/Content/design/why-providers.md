@@ -1,6 +1,6 @@
 # Why Providers?
 
-Ferret abstracts AI model access behind `IModelProvider`. You configure a provider in `ferret.config.json`; the rest of the system never knows which one is running.
+Ferret abstracts AI model access behind `IModelProvider`. You configure a provider in `ferret.json`; the rest of the system never knows which one is running.
 
 ## The problem providers solve
 

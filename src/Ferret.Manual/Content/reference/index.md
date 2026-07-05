@@ -5,7 +5,7 @@ Complete technical reference for Ferret RC1. Use these pages when you know what 
 ## Sections
 
 - [CLI Reference](cli) — every command, flag, and exit code
-- [Configuration Reference](configuration) — `ferret.config.json` schema and environment variables
+- [Configuration Reference](configuration) — `ferret.json` schema and environment variables
 - [MCP Reference](mcp) — all four MCP tools with JSON schemas
 - [Architecture Reference](architecture) — ADR index
 

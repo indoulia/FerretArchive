@@ -132,7 +132,7 @@ ferret models list
 
 **Fix:**
 ```bash
-# Set the API key as an environment variable (never in ferret.config.json)
+# Set the API key as an environment variable (never in ferret.json)
 export FERRET_PROVIDERS__OPENAI__APIKEY="sk-..."
 ferret doctor
 ```

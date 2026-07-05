@@ -21,12 +21,12 @@ internal sealed class ConfigCliModule : CliModuleBase
             HandlerType: null);
 
         yield return new CommandDefinition(
-            new CommandMetadata("validate", "Validate ferret.config.json and report errors."),
+            new CommandMetadata("validate", "Validate ferret.json and report errors."),
             typeof(ConfigValidateCommandHandler),
             Group: "config",
             Options:
             [
-                new OptionDefinition("--config", "Path to ferret.config.json.", typeof(string)),
+                new OptionDefinition("--config", "Path to ferret.json.", typeof(string)),
             ]);
     }
 
