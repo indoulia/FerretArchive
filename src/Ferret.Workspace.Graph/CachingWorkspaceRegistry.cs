@@ -66,4 +66,11 @@ public sealed class CachingWorkspaceRegistry : IWorkspaceRegistry
             _cache[entry.WorkspaceId] = entry;
         }
     }
+
+    /// <inheritdoc/>
+    public async Task RemoveAsync(Guid workspaceId, CancellationToken ct = default)
+    {
+        await _inner.RemoveAsync(workspaceId, ct).ConfigureAwait(false);
+        _cache.TryRemove(workspaceId, out _);
+    }
 }

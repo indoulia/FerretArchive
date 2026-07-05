@@ -54,6 +54,12 @@ internal sealed class WorkspacesCliModule : CliModuleBase
             .WithArgument("path", "Local path to the repo to add.");
 
         yield return new CommandDefinition(
+            new CommandMetadata("remove", "Delete a workspace's own registry entry entirely (not just a member repo)."),
+            typeof(WorkspacesRemoveCommandHandler),
+            Group: "workspaces")
+            .WithArgument("workspace", "Workspace ID or name to delete.");
+
+        yield return new CommandDefinition(
             new CommandMetadata("remove-repo", "Remove a member repo from a workspace."),
             typeof(WorkspacesRemoveRepoCommandHandler),
             Group: "workspaces")
@@ -116,6 +122,7 @@ internal sealed class WorkspacesCliModule : CliModuleBase
         services.AddTransient<WorkspacesShowCommandHandler>();
         services.AddTransient<WorkspacesAddRepoCommandHandler>();
         services.AddTransient<WorkspacesRemoveRepoCommandHandler>();
+        services.AddTransient<WorkspacesRemoveCommandHandler>();
         services.AddTransient<WorkspacesAddReferenceCommandHandler>();
         services.AddTransient<WorkspacesRemoveReferenceCommandHandler>();
 

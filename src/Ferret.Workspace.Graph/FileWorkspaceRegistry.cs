@@ -97,6 +97,18 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
         File.Move(tmpPath, manifestPath, overwrite: true);
     }
 
+    /// <inheritdoc/>
+    public Task RemoveAsync(Guid workspaceId, CancellationToken ct = default)
+    {
+        var dir = Path.GetDirectoryName(GetManifestPath(workspaceId));
+        if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+
+        return Task.CompletedTask;
+    }
+
     private static async Task<WorkspaceRegistryEntry?> ReadManifestAsync(string manifestPath, CancellationToken ct)
     {
         if (!File.Exists(manifestPath))

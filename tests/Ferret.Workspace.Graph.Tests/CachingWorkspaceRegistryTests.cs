@@ -144,6 +144,33 @@ public sealed class CachingWorkspaceRegistryTests : IDisposable
         Assert.Single(result);
     }
 
+    [Fact]
+    public async Task RemoveAsync_EvictsTheCachedEntry_SoResolveAsyncReflectsRemovalWithoutARestart()
+    {
+        var workspaceId = Guid.NewGuid();
+        var file = new FileWorkspaceRegistry(_rootDirectory);
+        var cache = new CachingWorkspaceRegistry(file);
+        await cache.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = workspaceId, Name = "throwaway" });
+        await cache.ResolveAsync(workspaceId); // warms the cache
+
+        await cache.RemoveAsync(workspaceId);
+
+        Assert.Null(await cache.ResolveAsync(workspaceId));
+    }
+
+    [Fact]
+    public async Task RemoveAsync_DelegatesToInnerRegistry()
+    {
+        var workspaceId = Guid.NewGuid();
+        var file = new FileWorkspaceRegistry(_rootDirectory);
+        await file.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = workspaceId, Name = "throwaway" });
+        var cache = new CachingWorkspaceRegistry(file);
+
+        await cache.RemoveAsync(workspaceId);
+
+        Assert.Null(await file.ResolveAsync(workspaceId));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_rootDirectory))
