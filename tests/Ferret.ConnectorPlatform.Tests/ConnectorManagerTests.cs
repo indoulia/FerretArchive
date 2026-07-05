@@ -155,7 +155,7 @@ public sealed class ConnectorManagerTests : IDisposable
     /// <summary>Store with only a disabled instance → synthesized default still applies.
     /// Regression: the original condition keyed synthesis on "store is empty," so a user who
     /// enabled then disabled any instance permanently lost the zero-config default -- even
-    /// though the intent (per the source's own comment) was "nothing usable is configured."</summary>
+    /// though the intent (per the source's own comment) was "nothing usable is configured".</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Fact]
     public async Task GetActiveConnectorsAsync_Synthesizes_Default_When_Only_Disabled_Instances_Exist()
