@@ -13,19 +13,23 @@ internal sealed class WorkspacesQueryCommandHandler : ICommandHandler
     private readonly IWorkspaceRegistry _registry;
     private readonly IRepoSearchServiceFactory _repoSearchServiceFactory;
     private readonly IWorkspaceStateFingerprintProvider _fingerprintProvider;
+    private readonly FederatedQueryCache _queryCache;
 
     /// <summary>Initializes a new instance of the <see cref="WorkspacesQueryCommandHandler"/> class.</summary>
     /// <param name="registry">The workspace registry.</param>
     /// <param name="repoSearchServiceFactory">Builds a per-repo search service for the federated fan-out.</param>
     /// <param name="fingerprintProvider">Computes the Workspace State Fingerprint used to verify a pinned reference.</param>
+    /// <param name="queryCache">The process-local federated query cache (WIP-030/031).</param>
     public WorkspacesQueryCommandHandler(
         IWorkspaceRegistry registry,
         IRepoSearchServiceFactory repoSearchServiceFactory,
-        IWorkspaceStateFingerprintProvider fingerprintProvider)
+        IWorkspaceStateFingerprintProvider fingerprintProvider,
+        FederatedQueryCache queryCache)
     {
         _registry = registry;
         _repoSearchServiceFactory = repoSearchServiceFactory;
         _fingerprintProvider = fingerprintProvider;
+        _queryCache = queryCache;
     }
 
     /// <inheritdoc/>
@@ -59,7 +63,8 @@ internal sealed class WorkspacesQueryCommandHandler : ICommandHandler
         var limitOption = context.GetOption<int>("limit");
         var limit = limitOption > 0 ? limitOption : 20;
         var options = new SearchOptions { MaxResults = limit, Mode = SearchExecutionMode.Auto };
-        var store = new FederatedKnowledgeStore(_registry, _repoSearchServiceFactory, entry.WorkspaceId, _fingerprintProvider);
+        var innerStore = new FederatedKnowledgeStore(_registry, _repoSearchServiceFactory, entry.WorkspaceId, _fingerprintProvider);
+        var store = new CachingFederatedKnowledgeStore(innerStore, _registry, _fingerprintProvider, entry.WorkspaceId, _queryCache);
         var result = await store.SearchAsync(queryText, options).ConfigureAwait(false);
 
         if (!result.IsSuccess)
