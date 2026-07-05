@@ -99,8 +99,18 @@ public sealed partial class FederatedKnowledgeStore : IFederatedKnowledgeStore
             return SearchServiceResult.Failure(EmptyQuery(), status, diagnostics);
         }
 
-        var taggedHits = successful
-            .SelectMany(p => p.Result.Hits.Select(hit => hit with { SourceWorkspaceId = p.WorkspaceId }))
+        // WIP-036: raw per-source BM25 magnitudes aren't comparable across independently-indexed
+        // sources -- each source's own statistics (document count, term frequency distribution) skew
+        // its score scale, so a flat cross-source sort systematically favors large corpora over a
+        // smaller one's genuinely most relevant hit. Min-max normalization rescales each source's hits
+        // into [0,1] using only that source's own range, which preserves each source's internal
+        // ranking exactly (a monotonic transform) while making magnitudes comparable across sources.
+        // Skipped entirely for a single source: normalizing would rescale magnitudes for no
+        // cross-source benefit and would change the numbers a single-source query has always reported.
+        var taggedHits = (successful.Count > 1
+                ? successful.Select(p => (p.WorkspaceId, Hits: NormalizeScores(p.Result.Hits)))
+                : successful.Select(p => (p.WorkspaceId, Hits: p.Result.Hits)))
+            .SelectMany(p => p.Hits.Select(hit => hit with { SourceWorkspaceId = p.WorkspaceId }))
             .OrderByDescending(hit => hit.Score)
             .Take(options.MaxResults)
             .ToList();
@@ -125,6 +135,24 @@ public sealed partial class FederatedKnowledgeStore : IFederatedKnowledgeStore
         {
             Diagnostics = diagnostics,
         };
+    }
+
+    /// <summary>Rescales <paramref name="hits"/>' scores into [0,1] using only their own min/max, preserving relative order.</summary>
+    private static IReadOnlyList<SearchHit> NormalizeScores(IReadOnlyList<SearchHit> hits)
+    {
+        if (hits.Count == 0)
+        {
+            return hits;
+        }
+
+        var min = hits.Min(h => h.Score);
+        var max = hits.Max(h => h.Score);
+        if (max == min)
+        {
+            return hits.Select(h => h with { Score = 1f }).ToList();
+        }
+
+        return hits.Select(h => h with { Score = (h.Score - min) / (max - min) }).ToList();
     }
 
     private static SearchQuery EmptyQuery() =>
