@@ -1,9 +1,12 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
 using Ferret.Connectors.Filesystem;
 using Ferret.Core.Connectors;
+using Ferret.Core.Indexing;
+using Ferret.Core.Workspace;
 using Ferret.Knowledge.Federation;
 using Ferret.ParserPlatform;
 using Ferret.Workspace.Graph;
@@ -53,6 +56,40 @@ internal sealed class WorkspaceStateFingerprintProvider : IWorkspaceStateFingerp
         }
 
         return Sha256Hex(string.Join('\n', repoDigests));
+    }
+
+    /// <inheritdoc/>
+    public Task<string?> ComputeIndexChangeSignalAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        var signals = new List<string>();
+        foreach (var repo in entry.Members.Repos.OrderBy(r => r.Remote, StringComparer.Ordinal))
+        {
+            if (repo.LocalPath is null)
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            var indexPath = Path.Join(
+                repo.LocalPath,
+                WorkspaceLayout.RootDirectoryName,
+                IndexLayout.IndexDirectoryName,
+                IndexLayout.KeywordDirectoryName,
+                IndexLayout.KeywordDatabaseFileName);
+
+            var info = new FileInfo(indexPath);
+            if (!info.Exists)
+            {
+                // Fail closed: no index built yet means we cannot say whether searchable content
+                // changed, the same disposition as an unreachable checkout for the real fingerprint.
+                return Task.FromResult<string?>(null);
+            }
+
+            signals.Add($"{repo.Remote}:{info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture)}:{info.Length.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        return Task.FromResult<string?>(string.Join('\n', signals));
     }
 
     private static string ComputeMetadataSignature(List<AssetDescriptor> descriptors)

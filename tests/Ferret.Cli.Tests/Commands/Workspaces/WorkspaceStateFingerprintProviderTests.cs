@@ -91,6 +91,75 @@ public sealed class WorkspaceStateFingerprintProviderTests : IDisposable
         Assert.Null(result);
     }
 
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_WhenNoIndexHasEverBeenBuilt_ReturnsNull()
+    {
+        // Fail-closed (P3-002): a repo with no keyword index yet must never be treated as "unchanged".
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        var entry = WorkspaceWithRepo(repoPath);
+
+        var result = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_CalledTwiceWithNoReindexInBetween_ReturnsTheSameValue()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        CreateKeywordIndex(repoPath, "index-v1");
+        var entry = WorkspaceWithRepo(repoPath);
+
+        var first = await _provider.ComputeIndexChangeSignalAsync(entry);
+        var second = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.NotNull(first);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_AfterTheIndexIsRebuilt_ReturnsADifferentValue()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        CreateKeywordIndex(repoPath, "index-v1");
+        var entry = WorkspaceWithRepo(repoPath);
+        var before = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        // Simulate `ferret index` re-running and rewriting the keyword index (content and mtime both
+        // change, exactly as a real re-index would do).
+        await Task.Delay(10);
+        CreateKeywordIndex(repoPath, "index-v2-longer-content");
+        var after = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_WhenSourceFileChangesButIndexIsNotRebuilt_ReturnsTheSameValue()
+    {
+        // The cheap signal deliberately tracks the INDEX, not the filesystem (P3-002): a source edit
+        // that was never re-indexed cannot possibly change what a federated query returns.
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        CreateKeywordIndex(repoPath, "index-v1");
+        var entry = WorkspaceWithRepo(repoPath);
+        var before = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        await File.WriteAllTextAsync(Path.Join(repoPath, "file.txt"), "a source edit nobody re-indexed yet");
+        var after = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_WhenRepoLocalPathIsUnreachable_ReturnsNull()
+    {
+        var entry = WorkspaceWithRepo(Path.Join(_root, "does-not-exist"));
+
+        var result = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.Null(result);
+    }
+
     private static WorkspaceRegistryEntry WorkspaceWithRepo(string repoPath) =>
         WorkspaceWithRepo(remote: repoPath, localPath: repoPath);
 
@@ -100,6 +169,13 @@ public sealed class WorkspaceStateFingerprintProviderTests : IDisposable
         Name = "test",
         Members = new WorkspaceMembers { Repos = [new RepoMember { Remote = remote, LocalPath = localPath }] },
     };
+
+    private static void CreateKeywordIndex(string repoPath, string content)
+    {
+        var indexDir = Path.Join(repoPath, ".ferret", "indexes", "keyword");
+        Directory.CreateDirectory(indexDir);
+        File.WriteAllText(Path.Join(indexDir, "keyword-index.db"), content);
+    }
 
     private string CreateRepo(string name, params (string RelativePath, string Content)[] files)
     {
