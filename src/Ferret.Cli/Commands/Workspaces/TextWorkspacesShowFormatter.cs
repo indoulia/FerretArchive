@@ -32,5 +32,17 @@ internal sealed class TextWorkspacesShowFormatter : IWorkspacesShowFormatter
         {
             output.WriteLine($"  - {document.Path} [{document.Type}]");
         }
+
+        output.WriteLine();
+        output.WriteLine($"References ({entry.References.Count}):");
+        if (entry.References.Count == 0)
+        {
+            output.WriteLine("  (none — add one with: ferret workspaces add-reference " + entry.Name + " <target-id-or-name>)");
+        }
+
+        foreach (var reference in entry.References)
+        {
+            output.WriteLine($"  - {reference.WorkspaceId} ({reference.Mode})");
+        }
     }
 }

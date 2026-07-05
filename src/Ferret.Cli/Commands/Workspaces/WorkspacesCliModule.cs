@@ -59,6 +59,31 @@ internal sealed class WorkspacesCliModule : CliModuleBase
             Group: "workspaces")
             .WithArgument("workspace", "Workspace ID or name.")
             .WithArgument("path", "Local path to the repo to remove (matched by resolved identity).");
+
+        yield return new CommandDefinition(
+            new CommandMetadata("add-reference", "Add a read-only reference from one workspace to another."),
+            typeof(WorkspacesAddReferenceCommandHandler),
+            Group: "workspaces")
+            .WithArgument("workspace", "Workspace ID or name that will gain the reference.")
+            .WithArgument("target", "Workspace ID or name being referenced.");
+
+        yield return new CommandDefinition(
+            new CommandMetadata("remove-reference", "Remove a reference from one workspace to another."),
+            typeof(WorkspacesRemoveReferenceCommandHandler),
+            Group: "workspaces")
+            .WithArgument("workspace", "Workspace ID or name to remove the reference from.")
+            .WithArgument("target", "Workspace ID or name currently being referenced.");
+
+        yield return new CommandDefinition(
+            new CommandMetadata("query", "Query a workspace and every workspace it references, merging results."),
+            typeof(WorkspacesQueryCommandHandler),
+            Group: "workspaces",
+            Options:
+            [
+                new OptionDefinition("--limit", "Maximum results to return.", typeof(int), DefaultValue: 20),
+            ])
+            .WithArgument("workspace", "Workspace ID or name to query.")
+            .WithArgument("query", "Search query (keywords, \"phrase\", prefix*)");
     }
 
     /// <inheritdoc/>
@@ -77,5 +102,11 @@ internal sealed class WorkspacesCliModule : CliModuleBase
         services.AddTransient<WorkspacesShowCommandHandler>();
         services.AddTransient<WorkspacesAddRepoCommandHandler>();
         services.AddTransient<WorkspacesRemoveRepoCommandHandler>();
+        services.AddTransient<WorkspacesAddReferenceCommandHandler>();
+        services.AddTransient<WorkspacesRemoveReferenceCommandHandler>();
+
+        services.AddSingleton<Ferret.Core.Search.IQueryParser, Ferret.Search.QueryParser>();
+        services.AddSingleton<Ferret.Knowledge.Federation.IRepoSearchServiceFactory, RepoSearchServiceFactory>();
+        services.AddTransient<WorkspacesQueryCommandHandler>();
     }
 }

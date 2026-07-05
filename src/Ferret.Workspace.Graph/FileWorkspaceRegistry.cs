@@ -19,10 +19,15 @@ namespace Ferret.Workspace.Graph;
 /// </summary>
 public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
 {
-    /// <summary>The only schema version this reader can process. ARCH-001 §12.4's migration-path validation has nothing to route through until a second version ships.</summary>
+    /// <summary>The default schema version, written when <see cref="WorkspaceRegistryEntry.References"/> is empty.</summary>
     public const string SupportedSchemaVersion = "1.0";
 
+    /// <summary>The schema version written when <see cref="WorkspaceRegistryEntry.References"/> is non-empty (WIP-SLICE-2, additive per ARCH-001 §12.4 — no separate migration code, since the envelope already tolerates the extra field).</summary>
+    public const string ReferencesSchemaVersion = "1.1";
+
     private const string ManifestFileName = "workspace.json";
+
+    private static readonly HashSet<string> ReachableSchemaVersions = [SupportedSchemaVersion, ReferencesSchemaVersion];
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -121,15 +126,15 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
             throw new WorkspaceRegistryCorruptException(manifestPath, "manifest deserialized to an empty document");
         }
 
-        if (envelope.SchemaVersion != SupportedSchemaVersion)
+        if (!ReachableSchemaVersions.Contains(envelope.SchemaVersion))
         {
             // ARCH-001 §12.4: "Validates that the current schema version is reachable ... through
             // the declared migration path." No migration path is declared to or from any version
-            // other than SupportedSchemaVersion yet, so nothing else is reachable — fail closed,
-            // same disposition as malformed JSON, per ADR-0026.
+            // other than the ones in ReachableSchemaVersions yet, so nothing else is reachable —
+            // fail closed, same disposition as malformed JSON, per ADR-0026.
             throw new WorkspaceRegistryCorruptException(
                 manifestPath,
-                $"schemaVersion '{envelope.SchemaVersion}' is not reachable — this reader only supports '{SupportedSchemaVersion}' and no migration path is declared");
+                $"schemaVersion '{envelope.SchemaVersion}' is not reachable — this reader only supports '{string.Join("', '", ReachableSchemaVersions)}' and no other migration path is declared");
         }
 
         return ToEntry(envelope);
@@ -150,6 +155,9 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
                 .Select(d => new DocumentMember { Path = d.Path, Type = d.Type })
                 .ToList(),
         },
+        References = (envelope.References ?? [])
+            .Select(r => new WorkspaceReference { WorkspaceId = r.WorkspaceId, Mode = r.Mode, PinnedStateHash = r.PinnedStateHash })
+            .ToList(),
     };
 
     private static JsonWorkspaceRegistryEntryEnvelope ToEnvelope(WorkspaceRegistryEntry entry) => new()
@@ -167,6 +175,11 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
                 .Select(d => new JsonDocumentMember { Path = d.Path, Type = d.Type })
                 .ToList(),
         },
+        References = entry.References.Count == 0
+            ? null
+            : entry.References
+                .Select(r => new JsonWorkspaceReference { WorkspaceId = r.WorkspaceId, Mode = r.Mode, PinnedStateHash = r.PinnedStateHash })
+                .ToList(),
     };
 
     private string GetManifestPath(Guid workspaceId) =>
@@ -195,6 +208,12 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
 
         [JsonPropertyName("members")]
         public JsonWorkspaceMembers Members { get; set; } = new();
+
+        /// <summary>Gets or sets the on-disk v1.1 field (<c>02-Workspace-Model.md</c> §3). Null (and so omitted by
+        /// <see cref="SerializerOptions"/>'s <c>WhenWritingNull</c> policy) for an entry with no references, keeping
+        /// v1.0 output byte-identical to pre-WIP-SLICE-2 output; absent-on-disk deserializes back to null here too.</summary>
+        [JsonPropertyName("references")]
+        public List<JsonWorkspaceReference>? References { get; set; }
     }
 
     /// <summary>On-disk shape of the "members" object (<c>02-Workspace-Model.md</c> §3).</summary>
@@ -225,5 +244,18 @@ public sealed class FileWorkspaceRegistry : IWorkspaceRegistry
 
         [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
+    }
+
+    /// <summary>On-disk shape of one <see cref="WorkspaceReference"/>.</summary>
+    private sealed class JsonWorkspaceReference
+    {
+        [JsonPropertyName("workspaceId")]
+        public Guid WorkspaceId { get; set; }
+
+        [JsonPropertyName("mode")]
+        public string Mode { get; set; } = "read-only";
+
+        [JsonPropertyName("pinnedStateHash")]
+        public string? PinnedStateHash { get; set; }
     }
 }

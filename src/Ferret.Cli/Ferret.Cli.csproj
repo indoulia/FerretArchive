@@ -29,6 +29,7 @@
     <ProjectReference Include="..\Ferret.Runtime\Ferret.Runtime.csproj" />
     <ProjectReference Include="..\Ferret.Workspace\Ferret.Workspace.csproj" />
     <ProjectReference Include="..\Ferret.Workspace.Graph\Ferret.Workspace.Graph.csproj" />
+    <ProjectReference Include="..\Ferret.Knowledge.Federation\Ferret.Knowledge.Federation.csproj" />
     <ProjectReference Include="..\Ferret.ConnectorPlatform\Ferret.ConnectorPlatform.csproj" />
     <ProjectReference Include="..\Ferret.Connectors.Filesystem\Ferret.Connectors.Filesystem.csproj" />
     <ProjectReference Include="..\Ferret.ParserPlatform\Ferret.ParserPlatform.csproj" />

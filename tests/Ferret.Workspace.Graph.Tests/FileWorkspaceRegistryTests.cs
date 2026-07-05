@@ -330,6 +330,87 @@ public sealed class FileWorkspaceRegistryTests : IDisposable
         Assert.Equal(firstBytes, secondBytes);
     }
 
+    [Fact]
+    public async Task SaveThenResolve_WithReferences_RoundTrips()
+    {
+        var entry = new WorkspaceRegistryEntry
+        {
+            WorkspaceId = Guid.NewGuid(),
+            Name = "service-a",
+            SchemaVersion = FileWorkspaceRegistry.ReferencesSchemaVersion,
+            References = [new WorkspaceReference { WorkspaceId = Guid.NewGuid() }],
+        };
+        var writer = new FileWorkspaceRegistry(_rootDirectory);
+        await writer.SaveAsync(entry);
+
+        var reader = new FileWorkspaceRegistry(_rootDirectory);
+        var result = await reader.ResolveAsync(entry.WorkspaceId);
+
+        Assert.Equal(entry, result);
+        Assert.Equal("read-only", result!.References[0].Mode);
+        Assert.Null(result.References[0].PinnedStateHash);
+    }
+
+    [Fact]
+    public async Task SaveThenResolve_WithoutReferences_KeepsSchemaVersionOneZero()
+    {
+        // Backward-compat invariant: an entry with no references must be byte-identical to
+        // pre-WIP-SLICE-2 output — adding the References property must not change SchemaVersion
+        // for entries that don't use it.
+        var entry = new WorkspaceRegistryEntry { WorkspaceId = Guid.NewGuid(), Name = "customer-platform" };
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        await registry.SaveAsync(entry);
+
+        var manifestPath = Directory.GetFiles(_rootDirectory, "workspace.json", SearchOption.AllDirectories).Single();
+        var json = await File.ReadAllTextAsync(manifestPath);
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.Equal("1.0", document.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.False(document.RootElement.TryGetProperty("references", out _));
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WhenManifestOmitsReferencesEntirely_ReturnsEntryWithEmptyReferences()
+    {
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        var workspaceId = Guid.NewGuid();
+        await registry.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = workspaceId, Name = "customer-platform" });
+        var manifestPath = Directory.GetFiles(_rootDirectory, "workspace.json", SearchOption.AllDirectories).Single();
+        await File.WriteAllTextAsync(
+            manifestPath,
+            "{\"schemaVersion\":\"1.0\",\"workspaceId\":\"" + workspaceId + "\",\"name\":\"customer-platform\"}");
+
+        var result = await registry.ResolveAsync(workspaceId);
+
+        Assert.NotNull(result);
+        Assert.Empty(result!.References);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WhenSchemaVersionIsOnePointOne_IsReachable()
+    {
+        var registry = new FileWorkspaceRegistry(_rootDirectory);
+        var workspaceId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        var manifestPath = Path.Join(EnsureManifestDirectory(workspaceId), "workspace.json");
+        var json = "{\"schemaVersion\":\"1.1\",\"workspaceId\":\"" + workspaceId + "\",\"name\":\"service-a\","
+            + "\"references\":[{\"workspaceId\":\"" + targetId + "\",\"mode\":\"read-only\"}]}";
+        await File.WriteAllTextAsync(manifestPath, json);
+
+        var result = await registry.ResolveAsync(workspaceId);
+
+        Assert.NotNull(result);
+        Assert.Single(result!.References);
+        Assert.Equal(targetId, result.References[0].WorkspaceId);
+    }
+
+    private string EnsureManifestDirectory(Guid workspaceId)
+    {
+        var dir = Path.Join(_rootDirectory, workspaceId.ToString("N"));
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_rootDirectory))

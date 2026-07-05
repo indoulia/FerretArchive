@@ -159,6 +159,40 @@ public sealed class WorkspacesCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Show_WithReferences_DisplaysReferences()
+    {
+        var targetId = Guid.NewGuid();
+        await _registry.SaveAsync(new WorkspaceRegistryEntry
+        {
+            WorkspaceId = Guid.NewGuid(),
+            Name = "service-a",
+            SchemaVersion = FileWorkspaceRegistry.ReferencesSchemaVersion,
+            References = [new WorkspaceReference { WorkspaceId = targetId }],
+        });
+        var handler = new WorkspacesShowCommandHandler(_registry, new TextWorkspacesShowFormatter());
+        _context.With("workspace", "service-a");
+
+        var result = await handler.ExecuteAsync(_context);
+
+        Assert.Equal(CommandResult.Success, result);
+        Assert.Contains(_output.Lines, l => l.Contains("References (1)", StringComparison.Ordinal));
+        Assert.Contains(_output.Lines, l => l.Contains(targetId.ToString(), StringComparison.Ordinal) && l.Contains("read-only", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Show_WithNoReferences_DisplaysEmptyReferencesSection()
+    {
+        await _registry.SaveAsync(new WorkspaceRegistryEntry { WorkspaceId = Guid.NewGuid(), Name = "service-a" });
+        var handler = new WorkspacesShowCommandHandler(_registry, new TextWorkspacesShowFormatter());
+        _context.With("workspace", "service-a");
+
+        var result = await handler.ExecuteAsync(_context);
+
+        Assert.Equal(CommandResult.Success, result);
+        Assert.Contains(_output.Lines, l => l.Contains("References (0)", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Show_UnknownWorkspace_FailsWithActionableMessage()
     {
         var handler = new WorkspacesShowCommandHandler(_registry, new TextWorkspacesShowFormatter());

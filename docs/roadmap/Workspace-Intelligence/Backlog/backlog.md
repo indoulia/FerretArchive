@@ -51,12 +51,12 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
 
 Cuts across Phase 1 (all of it) and a **minimal** subset of Phase 2 — just enough to prove the architecture's central bet (federated query, zero duplication) end to end. Explicitly excludes pinning (WIP-022) and all of Phase 3/4/5 — those make it fast, safe, and shared, but aren't needed to prove it *works*.
 
-- [ ] **WIP-SLICE-1** Minimal `IFederatedKnowledgeStore` — fan-out + merge + `sourceWorkspaceId` tagging only, no scope narrowing, no compression, no caching
+- [x] **WIP-SLICE-1** Minimal `IFederatedKnowledgeStore` — fan-out + merge + `sourceWorkspaceId` tagging only, no scope narrowing, no compression, no caching — done: `src/Ferret.Knowledge.Federation/`, 7 unit tests + 3 real-repo integration tests green; see `16-Vertical-Slice-Validation.md`
   - **Goal:** Prove a query against Workspace A returns correct, cited results from referenced Workspace B without copying B's index.
   - **Dependencies:** WIP-010–013; a trimmed slice of WIP-023 (just the `Workspace`/`CONTAINS`/`IMPORTS` graph additions and result tagging — not the full ticket).
   - **Expected outcome:** `Ferret knowledge query` against A transparently includes B's content when A references B.
   - **Acceptance criteria:** A query answerable only by combining A+B returns a correct, cited answer (00-Vision.md §4's own success metric); inspecting B's on-disk index after the query shows zero new files written to A.
-- [ ] **WIP-SLICE-2** `Ferret workspace add-reference` + cycle detection (DAG enforcement), no pinning
+- [x] **WIP-SLICE-2** `Ferret workspace add-reference` + cycle detection (DAG enforcement), no pinning — done: `ferret workspaces add-reference`/`ferret workspaces query`, `src/Ferret.Workspace.Graph/ReferenceGraph.cs`, 9 unit tests green
   - **Goal:** Let a developer actually create the reference the slice needs.
   - **Dependencies:** WIP-012.
   - **Expected outcome:** `add-reference` creates an `IMPORTS` edge; attempting a cycle is rejected outright, matching `03-Cross-Workspace-References.md` §5.
@@ -71,8 +71,8 @@ Cuts across Phase 1 (all of it) and a **minimal** subset of Phase 2 — just eno
 ## Phase 2 — Federation (full scope, beyond the vertical slice above)
 
 - [ ] **WIP-020** Implement `IFederatedKnowledgeStore` — `01-Architecture.md` §2, `03-Cross-Workspace-References.md` §2
-- [ ] **WIP-021** `Ferret workspace add-reference` / `remove-reference`, cycle detection (DAG enforcement) — `03-Cross-Workspace-References.md` §5
-- [ ] **WIP-022** Pinning (`pinnedStateHash`) resolution and fail-closed behavior — `03-Cross-Workspace-References.md` §3
+- [x] **WIP-021** `Ferret workspace add-reference` / `remove-reference`, cycle detection (DAG enforcement) — `03-Cross-Workspace-References.md` §5 — done: `add-reference`/cycle detection shipped in WIP-SLICE-2; `remove-reference` added here (`WorkspacesRemoveReferenceCommandHandler`), 7 new tests, dogfooded live including the moved-repo repair workflow (remove stale reference, re-add at corrected path)
+- [ ] **WIP-022** Pinning (`pinnedStateHash`) resolution and fail-closed behavior — `03-Cross-Workspace-References.md` §3 — sequenced after WIP-021, see above.
 - [ ] **WIP-023** Knowledge graph additions: `Workspace` node, `CONTAINS`/`IMPORTS` edges, `sourceWorkspaceId` tagging on results — `04-Knowledge-Graph.md`
 
 ## Phase 3 — Performance

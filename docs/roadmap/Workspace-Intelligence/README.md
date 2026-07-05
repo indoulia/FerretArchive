@@ -22,6 +22,10 @@ Milestone: Ferret v2.0, first milestone after Dogfooding. Full context: `00-Visi
 | 13 | Storage | How / decision gate |
 | 14 | Migration | How existing users are unaffected |
 | 15 | Execution Plan | In what order |
+| 16 | Vertical Slice Validation | Did the architecture hold — evidence, not opinion |
+| 17 | Founder Dogfooding Sprint 1 | Real-repo dogfooding findings, friction log, stabilization recommendation |
+| 18 | Engineering Analysis: Sprint 1 | Classified findings, architecture verdicts, ranked stabilization plan |
+| 19 | Stabilization Sprint 1 | Implementation, real failure-injection evidence, reliability verdict |
 
 `ADR/` — the four ADRs, two of which still gate implementation. `Backlog/` — the ordered ticket list, including the recommended Phase 1 vertical slice. `../Future/Deferred-Scope.md` — what's explicitly cut from v1 and why.
 
