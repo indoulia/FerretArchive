@@ -106,6 +106,11 @@ Run three times to rule out a JIT/warm-up artifact:
 A single isolated warm call (post-population) measured `0.000`–`0.001 ms` — a dictionary lookup, no
 I/O, no allocation beyond the lookup itself.
 
+The cold-miss column for `ferret-platform` is consistently ~6-7x slower than `indoulia-foundation`'s
+across all three runs; this wasn't specifically isolated and confirmed, but the most likely explanation
+is a one-time OS file-cache/JIT warm-up cost paid by the very first disk read in the whole benchmark
+process, with the disk and JIT already warm by the time the second ID is measured.
+
 **Reading these numbers honestly:** the absolute per-call cost of the uncached path (~0.27–0.31 ms) is
 small in isolation — this registry file is tiny and local-disk cached by the OS after the first touch,
 so this is not the multi-hundred-millisecond cost the fingerprint provider had (`21`'s 251–291 ms cold
@@ -182,12 +187,17 @@ doc file itself.
   provider's full-repo re-hash (bottleneck #1, fixed in `21`). This cache's win is about **eliminating
   repetition across a long session**, not fixing an expensive single call — the opposite shape of the
   fingerprint fix.
-- **The CLI itself never sees this speedup.** Identical to the fingerprint provider's own lesson
-  (`21` §5): each `ferret workspaces query` invocation is a fresh process, so the singleton cache never
-  survives past one command. The measured ~1000x per-call speedup in §4 only pays off inside a
-  long-lived host — the MCP server or any future interactive/loop consumer that resolves the same
-  workspace ID repeatedly in one process, exactly the audience `20-Phase-3-Priority-Assessment.md` §1
-  named for this ticket.
+- **The cache's win never carries across separate CLI invocations, but it does help within one.**
+  Identical to the fingerprint provider's own lesson (`21` §5): each `ferret workspaces query`
+  invocation is a fresh process, so the singleton cache starts cold every time — no cross-invocation
+  win. But within a single invocation it isn't a no-op: `WorkspacesQueryCommandHandler` resolves the
+  queried workspace once via `WorkspaceLookup`/by-ID, `FederatedKnowledgeStore.RunAsync` resolves that
+  same workspace ID again, and each of its R references is resolved once in `ResolveSourcesAsync` and
+  again in `WorkspacesQueryCommandHandler.BuildWorkspaceNameLookupAsync` — collapsing what would be
+  `1 + 2R` inner registry reads down to `1 + R` in that one process. The measured ~1000x per-call
+  speedup in §4 pays off fully only inside a long-lived host — the MCP server or any future
+  interactive/loop consumer that resolves the same workspace ID many more times in one process,
+  exactly the audience `20-Phase-3-Priority-Assessment.md` §1 named for this ticket.
 - **Negative-cache correctness mattered as much as positive-cache correctness.** A `null` result
   (workspace not found) is cached identically to a real entry — verified both by the dedicated unit
   test and implicitly by every dogfooding query resolving `indoulia-foundation`'s ID cleanly. Missing
@@ -218,3 +228,10 @@ ADR is required — none was required by the plan, and nothing discovered during
 benchmarking, or dogfooding changed that. No technical debt was introduced: the cache is a small,
 fully-tested decorator with no persisted state, no configuration surface, and no failure mode beyond
 "propagate the inner registry's exception," which is the same failure mode the codebase already had.
+This holds for the current single-process CLI consumer, where every registry access is strictly
+sequential (`FederatedKnowledgeStore`'s reference resolution is a `foreach`+`await` loop, never a
+concurrent `Task.WhenAll` on the registry itself); a future concurrent host (e.g. an MCP server
+issuing parallel queries against the same singleton, per `WorkspacesCliModule.cs`'s registration)
+would need per-key synchronization on the cache before relying on it — the check-then-act on the
+`ConcurrentDictionary` in both `ResolveAsync` (miss-then-populate) and `SaveAsync`
+(`ContainsKey`-then-write) is not atomic.
