@@ -92,6 +92,21 @@ public sealed class Bm25SearchProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task SearchAsync_HyphenatedIdentifier_MatchesDocumentContainingIt()
+    {
+        // "ADR-0026" is a real identifier referenced by name elsewhere in the corpus; an exact
+        // keyword search for it must find the document that contains it. QueryTranslator quotes
+        // hyphenated keywords to dodge FTS5's bare "-" NOT-operator (see nem-3795 / #15), but the
+        // quoted phrase still has to match the same string as tokenized in stored content -- this
+        // is verified end-to-end against real SQLite FTS5, not just at the translator layer, because
+        // that boundary is exactly where the previous fix stopped short.
+        var query = MakeQuery(new KeywordExpression("ADR-0026"));
+        var result = await _provider.SearchAsync(query, DefaultOptions());
+        Assert.True(result.IsSuccess);
+        Assert.NotEmpty(result.Hits);
+    }
+
+    [Fact]
     public async Task SearchAsync_CanonicalUri_Not_DoubleWrapped_For_FilesystemScheme_Id()
     {
         // Real production document IDs use the "filesystem://" connector scheme (not "file://"),
@@ -158,7 +173,8 @@ public sealed class Bm25SearchProviderTests : IDisposable
                 ('file:///src/auth/token.cs',   'filesystem', 'fs-1', 'text/plain', 1, 'Token-based authentication content here', 'AuthenticationToken', 0),
                 ('file:///src/auth/session.cs',  'filesystem', 'fs-1', 'text/plain', 1, 'Session management for authenticated users', 'SessionManager', 0),
                 ('file:///src/runtime/builder.cs','filesystem', 'fs-1', 'text/plain', 1, 'Builder content for runtime initialization', 'RuntimeBuilder', 0),
-                ('filesystem:///src/connector/scanner.cs','filesystem', 'fs-1', 'text/plain', 1, 'Scanner content for connector discovery', 'ConnectorScanner', 0);
+                ('filesystem:///src/connector/scanner.cs','filesystem', 'fs-1', 'text/plain', 1, 'Scanner content for connector discovery', 'ConnectorScanner', 0),
+                ('filesystem:///docs/adr/summary.md','filesystem', 'fs-1', 'text/plain', 1, 'This is the load-bearing decision, see ADR-0026 for the full rationale.', 'Summary', 0);
             INSERT INTO documents_fts (id, plain_text, title)
             SELECT id, plain_text, title FROM documents;
             """;
