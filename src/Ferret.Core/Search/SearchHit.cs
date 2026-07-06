@@ -38,4 +38,9 @@ public abstract record SearchHit
     /// <summary>Gets the per-provider score breakdown. Null in Sprint 10; populated by Sprint 11+ providers.
     /// Example: "BM25: 0.91 | Semantic: 0.84 | Hybrid: 0.89".</summary>
     public string? Explanation { get; init; }
+
+    /// <summary>Gets the workspace this hit was retrieved from (<c>04-Knowledge-Graph.md</c> §1-2: every
+    /// federated result row is tagged with its source <c>Workspace</c> node). Null for a plain single-repo
+    /// search that has no multi-repo workspace context; always populated by <c>IFederatedKnowledgeStore</c>.</summary>
+    public Guid? SourceWorkspaceId { get; init; }
 }

@@ -8,6 +8,7 @@ using Ferret.Core.Workspace;
 using Ferret.Mcp;
 using Ferret.Mcp.Protocol;
 using Ferret.Mcp.Runtime;
+using Ferret.Workspace.Graph;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -32,6 +33,7 @@ public sealed class McpHostIntegrationTests
         services.AddSingleton<IWorkspaceContext>(new FakeWorkspaceContext());
         services.AddSingleton<IConnectorRegistry>(new FakeConnectorRegistry());
         services.AddSingleton<IContextAssembler>(new FakeContextAssembler());
+        services.AddSingleton<IWorkspaceRegistry>(new FakeWorkspaceRegistry());
 
         McpModule.ConfigureServices(services);
         return services.BuildServiceProvider();
@@ -47,11 +49,11 @@ public sealed class McpHostIntegrationTests
     }
 
     [Fact]
-    public void McpModule_Registers_Four_Tools()
+    public void McpModule_Registers_Five_Tools()
     {
         using var provider = BuildProvider();
         var tools = provider.GetServices<IMcpTool>().ToList();
-        Assert.Equal(4, tools.Count);
+        Assert.Equal(5, tools.Count);
     }
 
     [Fact]
@@ -123,6 +125,17 @@ public sealed class McpHostIntegrationTests
         public WorkspaceId WorkspaceId => WorkspaceId.Create("test");
 
         public WorkspacePath WorkspaceRoot => WorkspacePath.Create(System.IO.Path.GetTempPath());
+    }
+
+    private sealed class FakeWorkspaceRegistry : IWorkspaceRegistry
+    {
+        public Task<WorkspaceRegistryEntry?> ResolveAsync(Guid workspaceId, CancellationToken ct = default) =>
+            Task.FromResult<WorkspaceRegistryEntry?>(null);
+
+        public Task<IReadOnlyList<WorkspaceRegistryEntry>> ListAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<WorkspaceRegistryEntry>>([]);
+
+        public Task SaveAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private sealed class FakeConnectorRegistry : IConnectorRegistry

@@ -1,0 +1,199 @@
+using Ferret.Cli.Commands.Workspaces;
+using Ferret.Workspace.Graph;
+
+namespace Ferret.Cli.Tests.Commands.Workspaces;
+
+public sealed class WorkspaceStateFingerprintProviderTests : IDisposable
+{
+    private readonly string _root;
+    private readonly WorkspaceStateFingerprintProvider _provider = new();
+
+    public WorkspaceStateFingerprintProviderTests()
+    {
+        _root = Path.Join(Path.GetTempPath(), $"ferret-fingerprint-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_root);
+    }
+
+    [Fact]
+    public async Task ComputeFingerprintAsync_CalledTwiceOnUnchangedContent_ReturnsTheSameValue()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        var entry = WorkspaceWithRepo(repoPath);
+
+        var first = await _provider.ComputeFingerprintAsync(entry);
+        var second = await _provider.ComputeFingerprintAsync(entry);
+
+        Assert.NotNull(first);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task ComputeFingerprintAsync_SameIdentityAndContentAtADifferentCheckoutPathAndMtime_ReturnsTheSameValue()
+    {
+        // Portability: a fresh clone/checkout of the identical repo resets mtimes and may live at a
+        // different local path, but must fingerprint identically (ADR-0027 Amendment invariant #3).
+        const string sharedRemoteIdentity = "git@example.com:org/shared-lib.git";
+        var checkout1 = CreateRepo("checkout-1", ("file.txt", "hello"));
+        var checkout2 = CreateRepo("checkout-2", ("file.txt", "hello"));
+        File.SetLastWriteTimeUtc(Path.Join(checkout2, "file.txt"), DateTime.UtcNow.AddDays(-30));
+
+        var fingerprint1 = await _provider.ComputeFingerprintAsync(WorkspaceWithRepo(sharedRemoteIdentity, checkout1));
+        var fingerprint2 = await _provider.ComputeFingerprintAsync(WorkspaceWithRepo(sharedRemoteIdentity, checkout2));
+
+        Assert.Equal(fingerprint1, fingerprint2);
+    }
+
+    [Fact]
+    public async Task ComputeFingerprintAsync_WhenFileContentChanges_ReturnsADifferentValue()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        var entry = WorkspaceWithRepo(repoPath);
+        var before = await _provider.ComputeFingerprintAsync(entry);
+
+        await File.WriteAllTextAsync(Path.Join(repoPath, "file.txt"), "goodbye");
+        var after = await _provider.ComputeFingerprintAsync(entry);
+
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
+    public async Task ComputeFingerprintAsync_CalledTwiceOnUnchangedContent_SkipsRecomputingContentHash()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        var entry = WorkspaceWithRepo(repoPath);
+
+        await _provider.ComputeFingerprintAsync(entry);
+        await _provider.ComputeFingerprintAsync(entry);
+
+        Assert.Equal(1, _provider.ContentDigestComputationCount);
+    }
+
+    [Fact]
+    public async Task ComputeFingerprintAsync_WhenFileContentChanges_RecomputesContentHash()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        var entry = WorkspaceWithRepo(repoPath);
+        await _provider.ComputeFingerprintAsync(entry);
+
+        await File.WriteAllTextAsync(Path.Join(repoPath, "file.txt"), "goodbye");
+        await _provider.ComputeFingerprintAsync(entry);
+
+        Assert.Equal(2, _provider.ContentDigestComputationCount);
+    }
+
+    [Fact]
+    public async Task ComputeFingerprintAsync_WhenRepoLocalPathIsUnreachable_ReturnsNull()
+    {
+        var entry = WorkspaceWithRepo(Path.Join(_root, "does-not-exist"));
+
+        var result = await _provider.ComputeFingerprintAsync(entry);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_WhenNoIndexHasEverBeenBuilt_ReturnsNull()
+    {
+        // Fail-closed (P3-002): a repo with no keyword index yet must never be treated as "unchanged".
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        var entry = WorkspaceWithRepo(repoPath);
+
+        var result = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_CalledTwiceWithNoReindexInBetween_ReturnsTheSameValue()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        CreateKeywordIndex(repoPath, "index-v1");
+        var entry = WorkspaceWithRepo(repoPath);
+
+        var first = await _provider.ComputeIndexChangeSignalAsync(entry);
+        var second = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.NotNull(first);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_AfterTheIndexIsRebuilt_ReturnsADifferentValue()
+    {
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        CreateKeywordIndex(repoPath, "index-v1");
+        var entry = WorkspaceWithRepo(repoPath);
+        var before = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        // Simulate `ferret index` re-running and rewriting the keyword index (content and mtime both
+        // change, exactly as a real re-index would do).
+        await Task.Delay(10);
+        CreateKeywordIndex(repoPath, "index-v2-longer-content");
+        var after = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_WhenSourceFileChangesButIndexIsNotRebuilt_ReturnsTheSameValue()
+    {
+        // The cheap signal deliberately tracks the INDEX, not the filesystem (P3-002): a source edit
+        // that was never re-indexed cannot possibly change what a federated query returns.
+        var repoPath = CreateRepo("repo-a", ("file.txt", "hello"));
+        CreateKeywordIndex(repoPath, "index-v1");
+        var entry = WorkspaceWithRepo(repoPath);
+        var before = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        await File.WriteAllTextAsync(Path.Join(repoPath, "file.txt"), "a source edit nobody re-indexed yet");
+        var after = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public async Task ComputeIndexChangeSignalAsync_WhenRepoLocalPathIsUnreachable_ReturnsNull()
+    {
+        var entry = WorkspaceWithRepo(Path.Join(_root, "does-not-exist"));
+
+        var result = await _provider.ComputeIndexChangeSignalAsync(entry);
+
+        Assert.Null(result);
+    }
+
+    private static WorkspaceRegistryEntry WorkspaceWithRepo(string repoPath) =>
+        WorkspaceWithRepo(remote: repoPath, localPath: repoPath);
+
+    private static WorkspaceRegistryEntry WorkspaceWithRepo(string remote, string localPath) => new()
+    {
+        WorkspaceId = Guid.NewGuid(),
+        Name = "test",
+        Members = new WorkspaceMembers { Repos = [new RepoMember { Remote = remote, LocalPath = localPath }] },
+    };
+
+    private static void CreateKeywordIndex(string repoPath, string content)
+    {
+        var indexDir = Path.Join(repoPath, ".ferret", "indexes", "keyword");
+        Directory.CreateDirectory(indexDir);
+        File.WriteAllText(Path.Join(indexDir, "keyword-index.db"), content);
+    }
+
+    private string CreateRepo(string name, params (string RelativePath, string Content)[] files)
+    {
+        var repoPath = Path.Join(_root, name);
+        Directory.CreateDirectory(repoPath);
+        foreach (var (relativePath, content) in files)
+        {
+            File.WriteAllText(Path.Join(repoPath, relativePath), content);
+        }
+
+        return repoPath;
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_root))
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+    }
+}

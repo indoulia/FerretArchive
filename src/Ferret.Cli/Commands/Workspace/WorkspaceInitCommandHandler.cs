@@ -8,12 +8,14 @@ internal sealed class WorkspaceInitCommandHandler : ICommandHandler
 {
     private readonly IWorkspaceEngine _engine;
     private readonly IWorkspaceInitFormatter _formatter;
+    private readonly IWorkspaceRegistryAutoMigrator _autoMigrator;
 
     /// <summary>Initializes a new instance of the <see cref="WorkspaceInitCommandHandler"/> class.</summary>
-    public WorkspaceInitCommandHandler(IWorkspaceEngine engine, IWorkspaceInitFormatter formatter)
+    public WorkspaceInitCommandHandler(IWorkspaceEngine engine, IWorkspaceInitFormatter formatter, IWorkspaceRegistryAutoMigrator autoMigrator)
     {
         _engine = engine;
         _formatter = formatter;
+        _autoMigrator = autoMigrator;
     }
 
     /// <inheritdoc/>
@@ -27,6 +29,12 @@ internal sealed class WorkspaceInitCommandHandler : ICommandHandler
             : new WorkspaceInitView(false, null, null, result.ErrorMessage);
 
         _formatter.Format(view, context.Services.Output);
+
+        if (result.Succeeded)
+        {
+            await _autoMigrator.EnsureMigratedAsync(rootPath.FullPath, context.CancellationToken).ConfigureAwait(false);
+        }
+
         return result.Succeeded ? CommandResult.Success : CommandResult.Failure;
     }
 }
