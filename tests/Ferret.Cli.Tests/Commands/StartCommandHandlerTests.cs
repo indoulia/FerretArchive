@@ -10,6 +10,19 @@ namespace Ferret.Cli.Tests.Commands;
 public sealed class StartCommandHandlerTests : IDisposable
 {
     [Fact]
+    public async Task Start_AfterCancellation_RemovesRuntimeStatusFile()
+    {
+        Arm(out var cts);
+        using (cts)
+        {
+            await RootCommandFactory.Build([new CoreCliModule()]).InvokeAsync(["start"]);
+        }
+
+        var path = RuntimeStatusFile.ResolvePath(Environment.CurrentDirectory);
+        Assert.False(File.Exists(path), "runtime status file must be removed once the runtime host stops");
+    }
+
+    [Fact]
     public async Task Start_CancelsCleanly_ExitsZero()
     {
         Arm(out var cts);

@@ -38,11 +38,18 @@ internal sealed class StartCommandHandler : ICommandHandler
             .AddModule(new DiagnosticsModule(NullLogger<DiagnosticsModule>.Instance))
             .Build();
 
+        var statusFilePath = RuntimeStatusFile.ResolvePath(context.WorkingDirectory);
+
         try
         {
             await runtimeHost.StartAsync(cancellationToken).ConfigureAwait(false);
             output.WriteLine("DiagnosticsModule activated.");
             output.WriteLine("Runtime ready.");
+
+            // Durable marker: 'ferret status' runs as a separate process and cannot see this
+            // process's in-memory RuntimeState, so it needs something on disk to check instead.
+            RuntimeStatusFile.Write(statusFilePath, Environment.ProcessId, DateTimeOffset.UtcNow);
+
             await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -56,6 +63,8 @@ internal sealed class StartCommandHandler : ICommandHandler
             {
                 await d.DisposeAsync().ConfigureAwait(false);
             }
+
+            RuntimeStatusFile.Delete(statusFilePath);
         }
 
         return CommandResult.Success;
