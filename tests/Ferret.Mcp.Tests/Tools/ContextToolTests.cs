@@ -1,5 +1,6 @@
 using Ferret.Core.Context;
 using Ferret.Core.Primitives;
+using Ferret.Core.Search;
 using Ferret.Mcp.Protocol;
 using Ferret.Mcp.Tools;
 
@@ -71,6 +72,30 @@ public sealed class ContextToolTests
         var result = await tool.ExecuteAsync(args, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SearchFailed_SurfacesFailureText_NotSilentEmptyResult()
+    {
+        // Issue #21: a failed underlying search must read differently to an MCP caller than a
+        // legitimately empty result -- both used to render as an indistinguishable "0 documents".
+        var pkg = new ContextPackage
+        {
+            Query = "test",
+            Documents = [],
+            TotalTokenEstimate = 0,
+            DocumentsConsidered = 0,
+            DocumentsIncluded = 0,
+            AssembledAt = DateTimeOffset.UtcNow,
+            SearchFailed = true,
+            Diagnostics = [new SearchDiagnostic(SearchDiagnosticSeverity.Error, "No search index found.")],
+        };
+        var tool = new ContextTool(new StubContextAssembler(pkg));
+        var args = McpArguments.FromDictionary(new Dictionary<string, object?> { ["query"] = "test" });
+
+        var result = await tool.ExecuteAsync(args, CancellationToken.None);
+
+        Assert.Contains("Search failed", result.Content[0].Text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -55,6 +55,7 @@ public sealed class ContextAssembler : IContextAssembler
 
         var allHits = searchResult.IsSuccess ? searchResult.Hits : [];
         var documentsConsidered = allHits.Count;
+        var searchFailed = !searchResult.IsSuccess;
 
         Log.HitsFound(_logger, allHits.Count, request.Query);
 
@@ -134,6 +135,8 @@ public sealed class ContextAssembler : IContextAssembler
             DocumentsConsidered = documentsConsidered,
             DocumentsIncluded = included.Count,
             AssembledAt = DateTimeOffset.UtcNow,
+            SearchFailed = searchFailed,
+            Diagnostics = searchFailed ? searchResult.Diagnostics : [],
         };
     }
 

@@ -175,6 +175,27 @@ public sealed class ContextAssemblerTests
 
         Assert.Equal(0, pkg.DocumentsIncluded);
         Assert.Equal("nothing", pkg.Query);
+        Assert.False(pkg.SearchFailed);
+    }
+
+    [Fact]
+    public async Task AssembleAsync_SearchFails_IsDistinguishableFromLegitimateEmptyResult()
+    {
+        // Issue #21: a failed search (bad query, missing index, missing workspace) must not be
+        // indistinguishable from "the query legitimately matched nothing" -- both used to produce
+        // an identical DocumentsIncluded == 0 package with zero signal of what happened.
+        var searchService = new FailingSearchService(SearchServiceStatus.IndexNotFound);
+        var docService = new StubDocumentService(new Dictionary<string, Document>());
+        var expander = new DocumentExpander(docService, NullLogger<DocumentExpander>.Instance);
+        var assembler = new ContextAssembler(searchService, expander, NullLogger<ContextAssembler>.Instance);
+        var request = new ContextRequest { Query = "test" };
+
+        var pkg = await assembler.AssembleAsync(request, CancellationToken.None);
+
+        Assert.Equal(0, pkg.DocumentsIncluded);
+        Assert.True(pkg.SearchFailed);
+        Assert.NotEmpty(pkg.Diagnostics);
+        Assert.Contains("Search failed", pkg.ToPromptString(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -237,6 +258,18 @@ public sealed class ContextAssemblerTests
                 },
             });
         }
+    }
+
+    private sealed class FailingSearchService(SearchServiceStatus status) : ISearchService
+    {
+        public Task<SearchServiceResult> SearchAsync(string rawQuery, SearchOptions options) =>
+            Task.FromResult(SearchServiceResult.Failure(
+                new SearchQuery { OriginalText = rawQuery, Root = new KeywordExpression(rawQuery) },
+                status,
+                [new SearchDiagnostic(SearchDiagnosticSeverity.Error, "No search index found.")]));
+
+        public Task<SearchServiceResult> SearchAsync(SearchQuery query, SearchOptions options) =>
+            SearchAsync(query.OriginalText, options);
     }
 
     private sealed class StubDocumentService(Dictionary<string, Document> store) : IDocumentService
