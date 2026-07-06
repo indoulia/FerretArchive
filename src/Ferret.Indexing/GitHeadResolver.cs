@@ -1,4 +1,4 @@
-namespace Ferret.Core.Git;
+namespace Ferret.Indexing;
 
 /// <summary>
 /// Resolves the current git HEAD commit SHA for a workspace directly from the on-disk

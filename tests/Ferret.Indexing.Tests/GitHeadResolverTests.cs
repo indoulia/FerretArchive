@@ -1,6 +1,6 @@
-using Ferret.Core.Git;
+using Ferret.Indexing;
 
-namespace Ferret.Core.Tests.Git;
+namespace Ferret.Indexing.Tests;
 
 public sealed class GitHeadResolverTests : IDisposable
 {

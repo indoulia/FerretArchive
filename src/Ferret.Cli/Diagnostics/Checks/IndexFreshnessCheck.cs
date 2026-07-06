@@ -1,6 +1,6 @@
 using Ferret.Cli.Cli;
-using Ferret.Core.Git;
 using Ferret.Core.Indexing;
+using Ferret.Indexing;
 
 namespace Ferret.Cli.Diagnostics.Checks;
 

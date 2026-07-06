@@ -2,7 +2,6 @@ using Ferret.Core.Connectors;
 using Ferret.Core.Documents;
 using Ferret.Core.Events;
 using Ferret.Core.Events.Indexing;
-using Ferret.Core.Git;
 using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
 
