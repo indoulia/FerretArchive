@@ -66,6 +66,7 @@ public sealed class SearchTool : IMcpTool
             var hit = result.Hits[i];
             var snippetText = string.Concat(hit.Snippet.Spans.Select(s => s.Text));
             sb.AppendLine(CultureInfo.InvariantCulture, $"[{i + 1}] {hit.DisplayName}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    Document ID: {hit.DocumentId.Value}");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    URI: {hit.CanonicalUri}");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    Score: {hit.Score:F3}");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    {snippetText}");
