@@ -38,7 +38,8 @@ public static class IndexingModule
             var engine = sp.GetRequiredService<IIndexEngine>();
             var bus = sp.GetRequiredService<IEventBus>();
             var stateStore = sp.GetRequiredService<IIndexStateStore>();
-            return new IndexPipeline(connectorManager, dispatcher, engine, bus, stateStore);
+            var workspace = sp.GetRequiredService<IWorkspaceContext>();
+            return new IndexPipeline(connectorManager, dispatcher, engine, bus, stateStore, workspace.WorkspaceRoot.FullPath);
         });
 
         return services;

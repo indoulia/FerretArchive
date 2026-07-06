@@ -67,6 +67,76 @@ public sealed class IndexPipelineIncrementalTests
     }
 
     [Fact]
+    public async Task RunAsync_WithWorkspaceRootPath_RecordsCurrentGitHeadInStateStore()
+    {
+        var tempPath = Path.Join(Path.GetTempPath(), $"ferret-githead-test-{Guid.NewGuid():N}.json");
+        var gitRoot = Path.Join(Path.GetTempPath(), $"ferret-githead-repo-{Guid.NewGuid():N}");
+        var sha = "cafefeed0123456789abcdef0123456789abcdef";
+        try
+        {
+            Directory.CreateDirectory(Path.Join(gitRoot, ".git", "refs", "heads"));
+            await File.WriteAllTextAsync(Path.Join(gitRoot, ".git", "HEAD"), "ref: refs/heads/main\n");
+            await File.WriteAllTextAsync(Path.Join(gitRoot, ".git", "refs", "heads", "main"), sha + "\n");
+
+            var store = new JsonIndexStateStore(tempPath);
+            var pipeline = new IndexPipeline(
+                new FakeConnectorManager([]),
+                new FakeParserDispatcher(),
+                new FakeIndexEngine(),
+                new FakeEventBus(),
+                store,
+                gitRoot);
+
+            await pipeline.RunAsync(WorkspaceId.Create("test"), IndexPipelineOptions.Default);
+
+            Assert.Equal(sha, await store.GetIndexedGitHeadAsync());
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+
+            if (Directory.Exists(gitRoot))
+            {
+                Directory.Delete(gitRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_WithoutWorkspaceRootPath_DoesNotTouchGitHead()
+    {
+        var tempPath = Path.Join(Path.GetTempPath(), $"ferret-nogithead-test-{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new JsonIndexStateStore(tempPath);
+            await store.SetIndexedGitHeadAsync("previously-recorded-sha");
+            await store.SaveAsync();
+            var reloaded = new JsonIndexStateStore(tempPath);
+
+            var pipeline = new IndexPipeline(
+                new FakeConnectorManager([]),
+                new FakeParserDispatcher(),
+                new FakeIndexEngine(),
+                new FakeEventBus(),
+                reloaded);
+
+            await pipeline.RunAsync(WorkspaceId.Create("test"), IndexPipelineOptions.Default);
+
+            Assert.Equal("previously-recorded-sha", await reloaded.GetIndexedGitHeadAsync());
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_ForceRebuild_ClearsStateStoreAndReindexesAll()
     {
         // Arrange: pre-populate state store

@@ -39,4 +39,15 @@ public interface IIndexStateStore
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A task that completes when the state has been flushed.</returns>
     Task SaveAsync(CancellationToken ct = default);
+
+    /// <summary>Records the git HEAD commit SHA associated with the most recent index run.</summary>
+    /// <param name="gitHeadSha">The resolved commit SHA, or null if the workspace is not a git repository.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task that completes when the value has been recorded.</returns>
+    Task SetIndexedGitHeadAsync(string? gitHeadSha, CancellationToken ct = default);
+
+    /// <summary>Returns the git HEAD commit SHA recorded at the most recent index run.</summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The recorded commit SHA, or null if none was recorded.</returns>
+    ValueTask<string?> GetIndexedGitHeadAsync(CancellationToken ct = default);
 }
