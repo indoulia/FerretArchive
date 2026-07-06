@@ -84,6 +84,50 @@ public sealed class ContextAssemblerTests
     }
 
     [Fact]
+    public async Task AssembleAsync_FirstDocumentAloneExceedsBudget_TruncatesInsteadOfIgnoringBudget()
+    {
+        // 10,000 chars ~= 2,500 tokens (4 chars/token) -- far larger than a 100-token budget.
+        // The always-include-at-least-one-document rule must not mean "MaxTokens is optional
+        // when the top hit is big": the returned content has to actually respect the budget.
+        var hits = new[] { MakeHit("a", 0.9f) };
+        var docs = new Dictionary<string, Document>
+        {
+            ["a"] = MakeDocument("a", new string('x', 10_000)),
+        };
+        var assembler = BuildAssembler(hits, docs);
+        var request = new ContextRequest { Query = "test", MaxTokens = 100 };
+
+        var pkg = await assembler.AssembleAsync(request, CancellationToken.None);
+
+        Assert.Equal(1, pkg.DocumentsIncluded);
+        Assert.True(
+            pkg.Documents[0].Content.Length < 10_000,
+            "content should be truncated to fit the budget, not returned in full");
+        Assert.True(
+            pkg.TotalTokenEstimate <= 100,
+            $"token estimate {pkg.TotalTokenEstimate} should respect the 100-token budget");
+    }
+
+    [Fact]
+    public async Task AssembleAsync_FirstDocumentAloneExceedsBudget_SmallerBudgetProducesSmallerOutput()
+    {
+        // Regression guard for the exact live symptom: two different max_tokens values on the
+        // same oversized top hit must not produce byte-identical output.
+        var hits = new[] { MakeHit("a", 0.9f) };
+        var docs = new Dictionary<string, Document>
+        {
+            ["a"] = MakeDocument("a", new string('x', 10_000)),
+        };
+
+        var pkg100 = await BuildAssembler(hits, docs)
+            .AssembleAsync(new ContextRequest { Query = "test", MaxTokens = 100 }, CancellationToken.None);
+        var pkg50 = await BuildAssembler(hits, docs)
+            .AssembleAsync(new ContextRequest { Query = "test", MaxTokens = 50 }, CancellationToken.None);
+
+        Assert.True(pkg50.Documents[0].Content.Length < pkg100.Documents[0].Content.Length);
+    }
+
+    [Fact]
     public async Task AssembleAsync_MaxDocuments_LimitsCount()
     {
         var hits = new[] { MakeHit("a", 0.9f), MakeHit("b", 0.8f), MakeHit("c", 0.7f) };
@@ -131,6 +175,27 @@ public sealed class ContextAssemblerTests
 
         Assert.Equal(0, pkg.DocumentsIncluded);
         Assert.Equal("nothing", pkg.Query);
+        Assert.False(pkg.SearchFailed);
+    }
+
+    [Fact]
+    public async Task AssembleAsync_SearchFails_IsDistinguishableFromLegitimateEmptyResult()
+    {
+        // Issue #21: a failed search (bad query, missing index, missing workspace) must not be
+        // indistinguishable from "the query legitimately matched nothing" -- both used to produce
+        // an identical DocumentsIncluded == 0 package with zero signal of what happened.
+        var searchService = new FailingSearchService(SearchServiceStatus.IndexNotFound);
+        var docService = new StubDocumentService(new Dictionary<string, Document>());
+        var expander = new DocumentExpander(docService, NullLogger<DocumentExpander>.Instance);
+        var assembler = new ContextAssembler(searchService, expander, NullLogger<ContextAssembler>.Instance);
+        var request = new ContextRequest { Query = "test" };
+
+        var pkg = await assembler.AssembleAsync(request, CancellationToken.None);
+
+        Assert.Equal(0, pkg.DocumentsIncluded);
+        Assert.True(pkg.SearchFailed);
+        Assert.NotEmpty(pkg.Diagnostics);
+        Assert.Contains("Search failed", pkg.ToPromptString(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -193,6 +258,18 @@ public sealed class ContextAssemblerTests
                 },
             });
         }
+    }
+
+    private sealed class FailingSearchService(SearchServiceStatus status) : ISearchService
+    {
+        public Task<SearchServiceResult> SearchAsync(string rawQuery, SearchOptions options) =>
+            Task.FromResult(SearchServiceResult.Failure(
+                new SearchQuery { OriginalText = rawQuery, Root = new KeywordExpression(rawQuery) },
+                status,
+                [new SearchDiagnostic(SearchDiagnosticSeverity.Error, "No search index found.")]));
+
+        public Task<SearchServiceResult> SearchAsync(SearchQuery query, SearchOptions options) =>
+            SearchAsync(query.OriginalText, options);
     }
 
     private sealed class StubDocumentService(Dictionary<string, Document> store) : IDocumentService

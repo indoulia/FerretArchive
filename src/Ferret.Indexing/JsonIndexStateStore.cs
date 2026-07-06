@@ -15,6 +15,7 @@ public sealed class JsonIndexStateStore : IIndexStateStore
 
     private readonly string _filePath;
     private readonly Dictionary<string, string> _state;
+    private string? _gitHeadSha;
 
     /// <summary>Initializes a new instance of the <see cref="JsonIndexStateStore"/> class.</summary>
     /// <param name="filePath">Absolute path to the JSON state file.</param>
@@ -22,7 +23,7 @@ public sealed class JsonIndexStateStore : IIndexStateStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         _filePath = filePath;
-        _state = Load(filePath);
+        (_state, _gitHeadSha) = Load(filePath);
     }
 
     /// <inheritdoc/>
@@ -79,6 +80,17 @@ public sealed class JsonIndexStateStore : IIndexStateStore
     }
 
     /// <inheritdoc/>
+    public Task SetIndexedGitHeadAsync(string? gitHeadSha, CancellationToken ct = default)
+    {
+        _gitHeadSha = gitHeadSha;
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public ValueTask<string?> GetIndexedGitHeadAsync(CancellationToken ct = default) =>
+        ValueTask.FromResult(_gitHeadSha);
+
+    /// <inheritdoc/>
     public async Task SaveAsync(CancellationToken ct = default)
     {
         var dir = Path.GetDirectoryName(_filePath);
@@ -87,26 +99,46 @@ public sealed class JsonIndexStateStore : IIndexStateStore
             Directory.CreateDirectory(dir);
         }
 
-        var json = JsonSerializer.Serialize(_state, SerializerOptions);
+        var payload = new PersistedState { Fingerprints = _state, GitHeadSha = _gitHeadSha };
+        var json = JsonSerializer.Serialize(payload, SerializerOptions);
         await File.WriteAllTextAsync(_filePath, json, ct).ConfigureAwait(false);
     }
 
-    private static Dictionary<string, string> Load(string path)
+    private static (Dictionary<string, string> Fingerprints, string? GitHeadSha) Load(string path)
     {
         if (!File.Exists(path))
         {
-            return new Dictionary<string, string>(StringComparer.Ordinal);
+            return (new Dictionary<string, string>(StringComparer.Ordinal), null);
         }
 
         try
         {
             var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                   ?? new Dictionary<string, string>(StringComparer.Ordinal);
+            using var doc = JsonDocument.Parse(json);
+
+            // New format: {"fingerprints": {...}, "gitHeadSha": "..."}.
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty(nameof(PersistedState.Fingerprints), out _))
+            {
+                var persisted = JsonSerializer.Deserialize<PersistedState>(json, SerializerOptions);
+                return (persisted?.Fingerprints ?? new Dictionary<string, string>(StringComparer.Ordinal), persisted?.GitHeadSha);
+            }
+
+            // Legacy format: the whole document is the flat fingerprint dictionary.
+            var legacy = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                         ?? new Dictionary<string, string>(StringComparer.Ordinal);
+            return (legacy, null);
         }
         catch (JsonException)
         {
-            return new Dictionary<string, string>(StringComparer.Ordinal);
+            return (new Dictionary<string, string>(StringComparer.Ordinal), null);
         }
+    }
+
+    private sealed class PersistedState
+    {
+        public Dictionary<string, string> Fingerprints { get; set; } = new(StringComparer.Ordinal);
+
+        public string? GitHeadSha { get; set; }
     }
 }

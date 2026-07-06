@@ -110,7 +110,7 @@ internal sealed class WorkspacesQueryCommandHandler : ICommandHandler
 
         foreach (var hit in hits)
         {
-            var source = hit.SourceWorkspaceId is { } id && namesById.TryGetValue(id, out var name) ? name : "unknown";
+            var source = hit.SourceId is { } id && namesById.TryGetValue(id, out var name) ? name : "unknown";
             context.Services.Output.WriteLine($"[{source}] {hit.DisplayName} (score: {hit.Score:F2})");
             context.Services.Output.WriteLine($"  {hit.CanonicalUri}");
         }

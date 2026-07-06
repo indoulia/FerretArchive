@@ -16,6 +16,7 @@ public sealed class IndexPipeline : IIndexPipeline
     private readonly IIndexEngine _engine;
     private readonly IEventBus _eventBus;
     private readonly IIndexStateStore _stateStore;
+    private readonly string? _workspaceRootPath;
 
     /// <summary>Initializes a new instance of the <see cref="IndexPipeline"/> class.</summary>
     /// <param name="connectorManager">The connector manager providing active connector runtimes.</param>
@@ -23,12 +24,14 @@ public sealed class IndexPipeline : IIndexPipeline
     /// <param name="engine">The keyword index engine.</param>
     /// <param name="eventBus">The event bus for publishing lifecycle events.</param>
     /// <param name="stateStore">Optional state store for incremental indexing; defaults to no-op.</param>
+    /// <param name="workspaceRootPath">Optional absolute workspace root, used to record the git HEAD commit at index time; omit to skip git-head tracking.</param>
     public IndexPipeline(
         IConnectorManager connectorManager,
         IParserDispatcher dispatcher,
         IIndexEngine engine,
         IEventBus eventBus,
-        IIndexStateStore? stateStore = null)
+        IIndexStateStore? stateStore = null,
+        string? workspaceRootPath = null)
     {
         ArgumentNullException.ThrowIfNull(connectorManager);
         ArgumentNullException.ThrowIfNull(dispatcher);
@@ -40,6 +43,7 @@ public sealed class IndexPipeline : IIndexPipeline
         _engine = engine;
         _eventBus = eventBus;
         _stateStore = stateStore ?? new NullIndexStateStore();
+        _workspaceRootPath = workspaceRootPath;
     }
 
     /// <inheritdoc/>
@@ -232,6 +236,12 @@ public sealed class IndexPipeline : IIndexPipeline
         {
             await _engine.DeleteAsync(DocumentId.From(staleId), ct).ConfigureAwait(false);
             await _stateStore.RemoveAsync(staleId, ct).ConfigureAwait(false);
+        }
+
+        if (_workspaceRootPath is not null)
+        {
+            var headSha = GitHeadResolver.TryResolveHeadSha(_workspaceRootPath);
+            await _stateStore.SetIndexedGitHeadAsync(headSha, ct).ConfigureAwait(false);
         }
 
         await _stateStore.SaveAsync(ct).ConfigureAwait(false);

@@ -32,7 +32,7 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
         Assert.True(result.IsSuccess);
         var hit = Assert.Single(result.Hits);
         Assert.Equal("a-hit", hit.DisplayName);
-        Assert.Equal(workspace.WorkspaceId, hit.SourceWorkspaceId);
+        Assert.Equal(workspace.WorkspaceId, hit.SourceId);
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public sealed class FederatedKnowledgeStoreTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Equal(2, result.Hits.Count);
-        Assert.Contains(result.Hits, h => h.DisplayName == "a-hit" && h.SourceWorkspaceId == a.WorkspaceId);
-        Assert.Contains(result.Hits, h => h.DisplayName == "b-hit" && h.SourceWorkspaceId == b.WorkspaceId);
+        Assert.Contains(result.Hits, h => h.DisplayName == "a-hit" && h.SourceId == a.WorkspaceId);
+        Assert.Contains(result.Hits, h => h.DisplayName == "b-hit" && h.SourceId == b.WorkspaceId);
     }
 
     [Fact]

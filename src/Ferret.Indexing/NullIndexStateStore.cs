@@ -31,4 +31,12 @@ public sealed class NullIndexStateStore : IIndexStateStore
     /// <inheritdoc/>
     public Task SaveAsync(CancellationToken ct = default) =>
         Task.CompletedTask;
+
+    /// <inheritdoc/>
+    public Task SetIndexedGitHeadAsync(string? gitHeadSha, CancellationToken ct = default) =>
+        Task.CompletedTask;
+
+    /// <inheritdoc/>
+    public ValueTask<string?> GetIndexedGitHeadAsync(CancellationToken ct = default) =>
+        ValueTask.FromResult<string?>(null);
 }

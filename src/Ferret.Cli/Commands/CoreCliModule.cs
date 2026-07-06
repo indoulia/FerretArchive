@@ -134,7 +134,11 @@ internal sealed class CoreCliModule : CliModuleBase
             Ferret.Core.Indexing.IndexLayout.IndexDirectoryName,
             Ferret.Core.Indexing.IndexLayout.KeywordDirectoryName,
             Ferret.Core.Indexing.IndexLayout.KeywordDatabaseFileName);
-        yield return new IndexFreshnessCheck(dbPath);
+        var statePath = Path.Join(
+            workspaceRoot,
+            Ferret.Core.Workspace.WorkspaceLayout.RootDirectoryName,
+            Ferret.Core.Indexing.IndexLayout.StateFileName);
+        yield return new IndexFreshnessCheck(dbPath, workspaceRoot, new Ferret.Indexing.JsonIndexStateStore(statePath));
 
         if (config is not null)
         {

@@ -27,6 +27,16 @@ internal sealed class SearchCommandHandler : ICommandHandler
     /// <returns>A task resolving to the command result.</returns>
     public async Task<CommandResult> HandleAsync(SearchCommandArgs args, IFerretContext context)
     {
+        if (args.Passages)
+        {
+            // --passages is documented but nothing in the search pipeline produces a passage-level
+            // hit yet (tracked in issue #23) -- fail loudly instead of silently returning file-level
+            // results as if the flag had no effect.
+            context.Services.Output.WriteError(
+                "--passages is not yet implemented. Run the search without --passages for file-level results.");
+            return CommandResult.Failure;
+        }
+
         var options = new SearchOptions
         {
             MaxResults = args.Limit,

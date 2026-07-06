@@ -13,7 +13,7 @@
 | `IFederatedKnowledgeStore` / `FederatedKnowledgeStore` (fan-out, merge, source tagging, graceful degradation) | `src/Ferret.Knowledge.Federation/` (new module, deps: `Ferret.Core`, `Ferret.Workspace.Graph` only) |
 | `IRepoSearchServiceFactory` (abstraction) / `RepoSearchServiceFactory` (concrete, BM25-backed) | `src/Ferret.Knowledge.Federation/IRepoSearchServiceFactory.cs`, `src/Ferret.Cli/Commands/Workspaces/RepoSearchServiceFactory.cs` |
 | `ferret workspaces query <workspace> <text>` | `src/Ferret.Cli/Commands/Workspaces/WorkspacesQueryCommandHandler.cs` |
-| `SearchHit.SourceWorkspaceId` (citation tagging) | `src/Ferret.Core/Search/SearchHit.cs` |
+| `SearchHit.SourceId` (citation tagging, renamed from `SourceWorkspaceId` 2026-07-06 to remove workspace-domain vocabulary from Core — AC-012) | `src/Ferret.Core/Search/SearchHit.cs` |
 
 **Deliberate deviation from the doc set, made explicit rather than silently absorbed:** `IKnowledgeStore` (ARCH-001 §27.2) was never implemented as a literal interface in this codebase — the real storage abstraction is `ISearchService`/`ISearchProvider`. `IFederatedKnowledgeStore` is defined as `ISearchService` with no added members, which is what "implements the same shape as `IKnowledgeStore`" (01-Architecture.md §3) means concretely here. No new query API, no new pattern — matches the doc's intent exactly, just against the interface that actually exists.
 

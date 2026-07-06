@@ -4,3 +4,4 @@
 **/.ferret/**
 **/node_modules/**
 artifacts/**
+**/.superpowers/sdd/**

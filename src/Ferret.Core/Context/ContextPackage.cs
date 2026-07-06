@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text;
 
+using Ferret.Core.Search;
+
 namespace Ferret.Core.Context;
 
 /// <summary>
@@ -28,6 +30,16 @@ public sealed record ContextPackage
     public required DateTimeOffset AssembledAt { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the underlying search failed (invalid query, missing index,
+    /// missing workspace, no provider) rather than legitimately matching zero documents. When true,
+    /// <see cref="Documents"/> is empty for a reason distinct from "no relevant content found".
+    /// </summary>
+    public bool SearchFailed { get; init; }
+
+    /// <summary>Gets diagnostics describing why the search failed. Empty unless <see cref="SearchFailed"/> is true.</summary>
+    public IReadOnlyList<SearchDiagnostic> Diagnostics { get; init; } = [];
+
+    /// <summary>
     /// Renders the context package as a formatted string ready for injection into an AI prompt.
     /// Format:
     ///   # Context for: "{query}"
@@ -43,6 +55,14 @@ public sealed record ContextPackage
         sb.AppendLine(
             CultureInfo.InvariantCulture,
             $"# Context for: \"{Query}\"");
+
+        if (SearchFailed)
+        {
+            sb.AppendLine();
+            var reason = Diagnostics.Count > 0 ? Diagnostics[0].Message : "unknown error";
+            sb.AppendLine(CultureInfo.InvariantCulture, $"Search failed: {reason}");
+            return sb.ToString().TrimEnd();
+        }
 
         if (Documents.Count == 0)
         {

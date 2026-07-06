@@ -98,6 +98,47 @@ public sealed class JsonIndexStateStoreTests : IAsyncDisposable
         Assert.Contains(id2, keys);
     }
 
+    [Fact]
+    public async Task GetIndexedGitHeadAsync_Initially_ReturnsNull()
+    {
+        Assert.Null(await _store.GetIndexedGitHeadAsync());
+    }
+
+    [Fact]
+    public async Task SetAndGetIndexedGitHeadAsync_RoundTrips()
+    {
+        await _store.SetIndexedGitHeadAsync("abc123");
+        Assert.Equal("abc123", await _store.GetIndexedGitHeadAsync());
+    }
+
+    [Fact]
+    public async Task SaveAndReload_PersistsGitHeadAlongsideFingerprints()
+    {
+        var assetId = new AssetId("file:///workspace/file.cs");
+        await _store.SetFingerprintAsync(assetId, AssetFingerprint.CreateLightweight(DateTimeOffset.UtcNow, 10));
+        await _store.SetIndexedGitHeadAsync("deadbeef");
+        await _store.SaveAsync();
+
+        var reloaded = new JsonIndexStateStore(_filePath);
+        Assert.Equal("deadbeef", await reloaded.GetIndexedGitHeadAsync());
+        Assert.NotNull(await reloaded.GetFingerprintAsync(assetId));
+    }
+
+    [Fact]
+    public async Task Load_LegacyFlatDictionaryFormat_PreservesFingerprints_GitHeadIsNull()
+    {
+        // Pre-existing state files on disk (written before git-head tracking existed) are a bare
+        // {"assetId": "algorithm|value", ...} object, not the new {"fingerprints": {...}} wrapper.
+        // Upgrading Ferret must not silently drop every previously recorded fingerprint.
+        await File.WriteAllTextAsync(_filePath, """{"file:///legacy.cs":"lightweight|123:45"}""");
+
+        var reloaded = new JsonIndexStateStore(_filePath);
+
+        var retrieved = await reloaded.GetFingerprintAsync(new AssetId("file:///legacy.cs"));
+        Assert.NotNull(retrieved);
+        Assert.Null(await reloaded.GetIndexedGitHeadAsync());
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (File.Exists(_filePath))

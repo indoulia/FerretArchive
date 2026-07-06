@@ -110,7 +110,7 @@ public sealed partial class FederatedKnowledgeStore : IFederatedKnowledgeStore
         var taggedHits = (successful.Count > 1
                 ? successful.Select(p => (p.WorkspaceId, Hits: NormalizeScores(p.Result.Hits)))
                 : successful.Select(p => (p.WorkspaceId, Hits: p.Result.Hits)))
-            .SelectMany(p => p.Hits.Select(hit => hit with { SourceWorkspaceId = p.WorkspaceId }))
+            .SelectMany(p => p.Hits.Select(hit => hit with { SourceId = p.WorkspaceId }))
             .OrderByDescending(hit => hit.Score)
             .Take(options.MaxResults)
             .ToList();

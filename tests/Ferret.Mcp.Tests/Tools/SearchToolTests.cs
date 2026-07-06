@@ -24,6 +24,21 @@ public sealed class SearchToolTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WithResults_IncludesDocumentIdUsableByReadDocumentTool()
+    {
+        // read_document's own contract is "Document ID from a search result" -- but the only
+        // identifier this tool printed was CanonicalUri, which read_document cannot resolve
+        // (it looks up by DocumentId, not by the display URI). Every result must expose the
+        // literal DocumentId.Value so an AI caller can copy it straight into read_document.
+        var service = new FakeSearchService([MakeHit("filesystem:///docs/Overview.md", "Overview.md", "intro text")]);
+        var sut = new SearchTool(service);
+
+        var result = await sut.ExecuteAsync(McpArguments.From(("query", "intro")), CancellationToken.None);
+
+        Assert.Contains("Document ID: filesystem:///docs/Overview.md", result.Content[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_NoResults_ReturnsNoResultsMessage()
     {
         var service = new FakeSearchService([]);

@@ -49,6 +49,23 @@ public sealed class SearchCommandHandlerTests
         Assert.Equal(CommandResult.Failure, result);
     }
 
+    [Fact]
+    public async Task HandleAsync_Passages_ReturnsFailure_NotSilentNoOp()
+    {
+        // Issue #23: --passages is documented as returning passage-level results, but nothing in
+        // the search pipeline ever produces one -- it silently behaved as a no-op. Until passage
+        // search is actually implemented, the flag must fail loudly rather than pretend to work.
+        var ctx = new StubFerretContext();
+        var handler = MakeHandler(providerHits: [MakeHit("doc-1")]);
+        var result = await handler.HandleAsync(
+            new SearchCommandArgs { Query = "auth", Passages = true },
+            ctx);
+
+        Assert.Equal(CommandResult.Failure, result);
+        Assert.Contains("passages", ctx.ErrorOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not yet implemented", ctx.ErrorOutput, StringComparison.OrdinalIgnoreCase);
+    }
+
     // ── Output content ────────────────────────────────────────────────────────
 
     [Fact]

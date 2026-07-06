@@ -39,8 +39,8 @@ public abstract record SearchHit
     /// Example: "BM25: 0.91 | Semantic: 0.84 | Hybrid: 0.89".</summary>
     public string? Explanation { get; init; }
 
-    /// <summary>Gets the workspace this hit was retrieved from (<c>04-Knowledge-Graph.md</c> §1-2: every
-    /// federated result row is tagged with its source <c>Workspace</c> node). Null for a plain single-repo
-    /// search that has no multi-repo workspace context; always populated by <c>IFederatedKnowledgeStore</c>.</summary>
-    public Guid? SourceWorkspaceId { get; init; }
+    /// <summary>Gets an opaque identifier for the upstream source that produced this hit, when a query
+    /// fans out across multiple sources. Null for a single-source query. Core assigns no meaning to this
+    /// value -- callers that fan out queries (e.g. <c>IFederatedKnowledgeStore</c>) define and populate it.</summary>
+    public Guid? SourceId { get; init; }
 }
