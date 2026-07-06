@@ -71,8 +71,8 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Equal(2, result.Hits.Count);
-        Assert.Contains(result.Hits, h => h.SourceWorkspaceId == a.WorkspaceId);
-        Assert.Contains(result.Hits, h => h.SourceWorkspaceId == b.WorkspaceId);
+        Assert.Contains(result.Hits, h => h.SourceId == a.WorkspaceId);
+        Assert.Contains(result.Hits, h => h.SourceId == b.WorkspaceId);
 
         // Zero duplication: repo A's own directory must contain no trace of repo B's content or index.
         var filesUnderRepoA = Directory.GetFiles(_repoA, "*", SearchOption.AllDirectories);
@@ -98,7 +98,7 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
 
         Assert.True(result.IsSuccess);
         var hit = Assert.Single(result.Hits);
-        Assert.Equal(a.WorkspaceId, hit.SourceWorkspaceId);
+        Assert.Equal(a.WorkspaceId, hit.SourceId);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
 
             Assert.True(result.IsSuccess);
             var hit = Assert.Single(result.Hits);
-            Assert.Equal(a.WorkspaceId, hit.SourceWorkspaceId);
+            Assert.Equal(a.WorkspaceId, hit.SourceId);
             Assert.Contains(result.Diagnostics, d => d.Message.Contains(b.WorkspaceId.ToString(), StringComparison.Ordinal));
         }
         finally
@@ -191,7 +191,7 @@ public sealed class WorkspaceFederationE2ETests : IDisposable
         var resultAfterChange = await storeAfterChange.SearchAsync("TokenValidator", SearchOptions.Default);
         Assert.True(resultAfterChange.IsSuccess);
         var onlyHit = Assert.Single(resultAfterChange.Hits);
-        Assert.Equal(a.WorkspaceId, onlyHit.SourceWorkspaceId);
+        Assert.Equal(a.WorkspaceId, onlyHit.SourceId);
         Assert.Contains(resultAfterChange.Diagnostics, d =>
             d.Severity == SearchDiagnosticSeverity.Error && d.Message.Contains("out of date", StringComparison.OrdinalIgnoreCase));
 
