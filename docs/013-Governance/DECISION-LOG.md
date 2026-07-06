@@ -2,7 +2,7 @@
 
 This document captures the major decisions made across all sprints: technology choices, architectural patterns adopted or rejected, process decisions, and product pivots. It is the human-readable companion to the ADR index.
 
-**Last updated:** 2026-06-28 | **Status:** Living document
+**Last updated:** 2026-07-06 | **Status:** Living document
 
 ---
 
@@ -129,3 +129,13 @@ See `TECH-001-Technology-Evaluation.md` for the full evaluation grid.
 |---|---|---|---|
 | Adopt ADR-0025: uncommitted work during an active governance gate requires explicit authorization before commit | Governance | Accepted | See ADR-0025. Established after a governance audit found the Ferret V2 architecture program was developed while DOGFOOD-001 remained the most recent committed governance decision, with no recorded reconciliation between the two |
 | Application of ADR-0025 to the current Ferret V2 working tree | Process | Deferred | Ferret V2 architecture program (ARCH-023–037, ADR-0021–0024, AGR-001–004, `Ferret.Persistence`/`Ferret.VerticalSlice`) remains uncommitted pending a future decision to authorize commit (post-DOGFOOD-001 closure) or discard |
+
+---
+
+## Governance — `ferret status` Interim Implementation Reconciliation (2026-07-06)
+
+| Decision | Category | Outcome | Notes |
+|---|---|---|---|
+| Sprint 6's "`ferret status` — not-running stub, full IPC deferred to Sprint 7" decision | Governance | Preserved, not rewritten | See Sprint 6 above — that entry stands as the accurate record of what was decided and why at the time. This section reconciles it with what has since shipped; it does not replace it. |
+| Interim PID-file liveness check for `ferret status` | Architecture | Accepted (interim) | Dogfooding issue #25 found the Sprint 6 stub reported "not running" unconditionally, even while a runtime host was genuinely alive — a real trust gap, not a cosmetic one. Rather than wait for Sprint 7's full IPC design, `ferret start` now writes `.ferret/runtime-status.json` (PID + start time) and `ferret status` verifies liveness via `Process.GetProcessById`, with automatic cleanup of stale markers from a crashed process. Implemented 2026-07-06, commit `3630094`. |
+| Sprint 7 named-pipe IPC health endpoint | Architecture | Still planned — not replaced | The interim PID-file check is not a substitute for real IPC: it cannot distinguish the original process from an unrelated one that later reused the same PID (documented limitation in `RuntimeStatusFile`). Sprint 7's named-pipe design remains the intended long-term direction. This entry exists so a future Sprint 7 implementer knows an interim measure is already in place, why it exists, and what it does not solve. |

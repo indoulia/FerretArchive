@@ -28,7 +28,7 @@ internal sealed class SearchCliModule : CliModuleBase
             Options:
             [
                 new OptionDefinition("--limit", "Maximum results to return.", typeof(int), DefaultValue: 20),
-                new OptionDefinition("--passages", "Return passage-level results instead of files.", typeof(bool)),
+                new OptionDefinition("--passages", "Return passage-level results instead of files. Not yet implemented -- fails with an error.", typeof(bool)),
                 new OptionDefinition("--no-highlight", "Disable ANSI highlighting.", typeof(bool)),
                 new OptionDefinition("--format", "Output format: text (default) or json.", typeof(string), DefaultValue: "text"),
             ])

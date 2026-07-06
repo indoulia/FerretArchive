@@ -34,13 +34,13 @@ Ordered by `../15-Execution-Plan.md` phase. Within a phase, tickets are listed i
   - **Expected outcome:** A developer can create a workspace, add/remove repos by remote identity, list all workspaces, and inspect one workspace's full manifest — all from the CLI, none of it colliding with the existing `ferret workspace init`/`status` commands.
   - **Acceptance criteria:** `create`/`add-repo`/`list`/`show`/`remove-repo` round-trip against a real local git repo; `list`/`show` output matches the manifest state; a repo with no remote gets the local-identity fallback (ADR-0026, `.ferret/workspace-identity.json` — corrected from the doc's original `.ai/...` reference to match the actual `WorkspaceLayout.RootDirectoryName` constant in code, see WIP-012's Self Review); adding a repo with a differently-formatted URL for an already-added remote (`git@...` vs `https://...`) is recognized as the same identity, not a duplicate; `create` rejects a duplicate name.
   - **Dogfooding scenario:** A developer with 2+ related repos groups them under one workspace and confirms `workspaces list`/`show` shows both correctly. Success = accurate listing, no errors, existing `Ferret index build`/`query` and `Ferret workspace init`/`status` on either repo unaffected. Rollback trigger: any regression in existing single-repo command behavior.
-- [ ] **WIP-013** Auto-migration wrapper for existing single-repo workspaces — `14-Migration.md` *(quick win: ships with WIP-010–012, no separate release)*
+- [x] **WIP-013** Auto-migration wrapper for existing single-repo workspaces — `14-Migration.md` *(quick win: ships with WIP-010–012, no separate release)* — done: `src/Ferret.Cli/Commands/Workspace/WorkspaceRegistryAutoMigrator.cs`, 5 tests green, merged via PR #35
   - **Goal:** Zero-action wrapping of every existing `.ai/workspace.json` into a `kind: "personal"` registry entry.
   - **Dependencies:** WIP-010, WIP-011.
   - **Expected outcome:** Running any `Ferret workspace` command in an un-migrated checkout silently creates the wrapper entry.
   - **Acceptance criteria:** Existing single-repo integration test suite passes unmodified after this ships (14-Migration.md §2's invariant); failure path falls back to no-registry behavior per §3, never blocks the underlying command.
   - **Dogfooding scenario:** Run the full existing dogfooding command set against an already-migrated dogfooding-branch checkout; confirm identical behavior/output to pre-migration baseline.
-- [ ] **WIP-014** MCP `workspace_list` tool — `12-API.md` §3
+- [x] **WIP-014** MCP `workspace_list` tool — `12-API.md` §3 — done: `src/Ferret.Mcp/Tools/WorkspaceListTool.cs`, 4 tests green, merged via PR #36
   - **Goal:** MCP parity for WIP-012's `list`.
   - **Dependencies:** WIP-012.
   - **Expected outcome:** An MCP client can enumerate workspace membership.
