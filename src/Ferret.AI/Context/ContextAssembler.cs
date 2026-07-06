@@ -17,6 +17,10 @@ namespace Ferret.AI.Context;
 /// </summary>
 public sealed class ContextAssembler : IContextAssembler
 {
+    // Matches TokenEstimator's 4-chars-per-token heuristic.
+    private const int CharsPerToken = 4;
+    private const string TruncationMarker = "\n\n[... content truncated to fit token budget]";
+
     private readonly ISearchService _searchService;
     private readonly DocumentExpander _expander;
     private readonly ILogger<ContextAssembler> _logger;
@@ -90,9 +94,19 @@ public sealed class ContextAssembler : IContextAssembler
             var content = doc.PlainText;
             var tokenEstimate = TokenEstimator.Estimate(content);
 
-            if (totalTokens + tokenEstimate > request.MaxTokens && included.Count > 0)
+            if (totalTokens + tokenEstimate > request.MaxTokens)
             {
-                break;
+                if (included.Count > 0)
+                {
+                    break;
+                }
+
+                // The single highest-scoring document alone exceeds the whole budget. Truncate
+                // it instead of returning it unbounded, so MaxTokens is never silently ignored
+                // (this is the only case where a document is exempt from the budget check above,
+                // to guarantee at least one result comes back for a non-empty search).
+                content = TruncateToBudget(content, request.MaxTokens * CharsPerToken);
+                tokenEstimate = TokenEstimator.Estimate(content);
             }
 
             hitByDocId.TryGetValue(doc.Id.Value, out var srcHit);
@@ -121,6 +135,22 @@ public sealed class ContextAssembler : IContextAssembler
             DocumentsIncluded = included.Count,
             AssembledAt = DateTimeOffset.UtcNow,
         };
+    }
+
+    /// <summary>Truncates <paramref name="content"/> to at most <paramref name="maxChars"/> characters, appending a marker when truncation occurs.</summary>
+    private static string TruncateToBudget(string content, int maxChars)
+    {
+        if (content.Length <= maxChars)
+        {
+            return content;
+        }
+
+        if (maxChars <= TruncationMarker.Length)
+        {
+            return content[..Math.Max(0, maxChars)];
+        }
+
+        return content[..(maxChars - TruncationMarker.Length)] + TruncationMarker;
     }
 
     private static class Log
