@@ -25,6 +25,7 @@ ADRs capture significant architectural decisions, their context, and their ratio
 | [0023](0023-dependency-record-serialization-format.md) | Dependency-Record Serialization Format | Accepted | 2026-07-04 |
 | [0024](0024-dependency-state-store-key-lookup-structure.md) | Dependency-State Store: Key/Lookup Structure | Accepted | 2026-07-04 |
 | [0025](0025-uncommitted-work-during-active-governance-gate.md) | Uncommitted Work During an Active Governance Gate | Proposed | 2026-07-04 |
+| [0030](0030-architecture-conformance-baseline.md) | Milestone: Architecture Conformance Baseline | Accepted | 2026-07-06 |
 
 ADR-0026 through 0029 (Workspace Intelligence Platform) are tracked separately in [docs/roadmap/Workspace-Intelligence/ADR/](../roadmap/Workspace-Intelligence/ADR/), indexed in that roadmap's own README.
 
