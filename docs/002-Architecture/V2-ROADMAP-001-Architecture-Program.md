@@ -100,7 +100,7 @@ Sprint- and code-level planning, following the repository's existing process rat
 
 | ID | Item | Depends On | Entry Criteria | Exit Criteria | Governance |
 |---|---|---|---|---|---|
-| RM-10 | V2 Sprint Specification & Plan | RM-07, RM-08, RM-09 complete | Tier 3 complete | A sprint specification and plan exist under `docs/superpowers/specs`/`docs/superpowers/plans`, following the same process that already produces Ferret's real specification and plan documents (ARCH-024 Critical Finding 3) | Normal PR / code review; no architecture governance review required unless implementation surfaces a conceptual gap |
+| RM-10 | V2 Sprint Specification & Plan | RM-07, RM-08, RM-09 complete | Tier 3 complete | A sprint specification and plan exist under `docs/archive/superpowers/specs`/`docs/archive/superpowers/plans`, following the same process that already produces Ferret's real specification and plan documents (ARCH-024 Critical Finding 3) | Normal PR / code review; no architecture governance review required unless implementation surfaces a conceptual gap |
 
 ---
 
@@ -139,7 +139,7 @@ This order reflects dependency, not effort — RM-01 is scheduled first because 
 
 Tier 3 (RM-07, RM-08, RM-09) is complete — realized as ARCH-032, ARCH-033, and ARCH-034 respectively, with ARCH-035 and ARCH-036 as unscheduled additions composing and validating the three. Per [ADR-0021](../adr/0021-v2-architecture-baseline-complete.md), the program now transitions from architecture-primary to implementation-primary work:
 
-- **RM-05 and RM-06 are deferred, not abandoned.** RM-05 (AI Integration Architecture) is not currently blocking, since no planned implementation work invokes `IModelProvider`. RM-06 (Benchmarking Architecture) is superseded in practice by extending the already-existing, already-approved `docs/superpowers/specs/2026-06-30-benchmark-suite-spec.md` and Sprint 4 corpus generator with V2-specific metrics, rather than writing a new ARCH document first.
+- **RM-05 and RM-06 are deferred, not abandoned.** RM-05 (AI Integration Architecture) is not currently blocking, since no planned implementation work invokes `IModelProvider`. RM-06 (Benchmarking Architecture) is superseded in practice by extending the already-existing, already-approved `docs/archive/superpowers/specs/2026-06-30-benchmark-suite-spec.md` and Sprint 4 corpus generator with V2-specific metrics, rather than writing a new ARCH document first.
 - **RM-10 (Implementation Planning) is now the active tier.** Further ARCH-series documents are warranted only when implementation or benchmarking surfaces concrete evidence of a conceptual gap — exactly the standard this roadmap's §7 already set for Tier 3, now extended to the program as a whole.
 - **One gap surfaced by the Tier 3 mechanism-package review has no owner yet**: concurrency and multi-process consistency for persisted dependency state is addressed nowhere in ARCH-023 through ARCH-036. ADR-0021 requires this to be resolved by explicit statement before Sprint 1, not left implicit.
 

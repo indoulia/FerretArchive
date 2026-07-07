@@ -135,7 +135,7 @@ V1 goal: A developer can initialize a Ferret workspace, index their codebase, as
 - `WorkspaceCliModule`: `ferret workspace init`, `ferret workspace status`
 - `RootCommandFactory` grouped subcommand activation
 
-**Plan:** `docs/superpowers/plans/2026-06-28-sprint-7-workspace-engine.md`
+**Plan:** `docs/archive/superpowers/plans/2026-06-28-sprint-7-workspace-engine.md`
 **Expected tag:** `v0.7.0-sprint7`
 
 ---

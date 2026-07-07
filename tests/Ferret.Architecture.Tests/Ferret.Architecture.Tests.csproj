@@ -13,7 +13,7 @@
     <ProjectReference Include="..\..\src\Ferret.Models\Ferret.Models.csproj" />
     <ProjectReference Include="..\..\src\Ferret.Providers.Ollama\Ferret.Providers.Ollama.csproj" />
     <ProjectReference Include="..\..\src\Ferret.Providers.OpenAi\Ferret.Providers.OpenAi.csproj" />
-    <!-- S2-0: regression protection for the Sprint 1 vertical slice (docs/superpowers/plans/2026-07-04-v2-sprint-2-architecture-review.md §4.1) -->
+    <!-- S2-0: regression protection for the Sprint 1 vertical slice (docs/archive/superpowers/plans/2026-07-04-v2-sprint-2-architecture-review.md §4.1) -->
     <ProjectReference Include="..\..\src\Ferret.Persistence\Ferret.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Ferret.VerticalSlice\Ferret.VerticalSlice.csproj" />
     <ProjectReference Include="..\Ferret.VerticalSliceHost\Ferret.VerticalSliceHost.csproj" />

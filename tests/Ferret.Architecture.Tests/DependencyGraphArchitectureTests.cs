@@ -8,7 +8,7 @@ namespace Ferret.Architecture.Tests;
 
 /// <summary>
 /// Dependency Graph Architecture Regression Tests: encodes the ARCH-037 invariants named in the
-/// Sprint 3 Architecture Review (docs/superpowers/plans/2026-07-04-v2-sprint-3-architecture-review.md
+/// Sprint 3 Architecture Review (docs/archive/superpowers/plans/2026-07-04-v2-sprint-3-architecture-review.md
 /// §4.1, §4.3) as permanent, reflection-only checks — same style as
 /// <see cref="PersistenceArchitectureTests"/> and <see cref="ConnectorArchitectureTests"/>; no IL
 /// inspection, no second test framework.

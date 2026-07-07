@@ -86,7 +86,7 @@ already shipped, for the same reason ADR-0025 gives: a governance decision shoul
 | T10 | Close ADR-0026: Founder-attributed Accept/override decision, recorded in the ADR and reflected in `Backlog/backlog.md` WIP-001 | ADR-0026's own status field still reads "Proposed"; WIP-001 is the literal Phase 0 gate and is still unchecked, despite the design already being implemented and merged (`README.md`, backlog) | None | S (decision, not engineering) | **Blocking — governance gate, v2.0** | Founder |
 | T11 | Decide ADR-0029 (v1 sharing scope): Accept the four-role model or override | Still "Proposed — requires Founder decision"; gates only Phase 5 | None | S (decision) | Not required for v2.0 (blocks only Phase 5/WIP-050-052, out of v2.0 scope per §8) | Founder |
 | T12 | Reconcile `Backlog/backlog.md` checkboxes for WIP-021/022/023/030/031/032 (docs `22`/`23`/`26` show them implemented; the backlog file itself still shows several unchecked) | Backlog is the project's own source of truth for status; letting it drift risks a repeat of `28`'s core lesson — trusting a status field instead of checking ground truth | None | S | v2.0 (documentation gate, §5) | Documentation |
-| T13 | Commit the currently-untracked working-tree docs (`24`, `25`, `27`, `28`, this document, and `docs/superpowers/plans/2026-07-05-wip-032-registry-read-through-cache.md`) to a branch and land them on `main` | These are accepted, cited-as-authoritative documents that exist only as untracked working-tree files today — the exact risk ADR-0025 flags (loss on machine failure/`git clean`, no remote backup) | None | S | v2.0 (documentation gate, §5) | Documentation |
+| T13 | Commit the currently-untracked working-tree docs (`24`, `25`, `27`, `28`, this document, and `docs/archive/superpowers/plans/2026-07-05-wip-032-registry-read-through-cache.md`) to a branch and land them on `main` | These are accepted, cited-as-authoritative documents that exist only as untracked working-tree files today — the exact risk ADR-0025 flags (loss on machine failure/`git clean`, no remote backup) | None | S | v2.0 (documentation gate, §5) | Documentation |
 | T14 | Update `README.md`'s decision table once ADR-0026/ADR-0029 close | Table currently shows both as open; should reflect Founder decisions once made | T10, T11 | S | v2.0 | Documentation |
 
 **Not on this list, and intentionally so:** WIP-041–044 (Usage Ledger/Analytics/Dashboard) and
@@ -220,7 +220,7 @@ evidence (Usage Ledger, Analytics, Dashboard, Sharing/RBAC) — none of it is in
 | Task | File(s) | Trigger |
 |---|---|---|
 | Reconcile backlog checkboxes (T12) | `Backlog/backlog.md` | Before tag — Gate G |
-| Commit untracked accepted docs (T13) | `24`, `25`, `27`, `28`, this document (`29`), `docs/superpowers/plans/2026-07-05-wip-032-registry-read-through-cache.md` | Before tag — Gate G |
+| Commit untracked accepted docs (T13) | `24`, `25`, `27`, `28`, this document (`29`), `docs/archive/superpowers/plans/2026-07-05-wip-032-registry-read-through-cache.md` | Before tag — Gate G |
 | Update decision table (T14) | `README.md` §"Every Open Decision, In One Place" | After T10 (and T11, if decided) |
 | Record ADR-0026 Founder decision | `ADR/0026-workspace-registry-model.md` status field | At T10 |
 | Record ADR-0029 Founder decision, if made | `ADR/0029-v1-sharing-permission-scope.md` status field | At T11, optional for v2.0 |

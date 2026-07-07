@@ -24,7 +24,7 @@ At this point, continuing to produce new ARCH documents (ARCH-037, ARCH-038, ...
 
 Two Tier 2 roadmap items from V2-ROADMAP-001 — RM-05 (AI Integration Architecture) and RM-06 (Benchmarking Architecture) — remain unwritten, out of the sequence V2-ROADMAP-001 §8 originally specified. Repository investigation at the time of this decision found:
 - RM-05 is not currently blocking: the planned MVP path (scan → index → persist dependency state → resolve → reuse → CLI output) never invokes `IModelProvider`, consistent with ARCH-024's finding that no AI-derived artifact exists in production today.
-- RM-06's practical intent is already substantially met by existing repository assets: `docs/superpowers/specs/2026-06-30-benchmark-suite-spec.md` (Approved for implementation) and the Sprint 4 enterprise corpus generator (`tests/Ferret.Benchmarks`, `docs/superpowers/plans/2026-07-01-sprint-4-enterprise-corpus.md`) already provide a benchmark harness and synthetic corpus tiers (Small/Medium/Enterprise) covering indexing, search, and context-assembly measurement. What remains is extending that harness with V2-specific metrics once mechanism code exists — not building a harness from nothing.
+- RM-06's practical intent is already substantially met by existing repository assets: `docs/archive/superpowers/specs/2026-06-30-benchmark-suite-spec.md` (Approved for implementation) and the Sprint 4 enterprise corpus generator (`tests/Ferret.Benchmarks`, `docs/archive/superpowers/plans/2026-07-01-sprint-4-enterprise-corpus.md`) already provide a benchmark harness and synthetic corpus tiers (Small/Medium/Enterprise) covering indexing, search, and context-assembly measurement. What remains is extending that harness with V2-specific metrics once mechanism code exists — not building a harness from nothing.
 
 ## Decision
 
@@ -44,7 +44,7 @@ We declare the **Ferret V2 Architecture Baseline v1** complete and frozen as of 
 1. **No new ARCH document may be created to "complete the architecture."** A new ARCH-0NN document is warranted only when implementation or benchmarking produces concrete evidence of a contradiction in, or a missing concept from, the documents listed above. Evidence means a specific failing behavior or measurement, not a hypothetical.
 2. **ADRs and implementation are now the default mode of work.** Technology, storage, key, serialization, and format decisions proceed through `docs/adr/`, per ADR-0001, exactly as the mechanism layer (ARCH-032 §"Interaction With Future ADRs", ARCH-033 similarly) already anticipated.
 3. **RM-05 (AI Integration Architecture) is deferred, not abandoned.** It becomes blocking the moment an AI-derived artifact (Review Engine or Artifact Engine output, or any `ChatResponse`/`EmbeddingResult`-class artifact) enters the reuse path this architecture governs.
-4. **RM-06 (Benchmarking Architecture) is deferred as a formal ARCH document, superseded in practice by extending the existing benchmark suite** (`docs/superpowers/specs/2026-06-30-benchmark-suite-spec.md`) and corpus generator (Sprint 4) with V2-specific metrics: persistence time, resolution/lookup time, recomputation-avoided rate, and cold-vs-warm-start latency. If that extension later surfaces a genuine architectural question the existing spec's register cannot answer, RM-06 is written then, not before.
+4. **RM-06 (Benchmarking Architecture) is deferred as a formal ARCH document, superseded in practice by extending the existing benchmark suite** (`docs/archive/superpowers/specs/2026-06-30-benchmark-suite-spec.md`) and corpus generator (Sprint 4) with V2-specific metrics: persistence time, resolution/lookup time, recomputation-avoided rate, and cold-vs-warm-start latency. If that extension later surfaces a genuine architectural question the existing spec's register cannot answer, RM-06 is written then, not before.
 5. **The concurrency/multi-process consistency gap, discovered during the mechanism-layer review and not addressed anywhere in ARCH-023 through ARCH-036, must be resolved by explicit statement before Sprint 1 begins** — either as a stated Sprint 1 scope boundary ("single-process access only; concurrent access is explicitly out of scope") or, if that boundary cannot be honestly assumed, as a new governance review. Silence on this point is not an acceptable resolution.
 6. **Governance escalation remains exactly as V2-ROADMAP-001 §1 and ARCH-031 §9 already define it**: implementation or an ADR that cannot proceed without contradicting a Closed Architectural Decision or a mechanism-document guarantee halts and escalates to a new Architecture Governance Review. This ADR does not relax that rule — it only removes architecture-for-its-own-sake as an accepted activity going forward.
 
@@ -55,7 +55,7 @@ We declare the **Ferret V2 Architecture Baseline v1** complete and frozen as of 
 | Continue to RM-05, RM-06, and further mechanism refinement before any implementation | Analysis paralysis risk with no evidentiary basis for further design; the concurrency gap was found by review, not prevented by more review — implementation is now the more productive source of findings |
 | Freeze the architecture without resolving how the concurrency gap is handled | Would ship an unstated assumption into Sprint 1 code, exactly the failure mode ARCH-031 §9 and every mechanism document's escalation rule exist to prevent |
 | No formal milestone; begin implementation informally | Loses the explicit accountability and clear seam ADR-0012 already established as this repository's pattern for exactly this kind of phase transition |
-| Treat RM-06 as still required before benchmarking starts | Ignores that its practical intent is already met by existing, approved repository assets; would duplicate `docs/superpowers/specs/2026-06-30-benchmark-suite-spec.md` rather than extend it |
+| Treat RM-06 as still required before benchmarking starts | Ignores that its practical intent is already met by existing, approved repository assets; would duplicate `docs/archive/superpowers/specs/2026-06-30-benchmark-suite-spec.md` rather than extend it |
 
 ## Consequences
 
@@ -77,5 +77,5 @@ We declare the **Ferret V2 Architecture Baseline v1** complete and frozen as of 
 - [AGR-001](../Reviews/AGR-001.md) through [AGR-004](../Reviews/AGR-004.md)
 - [ARCH-023](../002-Architecture/ARCH-023-V2-Architectural-Boundary.md) through [ARCH-036](../002-Architecture/ARCH-036-Mechanism-Validation-and-Conformance.md)
 - [V2-ROADMAP-001](../002-Architecture/V2-ROADMAP-001-Architecture-Program.md)
-- `docs/superpowers/specs/2026-06-30-benchmark-suite-spec.md`
-- `docs/superpowers/plans/2026-07-01-sprint-4-enterprise-corpus.md`
+- `docs/archive/superpowers/specs/2026-06-30-benchmark-suite-spec.md`
+- `docs/archive/superpowers/plans/2026-07-01-sprint-4-enterprise-corpus.md`

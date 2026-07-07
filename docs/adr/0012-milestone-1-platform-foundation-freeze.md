@@ -63,4 +63,4 @@ The following packages are covered by this freeze:
 
 - ADR-0001: Use Architecture Decision Records
 - Tag: `v0.6.0-sprint6`
-- Sprint review: `docs/sprint-reviews/sprint-6-review.md` (if created)
+- Sprint review: `docs/archive/sprint-reviews/sprint-6-review.md` (if created)

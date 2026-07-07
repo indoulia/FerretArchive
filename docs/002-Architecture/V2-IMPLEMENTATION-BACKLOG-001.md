@@ -76,7 +76,7 @@ This document does not redesign anything ARCH-023 through ARCH-036 already state
 | 5.1 | Concurrency scope statement | P0 | ADR-0021 Rule 5 | None — stated directly in the Sprint 1 plan's Global Constraints | Done (Sprint 1 plan) |
 | 5.2 | Production concurrency/multi-process model | P1 | ADR-0021 Rule 5 (production side) | **ADR or new governance review**, depending on what investigation finds | Before any multi-process usage ships |
 | 5.3 | RM-05 — AI Integration Architecture | **Deferred** | ADR-0021 Rule 3 | N/A — a new ARCH document, not an ADR | Triggered only when an AI-derived artifact enters the reuse path |
-| 5.4 | Extend existing benchmark suite with V2 metrics (persistence time, resolution/lookup time, recomputation-avoided rate, cold/warm start) | P1 | ADR-0021 Rule 4; `docs/superpowers/specs/2026-06-30-benchmark-suite-spec.md` | None — extension of an already-approved spec | After Sprint 1 proves the flow, before Phase VI benchmarking |
+| 5.4 | Extend existing benchmark suite with V2 metrics (persistence time, resolution/lookup time, recomputation-avoided rate, cold/warm start) | P1 | ADR-0021 Rule 4; `docs/archive/superpowers/specs/2026-06-30-benchmark-suite-spec.md` | None — extension of an already-approved spec | After Sprint 1 proves the flow, before Phase VI benchmarking |
 | 5.5 | RM-06 formal ARCH document | **Superseded** | ADR-0021 Rule 4 | N/A | Only if 5.4's extension surfaces a question the existing spec's register can't answer |
 
 ---
@@ -85,7 +85,7 @@ This document does not redesign anything ARCH-023 through ARCH-036 already state
 
 | Sprint | Scope |
 |---|---|
-| **Sprint 1** | Epic 1 (1.1–1.3), Epic 2 (2.1–2.2), Epic 3 (3.1), Epic 4 (4.1–4.2), Epic 5 (5.1) — the vertical slice, per `docs/superpowers/plans/2026-07-03-v2-sprint-1-vertical-slice.md` |
+| **Sprint 1** | Epic 1 (1.1–1.3), Epic 2 (2.1–2.2), Epic 3 (3.1), Epic 4 (4.1–4.2), Epic 5 (5.1) — the vertical slice, per `docs/archive/superpowers/plans/2026-07-03-v2-sprint-1-vertical-slice.md` |
 | **Sprint 2+** | Epic 1 (1.4–1.8), Epic 2 (2.3, 2.5–2.6), Epic 5 (5.4) — production hardening, contingent on ADRs landing |
 | **Sprint 3+** | Epic 1 (1.9), Epic 4 (4.3), Epic 5 (5.2) — deferred hardening and full conformance |
 | **Unscheduled / Blocked** | Epic 2 (2.4 — blocked pending escalation), Epic 3 (3.2 — no trigger yet), Epic 5 (5.3, 5.5 — deferred by ADR-0021) |
@@ -99,9 +99,9 @@ This document does not redesign anything ARCH-023 through ARCH-036 already state
 | [ADR-0021](../adr/0021-v2-architecture-baseline-complete.md) | Establishes this backlog as the delivery-side counterpart to the architecture program |
 | [V2-ROADMAP-001](V2-ROADMAP-001-Architecture-Program.md) | The architecture-sequencing document this backlog parallels for implementation |
 | [ARCH-032](ARCH-032-Persistence-Mechanism-Design.md) through [ARCH-036](ARCH-036-Mechanism-Validation-and-Conformance.md) | Source of every architectural citation in Epics 1–4 |
-| `docs/superpowers/specs/2026-07-03-v2-sprint-1-readiness-checklist.md` | The gate Sprint 1's scope (P0 items above) must pass |
-| `docs/superpowers/plans/2026-07-03-v2-sprint-1-vertical-slice.md` | The milestone plan realizing Sprint 1's P0 items |
-| `docs/superpowers/specs/2026-06-30-benchmark-suite-spec.md` | The existing benchmark suite Feature 5.4 extends |
+| `docs/archive/superpowers/specs/2026-07-03-v2-sprint-1-readiness-checklist.md` | The gate Sprint 1's scope (P0 items above) must pass |
+| `docs/archive/superpowers/plans/2026-07-03-v2-sprint-1-vertical-slice.md` | The milestone plan realizing Sprint 1's P0 items |
+| `docs/archive/superpowers/specs/2026-06-30-benchmark-suite-spec.md` | The existing benchmark suite Feature 5.4 extends |
 | `docs/adr/README.md` | Where every "ADR required" item in this backlog will be recorded once decided |
 
 ---

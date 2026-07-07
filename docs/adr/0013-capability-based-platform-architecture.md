@@ -179,6 +179,6 @@ Additional rules are added per sprint as new principles require enforcement.
 ## References
 
 - `ARCH-019-Connector-Platform-Architecture.md` — full connector platform specification
-- `SPEC-008` — Sprint 8 design specification (`docs/superpowers/specs/2026-06-28-sprint-8-connector-platform-design.md`)
+- `SPEC-008` — Sprint 8 design specification (`docs/archive/superpowers/specs/2026-06-28-sprint-8-connector-platform-design.md`)
 - `ADR-0012` — M1 Platform Foundation Freeze (governs which packages are frozen)
 - `ROADMAP-001` — V1 sprint plan
