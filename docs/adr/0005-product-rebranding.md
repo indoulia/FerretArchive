@@ -72,4 +72,4 @@ The technology platform name **ContextOS** is retained as-is. ContextOS is what 
 - `MIGRATION-001.md` — migration guide for contributors
 - `BRAND-001.md` — full brand identity and naming conventions
 - Tag: `v0.5.0-ferret` (first commit under the Ferret name)
-- Sprint 5 review: `docs/sprint-reviews/sprint-5-review.md`
+- Sprint 5 review: `docs/archive/sprint-reviews/sprint-5-review.md`

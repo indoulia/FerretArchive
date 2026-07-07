@@ -8,13 +8,26 @@ This folder contains all project-level documentation for Ferret.
 
 ```
 docs/
-├── adr/           Architecture Decision Records
-├── specs/         Sprint and feature specifications
-├── architecture/  System design documents
-├── api/           API reference and contracts
-├── database/      Data model and schema documentation
-├── guides/        How-to and operational guides
-└── pkm/           PKM product principles and foundational decisions
+├── 000-Overview/    Vision, mission, principles, glossary, project state
+├── 001-Product/     PRD, competitive analysis, product roadmap
+├── 002-Architecture/System architecture (ARCH-*) and decisions/
+├── 003-Workspace/   Workspace subsystem documentation
+├── 004-Database/    Data model and storage documentation
+├── 005-MCP/         MCP server/client documentation
+├── 006-CLI/         CLI command reference
+├── 007-SDK/         Plugin SDK documentation
+├── 008-Modules/     Module-to-package inventory
+├── 009-Testing/     Test strategy documentation
+├── 010-Security/    Security documentation
+├── 011-Performance/ Performance/SLO documentation
+├── 012-Releases/    Release notes and release process
+├── 013-Governance/  Governance index and decision log
+├── Reviews/         Architecture and governance reviews (AR-*, AGR-*)
+├── adr/             Architecture Decision Records
+├── benchmarks/      Performance benchmark reports
+├── roadmap/         Active roadmap and its ADRs/backlog
+└── archive/         Superseded/historical material kept for provenance only —
+                      not part of current onboarding reference
 ```
 
 ---
@@ -24,12 +37,11 @@ docs/
 | I want to… | Go to… |
 |---|---|
 | Understand a past architectural choice | [docs/adr/](adr/) |
-| Read the requirements for an upcoming sprint | [docs/specs/](specs/) |
-| See the overall system design | [docs/architecture/](architecture/) |
-| Learn about an API endpoint | [docs/api/](api/) |
-| Understand the data model | [docs/database/](database/) |
-| Follow an operational runbook | [docs/guides/](guides/) |
-| Review PKM v0.1 product principles | [docs/pkm/principles/](pkm/principles/) |
+| See the overall system design | [docs/002-Architecture/](002-Architecture/) |
+| Understand the data model | [docs/004-Database/](004-Database/) |
+| Read the active product roadmap | [docs/roadmap/](roadmap/) |
+| Check current project state | [docs/000-Overview/PROJECT-STATE.md](000-Overview/PROJECT-STATE.md) |
+| Review a past architecture/governance review | [docs/Reviews/](Reviews/) |
 
 ---
 

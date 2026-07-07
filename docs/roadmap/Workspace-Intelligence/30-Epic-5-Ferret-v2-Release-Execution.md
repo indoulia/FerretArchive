@@ -22,7 +22,7 @@ narrowly the mechanical Story/DoD/effort structure the Founder requested — nev
 - `docs/roadmap/Workspace-Intelligence/README.md` is modified but uncommitted (8 lines — the ADR-0026/
   ADR-0028 decision-table update).
 - `24`, `25`, `27`, `28`, `29` (this Epic's own governing document), and
-  `docs/superpowers/plans/2026-07-05-wip-032-registry-read-through-cache.md` remain untracked working-tree
+  `docs/archive/superpowers/plans/2026-07-05-wip-032-registry-read-through-cache.md` remain untracked working-tree
   files.
 - ADR-0026 status field still reads "Proposed — finalized for Founder approval." ADR-0029 still reads
   "Proposed — requires Founder decision." Neither has moved since `29` was written.
@@ -311,7 +311,7 @@ restated on the required XS/S/M/L scale; where `29` used a different notation (e
 ### T13 — Commit the currently-untracked working-tree docs
 
 - **Objective:** Land `24`, `25`, `27`, `28`, `29`, this Epic (`30`), and
-  `docs/superpowers/plans/2026-07-05-wip-032-registry-read-through-cache.md` on `main`.
+  `docs/archive/superpowers/plans/2026-07-05-wip-032-registry-read-through-cache.md` on `main`.
 - **Repository evidence:** `git status` this session confirms all of the above remain untracked. These
   are accepted, cited-as-authoritative documents that exist only as working-tree files today — the exact
   loss-on-machine-failure/`git clean` risk ADR-0025 was written to flag.

@@ -43,7 +43,7 @@ Full solution: `dotnet build`/`dotnet test` on `src/Ferret.sln` — 0 warnings, 
 
 `SingleRepoWorkspace_WithNoReferences_BehavesIdenticallyToPreFederationQuery`: a workspace with one repo and zero references returns the same single hit a pre-federation query would — the 14-Migration.md backward-compatibility invariant holds.
 
-Also dogfooded live through the actual built `ferret.exe` (not just tests) — see `docs/dogfooding/` for the session log.
+Also dogfooded live through the actual built `ferret.exe` (not just tests) — see `docs/archive/dogfooding/` for the session log.
 
 **Updated 2026-07-05 (Stabilization Sprint 1):** Founder Dogfooding Sprint 1 (`17-Dogfooding-Sprint-1.md`) found that this slice's "one repository may be unavailable without corrupting the other" claim held for a missing/unindexed repo but not for a permission-denied one, which crashed the whole query with an unhandled exception (Critical finding). `FederatedKnowledgeStore`'s fan-out now catches any per-source exception and degrades that source only, and every skipped source (exception, missing index, or a dangling/corrupt reference) is recorded in `SearchServiceResult.Diagnostics` and surfaced by `ferret workspaces query`. Proven with a real ACL-denial integration test (`FederatedQuery_WhenReferencedRepoIndexIsPermissionDenied_StillAnswersFromTheAvailableRepo_WithADiagnostic`), not a simulated exception — see `19-Stabilization-Sprint-1.md` for full evidence. §4's row on graceful degradation is amended accordingly.
 
@@ -58,7 +58,7 @@ Also dogfooded live through the actual built `ferret.exe` (not just tests) — s
 | **Graceful degradation on an unavailable reference?** | **Amended 2026-07-05:** originally claimed unconditionally true; dogfooding evidence showed it held for a missing/unindexed repo and did not hold for a permission-denied one (crashed instead of degrading). Fixed in Stabilization Sprint 1 — see the note above and `19-Stabilization-Sprint-1.md`. |
 | **Candidate improvements (not implemented, by design)** | Scope narrowing, compression, caching, pinning, telemetry — all explicitly excluded by the vertical slice's scope; all still land in Phase 2 (full) / Phase 3 per `15-Execution-Plan.md`. |
 
-## 5. Dogfooding Findings (see also `docs/dogfooding/`)
+## 5. Dogfooding Findings (see also `docs/archive/dogfooding/`)
 
 - **Git worktree incompatibility (real bug):** `ferret workspaces add-repo` fails against a git worktree checkout — `RepoIdentityResolver` requires `.git/config` to be a real file at `<repo>/.git/config`, but a worktree's `.git` is itself a file (pointer to the main repo's git dir), not a directory. Reproduced live. Not fixed here (pre-existing WIP-012 code, out of this slice's scope) — worth a follow-up issue.
 - **Pre-existing, unrelated bug surfaced:** `canonicalUri` is double-wrapped (`file:///filesystem:///...`) for filesystem-connector hits, reproduced via both `ferret search --format json` and `ferret workspaces query` on the same content. This is a `Bm25SearchProvider`/connector-layer bug that predates and is orthogonal to this milestone — not fixed here, worth filing.

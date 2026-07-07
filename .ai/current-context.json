@@ -1,60 +1,15 @@
 {
   "$schema": "https://ferret.dev/schemas/context/1.0.0",
-  "updated": "2026-06-27T00:00:00Z",
-  "sprint": 3,
-  "task": "Sprint 3 — Platform Kernel (complete, In Review)",
-  "activeFiles": [
-    "src/Ferret.Core/Enumerations/HealthStatus.cs",
-    "src/Ferret.Core/Enumerations/Severity.cs",
-    "src/Ferret.Core/Enumerations/ValidationSeverity.cs",
-    "src/Ferret.Core/Enumerations/PluginState.cs",
-    "src/Ferret.Core/Enumerations/SpecificationStatus.cs",
-    "src/Ferret.Core/Enumerations/ReviewStatus.cs",
-    "src/Ferret.Core/Errors/FerretException.cs",
-    "src/Ferret.Core/Primitives/WorkspaceId.cs",
-    "src/Ferret.Core/Primitives/ContentHash.cs",
-    "src/Ferret.Core/Primitives/SemanticVersion.cs",
-    "src/Ferret.Core/Results/OperationResult.cs",
-    "src/Ferret.Core/Results/ValidationResult.cs",
-    "src/Ferret.Core/Abstractions/IHealthCheck.cs",
-    "src/Ferret.Core/Abstractions/HealthCheckResult.cs",
-    "src/Ferret.Core/Events/DomainEvent.cs",
-    "src/Ferret.Core/Events/IntegrationEvent.cs",
-    "src/Ferret.Core/Events/SystemEvent.cs"
-  ],
-  "recentDecisions": [
-    {
-      "id": "d-008",
-      "date": "2026-06-27",
-      "summary": "All Sprint 3 components built from scratch — no NuGet packages added to Ferret.Core (tech eval: Build for all 8 components)",
-      "adr": null
-    },
-    {
-      "id": "d-009",
-      "date": "2026-06-27",
-      "summary": "OperationResult<T> and ParseResult<T> static factories moved to non-generic companion class to satisfy CA1000",
-      "adr": null
-    },
-    {
-      "id": "d-010",
-      "date": "2026-06-27",
-      "summary": "SA1402 suppressed per-file for non-generic/generic<T> companion pairs (OperationResult, ParseResult) — BCL convention",
-      "adr": null
-    }
-  ],
+  "updated": null,
+  "sprint": null,
+  "task": null,
+  "activeFiles": [],
+  "recentDecisions": [],
   "openQuestions": [],
   "pendingADRs": [],
   "workingSet": {
     "maxEntries": 100,
-    "entries": [
-      "src/Ferret.Core/Ferret.Core.csproj",
-      "src/Ferret.Core/Enumerations/",
-      "src/Ferret.Core/Errors/",
-      "src/Ferret.Core/Primitives/",
-      "src/Ferret.Core/Results/",
-      "src/Ferret.Core/Abstractions/",
-      "src/Ferret.Core/Events/"
-    ]
+    "entries": []
   },
   "knowledgeRefs": []
 }

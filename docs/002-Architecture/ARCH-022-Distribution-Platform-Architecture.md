@@ -11,7 +11,7 @@
 | **Date** | 2026-06-30 |
 | **Last Updated** | 2026-06-30 |
 | **Related ADRs** | Distribution Principle; Repository-agnostic distribution config; Release manifest as versioned public API |
-| **Related Spec** | `docs/superpowers/specs/2026-06-30-distribution-platform-design.md` |
+| **Related Spec** | `docs/archive/superpowers/specs/2026-06-30-distribution-platform-design.md` |
 | **Parent Architecture** | ARCH-001 §Distribution Layer |
 
 ---

@@ -11,7 +11,7 @@
 | **Date** | 2026-06-29 |
 | **Last Updated** | 2026-06-29 |
 | **Related ADRs** | ADR-0019 (pending) — AI Platform Architecture; ADR-0020 (pending) — Prompt Platform Architecture |
-| **Related Spec** | `docs/superpowers/specs/2026-06-29-sprint-12-ai-platform-design.md` |
+| **Related Spec** | `docs/archive/superpowers/specs/2026-06-29-sprint-12-ai-platform-design.md` |
 | **Parent Architecture** | ARCH-001 §AI Platform Layer |
 
 ---
@@ -491,7 +491,7 @@ Root span: `ai.<operation>` (e.g., `ai.chat`, `ai.embed`, `ai.rerank`, `ai.promp
 | ADR-0018 | Application Layer Reserved — `Ferret.Application` activation trigger includes AI orchestration in Sprint 13+ |
 | ADR-0019 (pending) | AI Platform Architecture — formalises provider isolation and registry decisions |
 | ADR-0020 (pending) | Prompt Platform Architecture — formalises template, registry, and rendering decisions |
-| `docs/superpowers/specs/2026-06-29-sprint-12-ai-platform-design.md` | Sprint 12 authoritative design specification |
+| `docs/archive/superpowers/specs/2026-06-29-sprint-12-ai-platform-design.md` | Sprint 12 authoritative design specification |
 | `docs/006-CLI/` | CLI commands introduced: `ferret models`, `ferret prompt` |
 
 ---

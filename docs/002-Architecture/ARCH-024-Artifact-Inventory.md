@@ -381,7 +381,7 @@ These are real, valuable artifacts that exist in the repository today, but — p
 - Same production method, persistence, and characteristics as Architecture Review documents above.
 
 ### Sprint/feature specifications and plans
-- **Location:** `docs/superpowers/specs/*.md`, `docs/superpowers/plans/*.md`
+- **Location:** `docs/archive/superpowers/specs/*.md`, `docs/archive/superpowers/plans/*.md`
 - **Produced by:** AI-assisted authorship via a coding-assistant workflow, capturing human product direction as Markdown
 - Same non-deterministic, human/AI-collaborative production method as above; no code in `src/` reads or writes these files.
 

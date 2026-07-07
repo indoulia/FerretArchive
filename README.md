@@ -103,10 +103,8 @@ See each folder's `README.md` for details.
 
 | Document | Description |
 |---|---|
-| [Architecture](docs/architecture/overview.md) | System design and component map |
+| [Architecture](docs/002-Architecture/) | System design and component map |
 | [ADRs](docs/adr/) | Architecture Decision Records |
-| [Specifications](docs/specs/) | Feature and sprint specifications |
-| [API Reference](docs/api/) | REST / gRPC API documentation |
 | [Contributing](CONTRIBUTING.md) | How to contribute |
 | [Changelog](CHANGELOG.md) | Release history |
 | [Security](SECURITY.md) | Reporting vulnerabilities |

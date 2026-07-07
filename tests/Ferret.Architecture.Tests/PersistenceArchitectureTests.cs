@@ -8,7 +8,7 @@ namespace Ferret.Architecture.Tests;
 
 /// <summary>
 /// S2-0 (Architecture Regression Protection): encodes the five invariants approved in
-/// docs/superpowers/plans/2026-07-04-v2-sprint-2-architecture-review.md §4.1. All five are GREEN
+/// docs/archive/superpowers/plans/2026-07-04-v2-sprint-2-architecture-review.md §4.1. All five are GREEN
 /// as of S2-1B: S2-1A fixed invariant 1 (dependency inversion), S2-1B fixed invariant 2 (assembly
 /// direction) by relocating the vertical slice from <c>Ferret.Integration.Tests</c> to the new
 /// non-test assembly <c>Ferret.VerticalSlice</c> — this is why invariant 1 now loads that

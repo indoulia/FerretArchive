@@ -391,8 +391,8 @@ See `TECH-001-Technology-Evaluation.md` for the full evaluation grid including r
 |---|---|
 | Solution | `src/Ferret.sln` |
 | Architecture ADRs | `docs/adr/` |
-| Sprint plans | `docs/superpowers/plans/` |
-| Sprint reviews | `docs/sprint-reviews/` |
+| Sprint plans | `docs/archive/superpowers/plans/` |
+| Sprint reviews | `docs/archive/sprint-reviews/` |
 | Product roadmap | `docs/001-Product/ROADMAP-001.md` |
 | Future vision | `docs/001-Product/ROADMAP-002-Future-Vision.md` |
 | Brand identity | `docs/002-Architecture/BRAND-001.md` |
@@ -409,7 +409,7 @@ See `TECH-001-Technology-Evaluation.md` for the full evaluation grid including r
 | Storage architecture | `docs/002-Architecture/ARCH-017-Storage-Architecture.md` |
 | Analytics architecture | `docs/002-Architecture/ARCH-018-Analytics-Architecture.md` |
 | Connector platform architecture | `docs/002-Architecture/ARCH-019-Connector-Platform-Architecture.md` |
-| Reusable prompt template | `docs/superpowers/prompts/roadmap-consolidation.md` |
+| Reusable prompt template | `docs/archive/superpowers/prompts/roadmap-consolidation.md` |
 
 ---
 
