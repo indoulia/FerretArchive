@@ -5,6 +5,7 @@ using Ferret.Core.Indexing;
 using Ferret.Core.Primitives;
 using Ferret.Core.Search;
 using Ferret.Core.Workspace;
+using Ferret.Knowledge.Federation;
 using Ferret.Mcp;
 using Ferret.Mcp.Protocol;
 using Ferret.Mcp.Runtime;
@@ -34,6 +35,9 @@ public sealed class McpHostIntegrationTests
         services.AddSingleton<IConnectorRegistry>(new FakeConnectorRegistry());
         services.AddSingleton<IContextAssembler>(new FakeContextAssembler());
         services.AddSingleton<IWorkspaceRegistry>(new FakeWorkspaceRegistry());
+        services.AddSingleton<IRepoSearchServiceFactory>(new FakeRepoSearchServiceFactory());
+        services.AddSingleton<IWorkspaceStateFingerprintProvider>(new FakeWorkspaceStateFingerprintProvider());
+        services.AddSingleton<FederatedQueryCache>();
 
         McpModule.ConfigureServices(services);
         return services.BuildServiceProvider();
@@ -49,11 +53,11 @@ public sealed class McpHostIntegrationTests
     }
 
     [Fact]
-    public void McpModule_Registers_Five_Tools()
+    public void McpModule_Registers_Six_Tools()
     {
         using var provider = BuildProvider();
         var tools = provider.GetServices<IMcpTool>().ToList();
-        Assert.Equal(5, tools.Count);
+        Assert.Equal(6, tools.Count);
     }
 
     [Fact]
@@ -136,6 +140,20 @@ public sealed class McpHostIntegrationTests
             Task.FromResult<IReadOnlyList<WorkspaceRegistryEntry>>([]);
 
         public Task SaveAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    private sealed class FakeRepoSearchServiceFactory : IRepoSearchServiceFactory
+    {
+        public ISearchService CreateForRepo(string repoPath) => new FakeSearchService();
+    }
+
+    private sealed class FakeWorkspaceStateFingerprintProvider : IWorkspaceStateFingerprintProvider
+    {
+        public Task<string?> ComputeFingerprintAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<string?> ComputeIndexChangeSignalAsync(WorkspaceRegistryEntry entry, CancellationToken ct = default) =>
+            Task.FromResult<string?>(null);
     }
 
     private sealed class FakeConnectorRegistry : IConnectorRegistry
