@@ -16,26 +16,32 @@ internal sealed partial class WatchCommandHandler : ICommandHandler
 {
     private readonly IIndexPipeline _pipeline;
     private readonly IIndexEngine _engine;
+    private readonly IIndexStateStore _stateStore;
     private readonly IWorkspaceContext _workspaceContext;
     private readonly ILogger<WatchCommandHandler> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="WatchCommandHandler"/> class.</summary>
     /// <param name="pipeline">The index pipeline used for incremental re-indexing.</param>
     /// <param name="engine">The index engine used to delete removed documents.</param>
+    /// <param name="stateStore">The incremental state store, kept in sync with deletions so it does not
+    /// depend on a future full <see cref="IIndexPipeline.RunAsync"/> stale-sweep to self-correct.</param>
     /// <param name="workspaceContext">Provides workspace root and ID.</param>
     /// <param name="logger">Logger for watch activity.</param>
     public WatchCommandHandler(
         IIndexPipeline pipeline,
         IIndexEngine engine,
+        IIndexStateStore stateStore,
         IWorkspaceContext workspaceContext,
         ILogger<WatchCommandHandler> logger)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(stateStore);
         ArgumentNullException.ThrowIfNull(workspaceContext);
         ArgumentNullException.ThrowIfNull(logger);
         _pipeline = pipeline;
         _engine = engine;
+        _stateStore = stateStore;
         _workspaceContext = workspaceContext;
         _logger = logger;
     }
@@ -126,19 +132,38 @@ internal sealed partial class WatchCommandHandler : ICommandHandler
             var deletions = changes.Where(c => c.ChangeType == WatcherChangeTypes.Deleted).ToList();
             var modifications = changes.Where(c => c.ChangeType != WatcherChangeTypes.Deleted).ToList();
 
-            foreach (var (path, _) in deletions)
+            if (deletions.Count > 0)
             {
-                var docId = BuildDocumentId(path);
-                LogRemovingDocument(_logger, path);
-                await _engine.DeleteAsync(docId, ct).ConfigureAwait(false);
+                foreach (var (path, _) in deletions)
+                {
+                    var assetId = BuildAssetId(path);
+                    LogRemovingDocument(_logger, path);
+                    await _engine.DeleteAsync(DocumentId.From(assetId), ct).ConfigureAwait(false);
+                    await _stateStore.RemoveAsync(assetId, ct).ConfigureAwait(false);
+                }
+
+                // RunSingleAssetAsync (below, for modifications) persists its own state-store
+                // changes; a deletion-only batch has no such call, so it must flush explicitly --
+                // otherwise the removal exists only in memory and is lost if the process exits
+                // before any later modification happens to save it.
+                await _stateStore.SaveAsync(ct).ConfigureAwait(false);
             }
 
             if (modifications.Count > 0)
             {
                 LogReIndexing(_logger, modifications.Count);
-                var options = new IndexPipelineOptions { ForceRebuild = false };
-                var result = await _pipeline.RunAsync(_workspaceContext.WorkspaceId, options, ct).ConfigureAwait(false);
-                LogReIndexComplete(_logger, result.DocumentsIndexed, result.DocumentsSkipped);
+                var indexed = 0;
+                var skipped = 0;
+                foreach (var (path, _) in modifications)
+                {
+                    var result = await _pipeline
+                        .RunSingleAssetAsync(_workspaceContext.WorkspaceId, BuildAssetId(path), ct)
+                        .ConfigureAwait(false);
+                    indexed += result.DocumentsIndexed;
+                    skipped += result.DocumentsSkipped;
+                }
+
+                LogReIndexComplete(_logger, indexed, skipped);
             }
         }
         catch (Exception ex)
@@ -147,12 +172,11 @@ internal sealed partial class WatchCommandHandler : ICommandHandler
         }
     }
 
-    private DocumentId BuildDocumentId(string absolutePath)
+    private AssetId BuildAssetId(string absolutePath)
     {
         // Match the canonical URI format used by FilesystemConnector: filesystem:///relative/path
         var workspaceRoot = _workspaceContext.WorkspaceRoot.FullPath;
         var relative = Path.GetRelativePath(workspaceRoot, absolutePath).Replace('\\', '/');
-        var canonicalUri = AssetId.From(new Uri($"filesystem:///{relative}"));
-        return DocumentId.From(canonicalUri);
+        return AssetId.From(new Uri($"filesystem:///{relative}"));
     }
 }

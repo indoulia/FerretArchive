@@ -19,6 +19,8 @@ internal sealed class FakeWatchPipeline : IIndexPipeline
 {
     internal int CallCount { get; private set; }
 
+    internal List<Ferret.Core.Connectors.AssetId> SingleAssetCalls { get; } = [];
+
     public Task<IndexResult> RunAsync(WorkspaceId workspaceId, IndexPipelineOptions options, CancellationToken ct = default)
     {
         CallCount++;
@@ -33,6 +35,63 @@ internal sealed class FakeWatchPipeline : IIndexPipeline
             Duration = TimeSpan.Zero,
         });
     }
+
+    public Task<IndexResult> RunSingleAssetAsync(WorkspaceId workspaceId, Ferret.Core.Connectors.AssetId assetId, CancellationToken ct = default)
+    {
+        lock (SingleAssetCalls)
+        {
+            SingleAssetCalls.Add(assetId);
+        }
+
+        return Task.FromResult(new IndexResult
+        {
+            AssetsDiscovered = 1,
+            AssetsProcessed = 1,
+            DocumentsIndexed = 1,
+            DocumentsSkipped = 0,
+            Failures = 0,
+            Warnings = 0,
+            Duration = TimeSpan.Zero,
+        });
+    }
+}
+
+internal sealed class FakeWatchStateStore : IIndexStateStore
+{
+    internal List<Ferret.Core.Connectors.AssetId> Removed { get; } = [];
+
+    internal int SaveCount { get; private set; }
+
+    public ValueTask<Ferret.Core.Connectors.AssetFingerprint?> GetFingerprintAsync(Ferret.Core.Connectors.AssetId assetId, CancellationToken ct = default) =>
+        ValueTask.FromResult<Ferret.Core.Connectors.AssetFingerprint?>(null);
+
+    public Task SetFingerprintAsync(Ferret.Core.Connectors.AssetId assetId, Ferret.Core.Connectors.AssetFingerprint fingerprint, CancellationToken ct = default) =>
+        Task.CompletedTask;
+
+    public Task RemoveAsync(Ferret.Core.Connectors.AssetId assetId, CancellationToken ct = default)
+    {
+        lock (Removed)
+        {
+            Removed.Add(assetId);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public ValueTask<IReadOnlySet<Ferret.Core.Connectors.AssetId>> GetAllKeysAsync(CancellationToken ct = default) =>
+        ValueTask.FromResult<IReadOnlySet<Ferret.Core.Connectors.AssetId>>(new HashSet<Ferret.Core.Connectors.AssetId>());
+
+    public Task ClearAsync(CancellationToken ct = default) => Task.CompletedTask;
+
+    public Task SaveAsync(CancellationToken ct = default)
+    {
+        SaveCount++;
+        return Task.CompletedTask;
+    }
+
+    public Task SetIndexedGitHeadAsync(string? gitHeadSha, CancellationToken ct = default) => Task.CompletedTask;
+
+    public ValueTask<string?> GetIndexedGitHeadAsync(CancellationToken ct = default) => ValueTask.FromResult<string?>(null);
 }
 
 internal sealed class FakeWatchIndexEngine : IIndexEngine
@@ -137,6 +196,7 @@ public sealed class WatchCommandHandlerTests
             var handler = new WatchCommandHandler(
                 new FakeWatchPipeline(),
                 new FakeWatchIndexEngine(),
+                new FakeWatchStateStore(),
                 new FakeWatchWorkspaceContext(tmpDir),
                 NullLogger<WatchCommandHandler>.Instance);
             Assert.NotNull(handler);
@@ -157,12 +217,97 @@ public sealed class WatchCommandHandlerTests
             var handler = new WatchCommandHandler(
                 new FakeWatchPipeline(),
                 new FakeWatchIndexEngine(),
+                new FakeWatchStateStore(),
                 new FakeWatchWorkspaceContext(tmpDir),
                 NullLogger<WatchCommandHandler>.Instance);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
             var result = await handler.ExecuteAsync(new FakeWatchFerretContext(cts.Token));
             Assert.Equal(CommandResult.Success, result);
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_FileChanged_CallsRunSingleAssetAsync_NotFullRunAsync()
+    {
+        var tmpDir = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tmpDir);
+        try
+        {
+            var pipeline = new FakeWatchPipeline();
+            var handler = new WatchCommandHandler(
+                pipeline,
+                new FakeWatchIndexEngine(),
+                new FakeWatchStateStore(),
+                new FakeWatchWorkspaceContext(tmpDir),
+                NullLogger<WatchCommandHandler>.Instance);
+
+            using var cts = new CancellationTokenSource();
+            var executeTask = handler.ExecuteAsync(new FakeWatchFerretContext(cts.Token));
+
+            await Task.Delay(100); // let the FileSystemWatcher attach before writing
+            var filePath = Path.Join(tmpDir, "changed.cs");
+            await File.WriteAllTextAsync(filePath, "class Changed {}");
+
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (pipeline.SingleAssetCalls.Count == 0 && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(100);
+            }
+
+            await cts.CancelAsync();
+            await executeTask;
+
+            Assert.Equal(0, pipeline.CallCount);
+            Assert.Contains(pipeline.SingleAssetCalls, id => id.Value.EndsWith("changed.cs", StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(tmpDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_FileDeleted_RemovesFromEngineAndStateStore()
+    {
+        var tmpDir = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tmpDir);
+        var filePath = Path.Join(tmpDir, "todelete.cs");
+        await File.WriteAllTextAsync(filePath, "class ToDelete {}");
+        try
+        {
+            var engine = new FakeWatchIndexEngine();
+            var stateStore = new FakeWatchStateStore();
+            var handler = new WatchCommandHandler(
+                new FakeWatchPipeline(),
+                engine,
+                stateStore,
+                new FakeWatchWorkspaceContext(tmpDir),
+                NullLogger<WatchCommandHandler>.Instance);
+
+            using var cts = new CancellationTokenSource();
+            var executeTask = handler.ExecuteAsync(new FakeWatchFerretContext(cts.Token));
+
+            await Task.Delay(100); // let the FileSystemWatcher attach before deleting
+            File.Delete(filePath);
+
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (stateStore.Removed.Count == 0 && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(100);
+            }
+
+            await cts.CancelAsync();
+            await executeTask;
+
+            Assert.Single(engine.Deleted);
+            Assert.Single(stateStore.Removed);
+            Assert.EndsWith("todelete.cs", stateStore.Removed[0].Value, StringComparison.Ordinal);
+            Assert.True(stateStore.SaveCount > 0, "a deletion-only batch must flush the state store, not leave the removal in memory only");
         }
         finally
         {
