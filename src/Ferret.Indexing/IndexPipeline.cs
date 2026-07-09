@@ -46,6 +46,14 @@ public sealed class IndexPipeline : IIndexPipeline
         _workspaceRootPath = workspaceRootPath;
     }
 
+    private enum AssetOutcome
+    {
+        SkippedFingerprintUnchanged,
+        SkippedContent,
+        Indexed,
+        Failed,
+    }
+
     /// <inheritdoc/>
     public async Task<IndexResult> RunAsync(WorkspaceId workspaceId, IndexPipelineOptions options, CancellationToken ct = default)
     {
@@ -124,106 +132,25 @@ public sealed class IndexPipeline : IIndexPipeline
                 }
 
                 assetsProcessed++;
-
-                // Incremental: skip if fingerprint unchanged since last index run
-                var computedFingerprint = AssetFingerprint.CreateLightweight(
-                    asset.LastModified, asset.SizeBytes ?? 0);
                 seenAssets.Add(asset.Id);
-                var storedFingerprint = await _stateStore
-                    .GetFingerprintAsync(asset.Id, ct).ConfigureAwait(false);
-                if (storedFingerprint == computedFingerprint)
+
+                var outcome = await ProcessAssetAsync(reader, asset, correlationId, ct).ConfigureAwait(false);
+                switch (outcome.Outcome)
                 {
-                    skipped++;
-                    assetsProcessed--;  // undo: this asset was not truly processed
-                    await _eventBus.PublishAsync(
-                        new DocumentSkippedEvent(asset.Id.Value, correlationId)
-                        {
-                            AssetId = asset.Id,
-                            Reason = "Fingerprint unchanged",
-                        },
-                        ct).ConfigureAwait(false);
-                    continue;
-                }
-
-                try
-                {
-                    var stream = await reader.OpenAsync(asset, ct).ConfigureAwait(false);
-                    await using (stream.ConfigureAwait(false))
-                    {
-                        var result = await _dispatcher.DispatchAsync(stream, asset, ct).ConfigureAwait(false);
-
-                        if (result.Kind == ParseResultKind.Success && result.Value is not null)
-                        {
-                            await _engine.WriteAsync(result.Value, ct).ConfigureAwait(false);
-                            indexed++;
-                            await _stateStore
-                                .SetFingerprintAsync(asset.Id, computedFingerprint, ct)
-                                .ConfigureAwait(false);
-
-                            await _eventBus.PublishAsync(
-                                new DocumentIndexedEvent(result.Value.Id.Value, correlationId)
-                                {
-                                    DocumentId = result.Value.Id,
-                                    AssetId = asset.Id,
-                                    MediaType = result.Value.MediaType,
-                                    CharCount = result.Value.PlainText.Length,
-                                },
-                                ct).ConfigureAwait(false);
-                        }
-                        else if (result.Kind is ParseResultKind.Unsupported or ParseResultKind.Empty)
-                        {
-                            skipped++;
-                            var reason = result.Kind == ParseResultKind.Unsupported
-                                ? $"No parser registered for media type '{asset.MediaType}'"
-                                : "Content is empty";
-
-                            await _eventBus.PublishAsync(
-                                new DocumentSkippedEvent(asset.Id.Value, correlationId)
-                                {
-                                    AssetId = asset.Id,
-                                    Reason = reason,
-                                },
-                                ct).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            // ParseResultKind.Failed
-                            failures++;
-                            var msg = result.Diagnostics.Count > 0
-                                ? result.Diagnostics[0].Message
-                                : "Parse failed";
-                            failureMessages.Add($"{asset.DisplayName}: {msg}");
-
-                            await _eventBus.PublishAsync(
-                                new DocumentParsingFailedEvent(asset.Id.Value, correlationId)
-                                {
-                                    AssetId = asset.Id,
-                                    MediaType = asset.MediaType ?? "application/octet-stream",
-                                    ErrorMessage = msg,
-                                },
-                                ct).ConfigureAwait(false);
-                        }
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-#pragma warning disable CA1031 // Do not catch general exception types -- pipeline must be resilient
-                catch (Exception ex)
-#pragma warning restore CA1031
-                {
-                    failures++;
-                    failureMessages.Add($"{asset.DisplayName}: {ex.Message}");
-
-                    await _eventBus.PublishAsync(
-                        new DocumentParsingFailedEvent(asset.Id.Value, correlationId)
-                        {
-                            AssetId = asset.Id,
-                            MediaType = asset.MediaType ?? "application/octet-stream",
-                            ErrorMessage = ex.Message,
-                        },
-                        ct).ConfigureAwait(false);
+                    case AssetOutcome.SkippedFingerprintUnchanged:
+                        skipped++;
+                        assetsProcessed--;  // undo: this asset was not truly processed
+                        break;
+                    case AssetOutcome.SkippedContent:
+                        skipped++;
+                        break;
+                    case AssetOutcome.Indexed:
+                        indexed++;
+                        break;
+                    case AssetOutcome.Failed:
+                        failures++;
+                        failureMessages.Add(outcome.FailureMessage!);
+                        break;
                 }
             }
         }
@@ -268,4 +195,210 @@ public sealed class IndexPipeline : IIndexPipeline
 
         return indexResult;
     }
+
+    /// <inheritdoc/>
+    public async Task<IndexResult> RunSingleAssetAsync(WorkspaceId workspaceId, AssetId assetId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspaceId);
+        ArgumentNullException.ThrowIfNull(assetId);
+
+        var correlationId = CorrelationId.Create(Guid.NewGuid().ToString("N"));
+        var startTick = Environment.TickCount64;
+
+        AssetDescriptor? found = null;
+        IAssetReader? reader = null;
+        var runtimes = await _connectorManager.GetActiveConnectorsAsync(ct).ConfigureAwait(false);
+        foreach (var runtime in runtimes)
+        {
+            if (runtime.Connector is not IAssetSource source)
+            {
+                continue;
+            }
+
+            var candidate = await source.TryGetAsync(assetId, ct).ConfigureAwait(false);
+            if (candidate is not null)
+            {
+                found = candidate;
+                reader = runtime.Connector as IAssetReader;
+                break;
+            }
+        }
+
+        var assetsDiscovered = 0;
+        var assetsProcessed = 0;
+        var indexed = 0;
+        var skipped = 0;
+        var failures = 0;
+        var failureMessages = new List<string>();
+
+        if (found is null)
+        {
+            // No connector resolves this asset any more: treat it as gone (deleted, moved out
+            // of scope, or newly ignored) and self-heal both the index and the incremental
+            // state, mirroring RunAsync's stale-asset cleanup, scoped to this one asset.
+            await _engine.DeleteAsync(DocumentId.From(assetId), ct).ConfigureAwait(false);
+            await _stateStore.RemoveAsync(assetId, ct).ConfigureAwait(false);
+        }
+        else if (found.Kind == AssetKind.File)
+        {
+            assetsDiscovered = 1;
+            await _eventBus.PublishAsync(new DocumentDiscoveredEvent(found.Id.Value, correlationId), ct).ConfigureAwait(false);
+
+            if (reader is null)
+            {
+                skipped = 1;
+                await _eventBus.PublishAsync(
+                    new DocumentSkippedEvent(found.Id.Value, correlationId)
+                    {
+                        AssetId = found.Id,
+                        Reason = "Connector does not implement IAssetReader",
+                    },
+                    ct).ConfigureAwait(false);
+            }
+            else
+            {
+                assetsProcessed = 1;
+                var outcome = await ProcessAssetAsync(reader, found, correlationId, ct).ConfigureAwait(false);
+                switch (outcome.Outcome)
+                {
+                    case AssetOutcome.SkippedFingerprintUnchanged:
+                        skipped = 1;
+                        assetsProcessed = 0;
+                        break;
+                    case AssetOutcome.SkippedContent:
+                        skipped = 1;
+                        break;
+                    case AssetOutcome.Indexed:
+                        indexed = 1;
+                        break;
+                    case AssetOutcome.Failed:
+                        failures = 1;
+                        failureMessages.Add(outcome.FailureMessage!);
+                        break;
+                }
+            }
+        }
+
+        // Directories are structural, not indexable documents (mirrors RunAsync's AssetKind.File
+        // guard): a resolved-but-non-File descriptor is a plain no-op, never indexed so nothing
+        // to delete, distinct from `found is null` above which means genuinely gone.
+        await _stateStore.SaveAsync(ct).ConfigureAwait(false);
+
+        var duration = TimeSpan.FromMilliseconds(Environment.TickCount64 - startTick);
+        return new IndexResult
+        {
+            AssetsDiscovered = assetsDiscovered,
+            AssetsProcessed = assetsProcessed,
+            DocumentsIndexed = indexed,
+            DocumentsSkipped = skipped,
+            Failures = failures,
+            Warnings = 0,
+            Duration = duration,
+            FailureMessages = failureMessages,
+        };
+    }
+
+    /// <summary>Processes one already-discovered, already-fingerprint-eligible asset: opens it,
+    /// dispatches it to the parser, writes the result to the index, and updates the incremental
+    /// state store. Shared by <see cref="RunAsync"/>'s per-asset loop and <see cref="RunSingleAssetAsync"/>
+    /// so the two entry points cannot silently diverge on how an asset is actually processed.</summary>
+    private async Task<AssetProcessingResult> ProcessAssetAsync(
+        IAssetReader reader,
+        AssetDescriptor asset,
+        CorrelationId correlationId,
+        CancellationToken ct)
+    {
+        var computedFingerprint = AssetFingerprint.CreateLightweight(asset.LastModified, asset.SizeBytes ?? 0);
+        var storedFingerprint = await _stateStore.GetFingerprintAsync(asset.Id, ct).ConfigureAwait(false);
+        if (storedFingerprint == computedFingerprint)
+        {
+            await _eventBus.PublishAsync(
+                new DocumentSkippedEvent(asset.Id.Value, correlationId)
+                {
+                    AssetId = asset.Id,
+                    Reason = "Fingerprint unchanged",
+                },
+                ct).ConfigureAwait(false);
+            return new AssetProcessingResult(AssetOutcome.SkippedFingerprintUnchanged, null);
+        }
+
+        try
+        {
+            var stream = await reader.OpenAsync(asset, ct).ConfigureAwait(false);
+            await using (stream.ConfigureAwait(false))
+            {
+                var result = await _dispatcher.DispatchAsync(stream, asset, ct).ConfigureAwait(false);
+
+                if (result.Kind == ParseResultKind.Success && result.Value is not null)
+                {
+                    await _engine.WriteAsync(result.Value, ct).ConfigureAwait(false);
+                    await _stateStore.SetFingerprintAsync(asset.Id, computedFingerprint, ct).ConfigureAwait(false);
+
+                    await _eventBus.PublishAsync(
+                        new DocumentIndexedEvent(result.Value.Id.Value, correlationId)
+                        {
+                            DocumentId = result.Value.Id,
+                            AssetId = asset.Id,
+                            MediaType = result.Value.MediaType,
+                            CharCount = result.Value.PlainText.Length,
+                        },
+                        ct).ConfigureAwait(false);
+
+                    return new AssetProcessingResult(AssetOutcome.Indexed, null);
+                }
+
+                if (result.Kind is ParseResultKind.Unsupported or ParseResultKind.Empty)
+                {
+                    var reason = result.Kind == ParseResultKind.Unsupported
+                        ? $"No parser registered for media type '{asset.MediaType}'"
+                        : "Content is empty";
+
+                    await _eventBus.PublishAsync(
+                        new DocumentSkippedEvent(asset.Id.Value, correlationId)
+                        {
+                            AssetId = asset.Id,
+                            Reason = reason,
+                        },
+                        ct).ConfigureAwait(false);
+
+                    return new AssetProcessingResult(AssetOutcome.SkippedContent, null);
+                }
+
+                // ParseResultKind.Failed
+                var msg = result.Diagnostics.Count > 0 ? result.Diagnostics[0].Message : "Parse failed";
+
+                await _eventBus.PublishAsync(
+                    new DocumentParsingFailedEvent(asset.Id.Value, correlationId)
+                    {
+                        AssetId = asset.Id,
+                        MediaType = asset.MediaType ?? "application/octet-stream",
+                        ErrorMessage = msg,
+                    },
+                    ct).ConfigureAwait(false);
+
+                return new AssetProcessingResult(AssetOutcome.Failed, $"{asset.DisplayName}: {msg}");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+#pragma warning disable CA1031 // Do not catch general exception types -- pipeline must be resilient
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            await _eventBus.PublishAsync(
+                new DocumentParsingFailedEvent(asset.Id.Value, correlationId)
+                {
+                    AssetId = asset.Id,
+                    MediaType = asset.MediaType ?? "application/octet-stream",
+                    ErrorMessage = ex.Message,
+                },
+                ct).ConfigureAwait(false);
+
+            return new AssetProcessingResult(AssetOutcome.Failed, $"{asset.DisplayName}: {ex.Message}");
+        }
+    }
+
+    private readonly record struct AssetProcessingResult(AssetOutcome Outcome, string? FailureMessage);
 }

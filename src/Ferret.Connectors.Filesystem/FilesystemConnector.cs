@@ -84,6 +84,65 @@ public sealed class FilesystemConnector : IConnector, IAssetSource, IAssetReader
     }
 
     /// <inheritdoc/>
+    public Task<AssetDescriptor?> TryGetAsync(AssetId assetId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(assetId);
+        ct.ThrowIfCancellationRequested();
+
+        var relative = Uri.UnescapeDataString(new Uri(assetId.Value).AbsolutePath).TrimStart('/');
+        var segments = relative.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var fullPath = System.IO.Path.Join(_config.RootPath, relative.Replace('/', System.IO.Path.DirectorySeparatorChar));
+
+        AssetDescriptor descriptor;
+        if (Directory.Exists(fullPath))
+        {
+            if (HasHardcodedSkipAncestor(segments, selfIsDirectory: true))
+            {
+                return Task.FromResult<AssetDescriptor?>(null);
+            }
+
+            descriptor = BuildDescriptor(new DirectoryInfo(fullPath), new DirectoryInfo(_config.RootPath), AssetKind.Directory, _mimeTypeResolver);
+        }
+        else if (File.Exists(fullPath))
+        {
+            if (HasHardcodedSkipAncestor(segments, selfIsDirectory: false))
+            {
+                return Task.FromResult<AssetDescriptor?>(null);
+            }
+
+            descriptor = BuildDescriptor(new FileInfo(fullPath), new DirectoryInfo(_config.RootPath), AssetKind.File, _mimeTypeResolver);
+        }
+        else
+        {
+            return Task.FromResult<AssetDescriptor?>(null);
+        }
+
+        var ignoreProvider = new FerretIgnoreProvider(_config.RootPath);
+        if (ignoreProvider.ShouldIgnore(descriptor))
+        {
+            return Task.FromResult<AssetDescriptor?>(null);
+        }
+
+        // WalkDirectoryAsync checks every ancestor directory descriptor and stops descending the
+        // moment one is ignored, so a descendant is never reached at all. A targeted lookup must
+        // replicate that: check every ancestor directory too, not just the leaf asset itself.
+        var root = new DirectoryInfo(_config.RootPath);
+        var ancestor = new DirectoryInfo(fullPath).Parent;
+        while (ancestor is not null && !string.Equals(ancestor.FullName, root.FullName, StringComparison.OrdinalIgnoreCase))
+        {
+            var ancestorDescriptor = BuildDescriptor(ancestor, root, AssetKind.Directory, _mimeTypeResolver);
+            if (ignoreProvider.ShouldIgnore(ancestorDescriptor))
+            {
+                return Task.FromResult<AssetDescriptor?>(null);
+            }
+
+            ancestor = ancestor.Parent;
+        }
+
+        return Task.FromResult<AssetDescriptor?>(descriptor);
+    }
+
+    /// <inheritdoc/>
     public async IAsyncEnumerable<AssetDescriptor> DiscoverAsync(
         AssetDiscoveryOptions options,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
@@ -161,6 +220,24 @@ public sealed class FilesystemConnector : IConnector, IAssetSource, IAssetReader
                 yield return descriptor;
             }
         }
+    }
+
+    /// <summary>Checks whether any ancestor directory segment of a relative path matches
+    /// <see cref="HardcodedSkipDirs"/> — the same rule <see cref="WalkDirectoryAsync"/> applies to
+    /// every <see cref="DirectoryInfo"/> it encounters, replicated here for <see cref="TryGetAsync"/>
+    /// so a targeted lookup can never disagree with a full walk about what is eligible.</summary>
+    private static bool HasHardcodedSkipAncestor(string[] segments, bool selfIsDirectory)
+    {
+        var limit = selfIsDirectory ? segments.Length : segments.Length - 1;
+        for (var i = 0; i < limit; i++)
+        {
+            if (HardcodedSkipDirs.Contains(segments[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static AssetDescriptor BuildDescriptor(
