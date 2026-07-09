@@ -81,3 +81,27 @@ A second independent review, run against the implemented diff (not just the desi
 - `Ferret.Core.Tests` (or wherever `IAssetSource`'s own contract is exercised, if anywhere): default `TryGetAsync` on a bare interface implementation returns `null` — proves the DIM default is non-breaking.
 - `Ferret.Indexing.Tests`: `RunSingleAssetAsync` indexes a changed asset; skips an asset whose fingerprint is unchanged; is a no-op (no delete, no state-store write) when the resolved descriptor's `Kind != AssetKind.File`; deletes+removes-from-state-store an asset that no longer resolves at all; does not touch unrelated state-store entries (no global sweep); default `RunSingleAssetAsync` on a bare `IIndexPipeline` implementation delegates to `RunAsync`.
 - `Ferret.Cli.Tests`: update both existing `WatchCommandHandlerTests.cs` constructor call sites to pass a new `FakeWatchStateStore : IIndexStateStore`; `ProcessChangesAsync` calls `RunSingleAssetAsync` once per distinct changed path instead of `RunAsync`; a deletion calls both `IIndexEngine.DeleteAsync` and `IIndexStateStore.RemoveAsync` with the same asset's `DocumentId`/`AssetId`.
+
+## Closure Report
+
+| Field | Value |
+|---|---|
+| **Status** | Complete — committed locally on `fix/watch-mode-single-asset-reindex-17`, not pushed |
+| **Commit** | `bcf769b` — `fix(watch): reindex only the changed asset instead of the full corpus (#17)` |
+| **Date** | 2026-07-09 |
+
+**Problem.** `ferret watch` ran a full `IIndexPipeline.RunAsync` corpus walk on every debounced file change instead of reindexing just the changed file — measured 23.22s save-to-searchable against this repository, 4.6x over the documented ≤5s target.
+
+**Design.** Added `IAssetSource.TryGetAsync` and `IIndexPipeline.RunSingleAssetAsync` as C# default interface methods (non-breaking additions per ADR-0012 rule 2 — no superseding ADR required), implemented in `FilesystemConnector` and `IndexPipeline`, wired into `WatchCommandHandler` to reindex only the changed path per debounced event.
+
+**Independent review.** Two rounds. Round 1 (design-stage) found 7 issues, all resolved before implementation (ADR-0012 applicability, blast-radius correction via DIM, directory-Kind guard, `AssetId` collision limitation documented as pre-existing, `BuildDocumentId`/`BuildAssetId` split). Round 2 (post-implementation) found 2 real bugs — both fixed: (1) `TryGetAsync` didn't check ignore rules against ancestor directories, only the leaf, diverging from `DiscoverAsync`'s walk semantics; (2) a deletion-only batch's state-store removal was never flushed to disk. Two items were reviewed and deliberately left as-is with rationale recorded above (per-call `SaveAsync` I/O cost; no `IndexingStarted/Completed` events for single-asset runs).
+
+**Implementation.** TDD throughout — every behavior change was preceded by a failing test. New tests: `FilesystemConnectorTryGetTests.cs` (10 cases), `IndexPipelineSingleAssetTests.cs` (7 cases), 4 new/updated cases in `WatchCommandHandlerTests.cs` (including two real `FileSystemWatcher`-driven integration tests, not mocks-only).
+
+**Validation.** Full solution (`dotnet test src/Ferret.sln`) — 0 failures across all 30 test projects, including `Ferret.Architecture.Tests` (31/31 — confirms no ADR-0030 architecture-conformance regression).
+
+**Dogfooding.** Ran `ferret watch` against this repository's own working tree. Measured save-to-searchable latency: **1.10s** (down from the 23.22s baseline — ~21x improvement, comfortably inside the ≤5s target). A second/edit-of-existing-file case and a deletion case were also verified live. One methodology false-alarm during dogfooding (a search for a truncated token returned no results) was root-caused to FTS5's exact-token matching — the same pre-existing, separately-tracked issue #30, not a defect in this fix — confirmed by re-searching the exact full token, which matched.
+
+**AEF impact.** None. No AEF deficiency was encountered that blocked this work; nothing in `aef-platform`/`ai-engineering-framework` was touched, per the Founder's instruction to modify AEF only on objective evidence of a blocking deficiency, escalated first.
+
+**Outstanding decision.** This work is commit-ready but unpushed, on a local branch. Pushing and opening a PR is a shared-state action outside this task's authorized scope without explicit confirmation.
