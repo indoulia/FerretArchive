@@ -25,7 +25,9 @@
 
 `<id-or-name>` accepts either the workspace's UUID or its `name`. Name-based lookup is safe because `workspaces create` rejects a duplicate name (CLI-layer validation — see WIP-012's Self Review; the registry itself does not enforce name uniqueness).
 
-No command is added for "query across workspaces" — that's just `Ferret knowledge query`, unchanged, now scoped by whichever workspace is active.
+~~No command is added for "query across workspaces" — that's just `Ferret knowledge query`, unchanged, now scoped by whichever workspace is active.~~
+
+**Corrected 2026-07-09 (WIP-038 implementation review, superseding the line above):** `Ferret knowledge query` as named here does not exist as a literal command — the real single-repo query surface is `ferret search`, hardwired to one CWD-resolved `IWorkspaceContext`. Making it workspace-registry-aware was found, during the vertical-slice build, to require new infrastructure outside that slice's scope; `16-Vertical-Slice-Validation.md` §"New CLI surface" already validated the actual, shipped answer — an additive `ferret workspaces query <workspace> <text>` command, zero regression risk to `ferret search` — but that correction was never back-ported to this doc until now. Treat `16-Vertical-Slice-Validation.md` as authoritative over this line.
 
 ## 3. New MCP Tools
 
@@ -33,8 +35,9 @@ No command is added for "query across workspaces" — that's just `Ferret knowle
 |---|---|
 | `workspaces_list` | `Ferret workspaces list` |
 | `workspaces_add_reference` | `Ferret workspaces add-reference` |
+| `workspace_query` | `Ferret workspaces query` — **added WIP-038**, MCP parity for the federated-query surface introduced by WIP-SLICE-1/2 (see correction above); previously the only federation-capable surface was the CLI, leaving MCP clients (Ferret's primary AI-agent surface) unable to use federation at all |
 
-Existing MCP knowledge/query tools (§22.3) are unchanged — same rule as §2. Not implemented by WIP-012 — see WIP-014.
+Existing MCP knowledge/query tools (§22.3 — `search`, `ferret_context`) are unchanged — same rule as §2; they remain single-workspace and are not made federation-aware by WIP-038. Not implemented by WIP-012 — see WIP-014 (`workspace_list`) and WIP-038 (`workspace_query`).
 
 ## 4. Decision Log
 
@@ -44,3 +47,5 @@ Existing MCP knowledge/query tools (§22.3) are unchanged — same rule as §2. 
 | New commands scoped strictly to workspace/reference/sharing management | Ready for implementation |
 | CLI group renamed `workspace` → `workspaces` to avoid colliding with the existing per-repo `workspace init`/`status` commands | Ready — corrected during WIP-012 implementation |
 | Workspace lookup by ID or name; name uniqueness enforced at the CLI layer, not the registry | Ready — corrected during WIP-012 implementation |
+| Federated query needs its own additive CLI surface (`workspaces query`) rather than retrofitting `ferret search` | Ready — corrected and validated during WIP-SLICE-1/2 (`16-Vertical-Slice-Validation.md`), back-ported here WIP-038 |
+| MCP tool `workspace_query` added as parity for `workspaces query`, reusing `FederatedKnowledgeStore`/`CachingFederatedKnowledgeStore` unchanged (WIP-030/031 caching, WIP-040 logging preserved) | Ready — WIP-038 |
