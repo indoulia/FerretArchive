@@ -24,6 +24,7 @@ public static class McpModule
         services.AddSingleton<IMcpTool, WorkspaceStatusTool>();
         services.AddSingleton<IMcpTool, ContextTool>();
         services.AddSingleton<IMcpTool, WorkspaceListTool>();
+        services.AddSingleton<IMcpTool, WorkspaceQueryTool>();
 
         services.AddSingleton<IMcpResource, WorkspaceStatusResource>();
         services.AddSingleton<IMcpResource, IndexStatsResource>();
