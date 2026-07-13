@@ -31,7 +31,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Upgrade npm (Trusted Publishing needs npm >= 11.5.1)
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.18.0
 
       - name: Resolve version
         id: v
