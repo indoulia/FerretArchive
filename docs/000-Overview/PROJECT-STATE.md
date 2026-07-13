@@ -7,11 +7,16 @@
 | **Document ID** | PROJECT-STATE |
 | **Version** | 1.0 |
 | **Status** | Living Document — update after every sprint |
-| **Last Updated** | 2026-06-29 |
+| **Last Updated** | 2026-07-13 |
 | **Sprint 9 completed** | 2026-06-28 |
 | **Sprint 10 completed** | 2026-06-28 |
 | **Sprint 11 completed** | 2026-06-28 |
 | **Sprint 12 completed** | 2026-06-29 |
+
+> **Note (2026-07-13):** the sprint-numbered cadence below stops at Sprint 12. From v0.13.0
+> onward, delivery moved to version-numbered releases tracked in `CHANGELOG.md` and, for the
+> v2.0 milestone, the `docs/roadmap/` tree — those are the current sources of truth for
+> post-Sprint-12 work; this document's Sprint 0–12 history is preserved as-is below.
 
 ---
 
@@ -22,9 +27,9 @@
 | **Product name** | Ferret |
 | **Technology platform** | ContextOS |
 | **Tagline** | Ferret — Dig Deep. Deliver Context. |
-| **Current version** | 0.12.0 (Sprint 12 complete) |
-| **Current sprint** | Sprint 13 — Context Assembly (next) |
-| **Test count** | ~1060 (Sprint 12 completion) |
+| **Current version** | 2.0.0 (Workspace Intelligence Platform) — see `CHANGELOG.md` and `docs/012-Releases/v2.0.0.md` |
+| **Current milestone** | v2.0 shipped; v2.1 (federated context optimization) not yet started — see `docs/roadmap/FERRET-PRODUCT-ROADMAP.md` |
+| **Test count** | 1,601 passing (0 failed) as of v2.0.0 |
 | **Platform freeze** | M1 frozen at `v0.6.0-sprint6` (ADR-0012) |
 | **CLI binary** | `ferret` |
 | **Solution** | `src/Ferret.sln` |
@@ -229,13 +234,12 @@ Run `ferret models list` to see the registered AI model catalog, `ferret models 
 
 ---
 
-## Current Sprint: Sprint 13 — Context Assembly
+## Post-Sprint-12 Delivery
 
-**Status:** Not yet started.
-
-**Goal:** Context compression and assembly for AI hosts.
-
-**Expected tag:** `v0.13.0-sprint13`
+**Status:** Sprint-numbered cadence ended after Sprint 12. Delivery since has been
+version-numbered: v0.13.0–v0.16.0 (see `CHANGELOG.md`), then the Workspace Intelligence
+Platform milestone shipped as **v2.0.0** (2026-07-13, see `docs/012-Releases/v2.0.0.md`).
+Full engineering detail for v2.0.0 lives under `docs/roadmap/Workspace-Intelligence/`.
 
 ---
 
@@ -419,7 +423,7 @@ If you are an AI assistant reading this document to continue development on Ferr
 
 1. **Read this document first.** It is the source of truth for current project state.
 2. **M1 is frozen.** Do not modify `Ferret.Core`, `Ferret.Runtime`, `Ferret.Hosting`, `Ferret.Cli`, `Ferret.Events`, or `Ferret.Health` in breaking ways. New types may be added to `Ferret.Core.*` namespaces as non-breaking additions.
-3. **Current sprint is Sprint 13.** Sprints 7–12 are complete. Sprint 12 delivered the AI platform, prompt platform, and `ferret models`/`ferret prompt` CLI commands.
+3. **Sprints 7–12 are complete; the sprint cadence ended there.** Sprint 12 delivered the AI platform, prompt platform, and `ferret models`/`ferret prompt` CLI commands. Delivery since is version-numbered — current version is 2.0.0 (Workspace Intelligence Platform); see `CHANGELOG.md` and `docs/roadmap/` for what's shipped and what's next.
 4. **TDD.** Every task: failing test first, confirm red, implement, verify green.
 5. **System.Text.Json** is available in BCL (.NET 9) — no package reference needed.
 6. **`WorkspaceStatistics.Create`** signature: `(int totalFiles, int indexedFiles, DateTimeOffset lastIndexed, string schemaVersion)` — `lastIndexed` is non-nullable; use `DateTimeOffset.MinValue` as sentinel.
