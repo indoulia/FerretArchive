@@ -8,32 +8,19 @@ Release notes and upgrade guides for Ferret.
 
 | Version | Date | Type | Document |
 |---|---|---|---|
-| _(no releases yet)_ | | | |
+| 2.0.0 | 2026-07-13 | Minor (Workspace Intelligence Platform) | [v2.0.0.md](v2.0.0.md) |
+| 0.16.0 | 2026-07-01 | Patch (Enterprise Content Pack 1) | [CHANGELOG.md](../../CHANGELOG.md#0160--enterprise-content-pack-1--2026-07-01) |
+| 0.15.0 | 2026-06-30 | Patch (Distribution Platform) | [v0.15.0.md](v0.15.0.md) |
+| 0.14.0 | 2026-06-29 | Patch (RC1) | [RC1-Validation-Report.md](RC1-Validation-Report.md) |
 
 ---
 
 ## Release Process
 
-1. Feature freeze on `develop` branch
-2. Create `release/vX.Y` branch
-3. Write release notes using [docs/templates/release.md](../templates/release.md)
-4. Final testing and hardening
-5. Merge to `main` and tag `vX.Y.Z`
-6. GitHub Release created automatically by CI (see `.github/workflows/release.yml`)
-7. NuGet packages published to NuGet.org
-
----
-
-## Versioning Policy
-
-See [docs/templates/versioning.md](../templates/versioning.md) for the full SemVer policy.
-
----
-
-## Planned Milestones
-
-| Milestone | Target | Description |
-|---|---|---|
-| 0.1.0-alpha | TBD | Core runtime + CLI proof of concept |
-| 0.2.0-beta | TBD | MCP integration + plugin system |
-| 1.0.0 | TBD | GA — stable API contract |
+See [RELEASE-PROCESS.md](RELEASE-PROCESS.md) for the maintainer-facing runbook. Summary:
+releases are tagged directly on `main` (no `develop`/`release/vX.Y` branches) once
+`src/Ferret.Cli/Ferret.Cli.csproj`'s `<Version>` is bumped and per-version customer-facing
+notes exist at `docs/012-Releases/v<version>.md`. Tagging triggers `.github/workflows/release.yml`,
+which builds cross-platform assets, creates a draft GitHub Release, and publishes to the
+public `indoulia/ferret-dist` mirror; publishing the draft triggers `npm-publish.yml` to
+publish `@indoulia/ferret` via OIDC Trusted Publishing.
