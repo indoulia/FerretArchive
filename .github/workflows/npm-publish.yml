@@ -27,11 +27,27 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22.22.2'
+          # Node >= 24.7.0 bundles npm >= 11.5.1 (Trusted Publishing's minimum)
+          # already, so no self-upgrade step is needed. `npm install -g npm@X`
+          # to self-upgrade is avoided deliberately: it overwrites the very
+          # npm process running it, which reproducibly broke here with
+          # MODULE_NOT_FOUND: 'promise-retry' inside npm's own dependency
+          # tree, regardless of target version (12.0.1 and 11.18.0 both hit
+          # it -- see the v2.0.0 release history for the two failed attempts).
+          node-version: '24.18.0'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Upgrade npm (Trusted Publishing needs npm >= 11.5.1)
-        run: npm install -g npm@11.18.0
+      - name: Verify bundled npm satisfies Trusted Publishing's minimum
+        run: |
+          v="$(npm --version)"
+          echo "Bundled npm: $v"
+          node -e "
+            const [maj, min] = '$v'.split('.').map(Number);
+            if (maj < 11 || (maj === 11 && min < 5)) {
+              console.error('Bundled npm ' + '$v' + ' is below the >= 11.5.1 Trusted Publishing requirement.');
+              process.exit(1);
+            }
+          "
 
       - name: Resolve version
         id: v
