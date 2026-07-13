@@ -85,9 +85,14 @@ Cuts across Phase 1 (all of it) and a **minimal** subset of Phase 2 — just eno
 - [ ] **WIP-034** Compressor (post-Scorer, federated results only) — `05-Context-Optimization.md` §3 — **Deferred to v2.1**, consequent on WIP-033's deferral (hard dependency, `29`/`30` §5)
 - [ ] **WIP-035** Context assembly cache — `07-Caching.md` §1 — **Deferred to v2.1**, consequent on WIP-033's deferral (hard dependency, `29`/`30` §5)
 
+## Phase 2 — Federation (Epic 5 additions, landed after initial Phase 2 review)
+
+- [x] **WIP-036** Cross-repo BM25 ranking normalization in `FederatedKnowledgeStore.Merge` — `29-Ferret-v2-Release-Master-Plan.md` T5 — done: per-source min-max normalization into [0,1] applied before merging whenever more than one source contributed results (single-source queries unaffected); fixes a confirmed live quality defect where flat `OrderByDescending` over uncalibrated per-source scores favored a large corpus's mid-tier hits over a smaller corpus's most relevant match (found at `dogfood-hub` R=26 scale). Merged via PR #38.
+- [x] **WIP-037** `ferret workspaces remove <id-or-name>` bulk-cleanup command — `29-Ferret-v2-Release-Master-Plan.md` T9 — done: mirrors `remove-repo`/`remove-reference` UX and test pattern; `IWorkspaceRegistry.RemoveAsync` added as a default interface method (no-op default, so existing test doubles compile unmodified), implemented in `FileWorkspaceRegistry` and `CachingWorkspaceRegistry`. Addresses real dogfooding friction (25+ throwaway workspace entries with no removal path). Merged via PR #39.
+
 ## Phase 4 — Observability *(plumbing may start alongside Phase 2)*
 
-- [ ] **WIP-040** New metrics: `workspace.federated_query.duration`, `workspace.reference.resolve.duration`, `context.scope_narrowed.count`, `context.compression.tokens_saved`, `cache.federation.{hit,miss}` — `08-Telemetry.md` §1 *(quick win: independent of Phase 2 landing, just emits zero/no-op values until federation exists)*
+- [x] **WIP-040** New metrics: `workspace.federated_query.duration`, `workspace.reference.resolve.duration`, `context.scope_narrowed.count`, `context.compression.tokens_saved`, `cache.federation.{hit,miss}` — `08-Telemetry.md` §1 *(quick win: independent of Phase 2 landing, just emits zero/no-op values until federation exists)* — done: rescoped per `28-Phase-3-Plus-Roadmap-Adversarial-Review.md` §3.2 from a `Meter`/OpenTelemetry buildout (no consumer existed yet) to structured `ILogger` events on the federation/cache query path (cache hit/miss, per-query duration, per-source skip) — `29-Ferret-v2-Release-Master-Plan.md` T4. Merged via PR #37.
 - [ ] **WIP-041** Usage Ledger sink + `IUsageLedger` — `10-Usage-Ledger.md` §2–3
 - [ ] **WIP-042** Ship ADR-0028's 90-day default retention (no Founder sign-off required; revisit only if usage data warrants a different window)
 - [ ] **WIP-043** Analytics rollup jobs (v1 aggregate set) — `09-Analytics.md` §2
