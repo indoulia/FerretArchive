@@ -5,6 +5,70 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+Nothing yet.
+
+---
+
+## [2.0.0] — Workspace Intelligence Platform — 2026-07-13
+
+### Summary
+
+Ferret v2.0 generalizes the workspace boundary past a single repository. A workspace is now
+a queryable unit of knowledge that can reference other workspaces as read-only dependencies —
+the same relationship a package has to its dependencies. Every existing single-repo workspace
+keeps working unchanged; referencing another workspace is additive, not a migration. Full
+customer-facing notes: `docs/012-Releases/v2.0.0.md`.
+
+### Added
+
+**Workspace registry**
+- `ferret workspaces create/list/show/add-repo/remove-repo/remove` — identity-based (canonicalized
+  git remote, with a documented no-remote/multi-remote fallback), backed by an atomic file-based
+  registry (`IWorkspaceRegistry`).
+- Zero-action migration: every existing single-repo workspace is auto-wrapped into the registry
+  the first time any `ferret workspace` command runs after upgrading.
+
+**Cross-workspace federation**
+- `ferret workspaces add-reference/remove-reference` with cycle detection (DAG enforcement).
+- Federated `ferret workspaces query` — correct, cited results spanning referenced workspaces
+  with zero index duplication on disk.
+- Reference pinning (`pin-reference`/`unpin-reference`), content-hash based, fails closed
+  (excludes only the stale source) when a pinned reference's content changes.
+- `ferret workspaces remove` for bulk cleanup of registered workspaces.
+
+**MCP parity**
+- `workspace_list` and `workspace_query` MCP tools — AI-agent clients get the same federation
+  capability as the CLI.
+
+**Performance**
+- Federated query cache and workspace-reference topology cache, plus cross-workspace
+  pull-based invalidation (state-hash mismatch at query time).
+- Cross-source BM25 ranking normalization in `FederatedKnowledgeStore.Merge` — per-source
+  min-max normalization so results from different workspaces rank comparably (fixes a
+  confirmed quality defect where a large corpus's mid-tier hits outranked a smaller corpus's
+  most relevant match).
+
+**Observability**
+- Structured `ILogger` events on the federation/cache query path (cache hit/miss, per-query
+  duration, per-source skip).
+
+### Fixed
+
+- Federated query cache regression (P3-002) found via real multi-workspace dogfooding at scale,
+  root-caused and fixed before release.
+
+### Known Limitations
+
+- Federated context scope-narrowing and compression (pre-Planner classifier, post-Scorer
+  compressor) are deferred to v2.1 — federated queries return correct, cited results today;
+  further token-cost reduction on very large multi-workspace corpora is not yet implemented.
+- Usage analytics, dashboard, and cost/observability rollups are not part of this release.
+- Multi-role sharing/RBAC is not part of this release, pending a Founder decision on ADR-0029.
+
+---
+
 ## [0.16.0] — Enterprise Content Pack 1 — 2026-07-01
 
 ### Summary
