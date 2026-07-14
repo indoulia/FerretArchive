@@ -104,6 +104,7 @@ public sealed class FilesystemConnectorDiscoveryTests
     [InlineData("obj")]
     [InlineData("packages")]
     [InlineData(".worktrees")]
+    [InlineData(".superpowers")]
     public async Task DiscoverAsync_Skips_BuildAndDependency_Directories(string skipDir)
     {
         using var dir = new TempDirectory();
