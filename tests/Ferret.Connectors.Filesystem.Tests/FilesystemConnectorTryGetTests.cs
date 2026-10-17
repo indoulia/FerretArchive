@@ -55,6 +55,7 @@ public sealed class FilesystemConnectorTryGetTests
     [InlineData("bin")]
     [InlineData("obj")]
     [InlineData("node_modules")]
+    [InlineData(".superpowers")]
     public async Task TryGetAsync_FileUnderHardcodedSkipDir_ReturnsNull(string skipDir)
     {
         using var dir = new TempDirectory();

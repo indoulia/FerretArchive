@@ -11,7 +11,7 @@ public sealed class FilesystemConnector : IConnector, IAssetSource, IAssetReader
     private static readonly ConnectorId FilesystemConnectorId = new("filesystem");
     private static readonly HashSet<string> HardcodedSkipDirs = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".git", ".ferret", ".svn", ".hg", ".worktrees",
+        ".git", ".ferret", ".svn", ".hg", ".worktrees", ".superpowers",
         "node_modules", "bin", "obj", "packages",
     };
 
